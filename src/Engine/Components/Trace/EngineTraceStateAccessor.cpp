@@ -19,8 +19,7 @@ static bool shouldSkip(const GameConfig *config, const ConfigSection *section, c
         entry == &config->settings.MusicLevel ||
         entry == &config->settings.VoiceLevel ||
         entry == &config->settings.SoundLevel ||
-        entry == &config->debug.LogLevel ||
-        entry == &config->debug.NoVideo;
+        entry == &config->debug.LogLevel;
 }
 
 static bool shouldTake(const GameConfig *config, const ConfigSection *section, const AnyConfigEntry *entry) {
@@ -36,7 +35,6 @@ void EngineTraceStateAccessor::prepareForPlayback(GameConfig *config) {
     config->settings.SoundLevel.setValue(0); // Note: still need to call AudioPlayer::UpdateVolumeFromConfig.
     config->window.MouseGrab.setValue(false);
     config->graphics.FPSLimit.setValue(0); // Unlimited
-    config->debug.NoVideo.setValue(true);
 }
 
 std::vector<EventTraceConfigLine> EngineTraceStateAccessor::makeConfigPatch(const GameConfig *config) {
