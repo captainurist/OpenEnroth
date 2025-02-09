@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">OpenEnroth<span id="projectnumber">&#160;92be04a</span>
+   <div id="projectname">OpenEnroth<span id="projectnumber">&#160;c66e9be</span>
    </div>
   </td>
  </tr>
@@ -176,8 +176,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a965a8fdcf5040bd1896edc8676ac146b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b8262746a59e99d929a164193e51283"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a9b8262746a59e99d929a164193e51283">TexturePixelRotateDraw</a> (float u, float <a class="el" href="Json__ut_8cpp.html#a3ed32accd846b2ea66b4133b8b0bacbd">v</a>, <a class="el" href="classGraphicsImage.html">GraphicsImage</a> *img, int time)=0</td></tr>
 <tr class="separator:a9b8262746a59e99d929a164193e51283"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2d0854d69b3ca8f00eb4c6de5db353e2"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a2d0854d69b3ca8f00eb4c6de5db353e2">DrawMonsterPortrait</a> (<a class="el" href="Rect_8h.html#a32073cc1967b01302be5d39e09079649">Recti</a> rc, <a class="el" href="classSpriteFrame.html">SpriteFrame</a> *Portrait_Sprite, int Y_Offset)=0</td></tr>
-<tr class="separator:a2d0854d69b3ca8f00eb4c6de5db353e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4da9c0c67fb869deaaac15af314f89f4"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a4da9c0c67fb869deaaac15af314f89f4">DrawMonsterPortrait</a> (const <a class="el" href="Rect_8h.html#a32073cc1967b01302be5d39e09079649">Recti</a> &amp;rc, <a class="el" href="classSpriteFrame.html">SpriteFrame</a> *Portrait_Sprite, int Y_Offset)=0</td></tr>
+<tr class="separator:a4da9c0c67fb869deaaac15af314f89f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a63cd70e894d26c2b62f493520e14439e"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a63cd70e894d26c2b62f493520e14439e">DrawMasked</a> (float u, float <a class="el" href="Json__ut_8cpp.html#a3ed32accd846b2ea66b4133b8b0bacbd">v</a>, <a class="el" href="classGraphicsImage.html">GraphicsImage</a> *img, int color_dimming_level, <a class="el" href="structColor.html">Color</a> mask=colorTable.White)=0</td></tr>
 <tr class="separator:a63cd70e894d26c2b62f493520e14439e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5530a3d4b88c5b19b828bb6cc9ea22ba"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a5530a3d4b88c5b19b828bb6cc9ea22ba">DrawTextureGrayShade</a> (float u, float <a class="el" href="Json__ut_8cpp.html#a3ed32accd846b2ea66b4133b8b0bacbd">v</a>, <a class="el" href="classGraphicsImage.html">GraphicsImage</a> *a4)=0</td></tr>
@@ -265,6 +265,8 @@ Public Member Functions</h2></td></tr>
 Public Attributes</h2></td></tr>
 <tr class="memitem:acab1616b6952fe429bcbbec7df53752d"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; <a class="el" href="classGameConfig.html">GameConfig</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#acab1616b6952fe429bcbbec7df53752d">config</a> = nullptr</td></tr>
 <tr class="separator:acab1616b6952fe429bcbbec7df53752d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c2ff569b5117aa0259587b39744fa49"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Rect_8h.html#a32073cc1967b01302be5d39e09079649">Recti</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a5c2ff569b5117aa0259587b39744fa49">_zBufferRect</a> { 478, 7, 153, 344 }</td></tr>
+<tr class="separator:a5c2ff569b5117aa0259587b39744fa49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a27af033554e4d5a29a5eec5c5f626882"><td class="memItemLeft" align="right" valign="top">int *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#a27af033554e4d5a29a5eec5c5f626882">pActiveZBuffer</a></td></tr>
 <tr class="separator:a27af033554e4d5a29a5eec5c5f626882"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab783d803aa6adc72a785737161f33fe5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structColor.html">Color</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classRenderer.html#ab783d803aa6adc72a785737161f33fe5">uFogColor</a></td></tr>
@@ -1325,8 +1327,8 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a2d0854d69b3ca8f00eb4c6de5db353e2" name="a2d0854d69b3ca8f00eb4c6de5db353e2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2d0854d69b3ca8f00eb4c6de5db353e2">&#9670;&#160;</a></span>DrawMonsterPortrait()</h2>
+<a id="a4da9c0c67fb869deaaac15af314f89f4" name="a4da9c0c67fb869deaaac15af314f89f4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4da9c0c67fb869deaaac15af314f89f4">&#9670;&#160;</a></span>DrawMonsterPortrait()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1337,7 +1339,7 @@ Public Attributes</h2></td></tr>
         <tr>
           <td class="memname">virtual void Renderer::DrawMonsterPortrait </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="Rect_8h.html#a32073cc1967b01302be5d39e09079649">Recti</a>&#160;</td>
+          <td class="paramtype">const <a class="el" href="Rect_8h.html#a32073cc1967b01302be5d39e09079649">Recti</a> &amp;&#160;</td>
           <td class="paramname"><em>rc</em>, </td>
         </tr>
         <tr>
@@ -1365,7 +1367,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Implemented in <a class="el" href="classBaseRenderer.html#a6653c42563a70fe1833b17e0ca7a9931">BaseRenderer</a>.</p>
+<p>Implemented in <a class="el" href="classBaseRenderer.html#aaf93256a6a715eb1498e30ff48035532">BaseRenderer</a>.</p>
 
 </div>
 </div>
@@ -3211,6 +3213,20 @@ Public Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
+<a id="a5c2ff569b5117aa0259587b39744fa49" name="a5c2ff569b5117aa0259587b39744fa49"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5c2ff569b5117aa0259587b39744fa49">&#9670;&#160;</a></span>_zBufferRect</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="Rect_8h.html#a32073cc1967b01302be5d39e09079649">Recti</a> Renderer::_zBufferRect { 478, 7, 153, 344 }</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="acab1616b6952fe429bcbbec7df53752d" name="acab1616b6952fe429bcbbec7df53752d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acab1616b6952fe429bcbbec7df53752d">&#9670;&#160;</a></span>config</h2>
 
