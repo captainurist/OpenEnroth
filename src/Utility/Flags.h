@@ -155,3 +155,10 @@ typename Flags<Enum>::underlying_type to_underlying(Flags<Enum> flags) {
     return static_cast<typename Flags<Enum>::underlying_type>(flags);
 }
 } // namespace std
+
+template<class Enum>
+struct std::hash<Flags<Enum>> {
+    size_t operator()(Flags<Enum> value) const {
+        return std::hash<typename Flags<Enum>::underlying_type>()(std::to_underlying(value));
+    }
+};
