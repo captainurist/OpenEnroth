@@ -9,6 +9,8 @@
 #include "Library/Geometry/BBox.h"
 #include "Library/Binary/BinarySerialization.h"
 
+#include "EnumSnapshots.h"
+
 /**
  * @file
  *
@@ -177,8 +179,8 @@ struct TileData_MM7 {
     uint16_t tileId;
     uint16_t bitmapId;
     uint16_t tileset;
-    uint16_t section;
-    uint16_t attributes;
+    TileVariant_MM7 variant;
+    uint16_t flags;
 };
 static_assert(sizeof(TileData_MM7) == 26);
 MM_DECLARE_MEMCOPY_SERIALIZABLE(TileData_MM7)

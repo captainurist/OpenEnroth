@@ -108,12 +108,6 @@ void deserialize(const TriBlob &src, TextureFrameTable *dst) {
     assert(!dst->textures.empty());
 }
 
-void deserialize(const TriBlob &src, TileTable *dst) {
-    deserialize(src.mm7, &dst->tiles, tags::append, tags::via<TileData_MM7>);
-
-    assert(!dst->tiles.empty());
-}
-
 void deserialize(const TriBlob &src, SoundList *dst) {
     std::vector<SoundInfo> sounds;
 
@@ -129,4 +123,10 @@ void deserialize(const TriBlob &src, SoundList *dst) {
     // TODO(captainurist): there are duplicate ids in the sounds array, look into it.
     for (const SoundInfo &sound : sounds)
         dst->_mapSounds[sound.uSoundID] = sound;
+}
+
+void deserialize(const TriBlob &src, TileTable *dst) {
+    deserialize(src.mm7, &dst->_tiles, tags::append, tags::via<TileData_MM7>);
+
+    assert(!dst->_tiles.empty());
 }

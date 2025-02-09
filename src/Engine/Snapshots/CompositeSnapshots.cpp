@@ -393,6 +393,9 @@ void reconstruct(const OutdoorLocation_MM7 &src, OutdoorTerrain *dst) {
     dst->_tileMap = Image<int16_t>::copy(dst->_originalTileMap);
 
     dst->recalculateNormals();
+
+    // This should patch up tile variants.
+    // Note that later we'll have snapshot(), and it'll need to do best-effort un-patching. Probably.
 }
 
 void reconstruct(const OutdoorLocation_MM7 &src, OutdoorLocation *dst) {
