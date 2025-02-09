@@ -61,6 +61,7 @@ void OutdoorTerrain::createDebugTerrain() {
 void OutdoorTerrain::changeSeason(int month) {
     assert(month >= 0 && month <= 11);
     std::ranges::transform(_originalTileMap.pixels(), _tileMap.pixels().begin(), [&] (int tileId) {
+        // TODO(captainurist): This should use tile table. Get tileset+variant => transform tileset => get another tileid.
         return tileIdForSeason(tileId, month);
     });
 }
@@ -125,14 +126,14 @@ int OutdoorTerrain::tileIdByGrid(Pointi gridPos) const {
 }
 
 const TileData &OutdoorTerrain::tileDataByGrid(Pointi gridPos) const {
-    return pTileTable->tiles[tileIdByGrid(gridPos)];
+    return pTileTable->tile(tileIdByGrid(gridPos));
 }
 
 Tileset OutdoorTerrain::tilesetByGrid(Pointi gridPos) const {
     if (!contains(_tileMap, gridPos))
         return TILESET_INVALID;
 
-    return pTileTable->tiles[_tileMap[gridPos]].tileset;
+    return pTileTable->tile(_tileMap[gridPos]).tileset;
 }
 
 Tileset OutdoorTerrain::tilesetByPos(const Vec3f &pos) const {
@@ -140,7 +141,7 @@ Tileset OutdoorTerrain::tilesetByPos(const Vec3f &pos) const {
 }
 
 bool OutdoorTerrain::isWaterByGrid(Pointi gridPos) const {
-    return pTileTable->tiles[tileIdByGrid(gridPos)].uAttributes & TILE_WATER;
+    return pTileTable->tile(tileIdByGrid(gridPos)).flags & TILE_WATER;
 }
 
 bool OutdoorTerrain::isWaterByPos(const Vec3f &pos) const {
@@ -148,7 +149,7 @@ bool OutdoorTerrain::isWaterByPos(const Vec3f &pos) const {
 }
 
 bool OutdoorTerrain::isWaterOrShoreByGrid(Pointi gridPos) const {
-    return pTileTable->tiles[tileIdByGrid(gridPos)].uAttributes & (TILE_WATER | TILE_SHORE);
+    return pTileTable->tile(tileIdByGrid(gridPos)).flags & (TILE_WATER | TILE_SHORE);
 }
 
 Vec3f OutdoorTerrain::normalByPos(const Vec3f &pos) const {
@@ -226,6 +227,9 @@ void reconstruct(const OutdoorLocation_MM7 &src, OutdoorTerrain *dst) {
     dst->_tileMap = Image<int16_t>::copy(dst->_originalTileMap);
 
     dst->recalculateNormals();
+
+    // This should patch up tile variants.
+    // Note that later we'll have snapshot(), and it'll need to do best-effort un-patching. Probably.
 }
 
 void OutdoorTerrain::recalculateNormals() {

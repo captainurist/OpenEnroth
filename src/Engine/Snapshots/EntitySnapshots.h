@@ -177,13 +177,11 @@ struct TileData_MM7 {
     uint16_t tileId;
     uint16_t bitmapId;
     uint16_t tileset;
-    uint16_t section;
-    uint16_t attributes;
+    uint16_t variant;
+    uint16_t flags;
 };
 static_assert(sizeof(TileData_MM7) == 26);
 MM_DECLARE_MEMCOPY_SERIALIZABLE(TileData_MM7)
-
-void reconstruct(const TileData_MM7 &src, TileData *dst);
 
 
 struct TextureFrame_MM7 {

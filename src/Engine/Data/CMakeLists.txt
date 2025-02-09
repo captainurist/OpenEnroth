@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 
 set(ENGINE_DATA_SOURCES
-        TileEnumFunctions.cpp)
+        TileEnumFunctions.cpp
+        TileData.cpp)
 
 set(ENGINE_DATA_HEADERS
         AutonoteEnums.h

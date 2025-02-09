@@ -123,12 +123,6 @@ void deserialize(const TriBlob &src, TextureFrameTable *dst) {
     assert(!dst->textures.empty());
 }
 
-void deserialize(const TriBlob &src, TileTable *dst) {
-    deserialize(src.mm7, &dst->tiles, tags::append, tags::via<TileData_MM7>);
-
-    assert(!dst->tiles.empty());
-}
-
 void deserialize(const TriBlob &src, SoundList *dst) {
     std::vector<SoundInfo> sounds;
 

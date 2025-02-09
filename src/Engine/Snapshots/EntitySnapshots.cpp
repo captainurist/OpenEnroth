@@ -289,19 +289,6 @@ void reconstruct(const BLVFace_MM7 &src, BLVFace *dst) {
     dst->uNumVertices = src.numVertices;
 }
 
-void reconstruct(const TileData_MM7 &src, TileData *dst) {
-    reconstruct(src.tileName, &dst->name);
-    dst->name = ascii::toLower(dst->name);
-
-    if (ascii::noCaseStartsWith(dst->name, "wtrdr"))
-        dst->name.insert(0, "h"); // mm7 uses hd water tiles with legacy names
-
-    dst->uTileID = src.tileId;
-    dst->tileset = static_cast<Tileset>(src.tileset);
-    dst->uSection = static_cast<TileVariant>(src.section);
-    dst->uAttributes = static_cast<TileFlags>(src.attributes);
-}
-
 void reconstruct(const TextureFrame_MM7 &src, TextureFrame *dst) {
     reconstruct(src.textureName, &dst->name);
     dst->name = ascii::toLower(dst->name);
