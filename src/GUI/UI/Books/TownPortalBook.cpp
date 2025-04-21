@@ -185,11 +185,10 @@ void GUIWindow_TownPortalBook::clickTown(int townId) {
 
     assert(_casterPid.type() == OBJECT_Character);
 
-    int casterId = _casterPid.id();
-    if (casterId < pParty->pCharacters.size()) {
+    if (_casterPid.id() < pParty->pCharacters.size()) {
         // Town portal cast by character
         CharacterSkillMastery mastery;
-        Character &character = pParty->pCharacters[casterId];
+        Character &character = pParty->pCharacters[_casterPid.id()];
         if (engine->config->debug.AllMagic.value()) {
             mastery = CHARACTER_SKILL_MASTERY_GRANDMASTER;
         } else if (_castFlags & ON_CAST_CastViaScroll) {
@@ -202,7 +201,7 @@ void GUIWindow_TownPortalBook::clickTown(int townId) {
 
         Duration sRecoveryTime = pSpellDatas[SPELL_WATER_TOWN_PORTAL].recovery_per_skill[mastery];
         if (pParty->bTurnBasedModeOn) {
-            pParty->pTurnBasedCharacterRecoveryTimes[casterId] = sRecoveryTime;
+            pParty->pTurnBasedCharacterRecoveryTimes[_casterPid.id()] = sRecoveryTime;
             character.SetRecoveryTime(sRecoveryTime);
             pTurnEngine->ApplyPlayerAction();
         } else {
@@ -210,7 +209,7 @@ void GUIWindow_TownPortalBook::clickTown(int townId) {
         }
     } else {
         // Town portal cast by hireling
-        pParty->pHirelings[casterId - pParty->pCharacters.size()].bHasUsedTheAbility = 1;
+        pParty->pHirelings[_casterPid.id() - pParty->pCharacters.size()].bHasUsedTheAbility = 1;
     }
 
     engine->_messageQueue->addMessageCurrentFrame(UIMSG_Escape, 1, 0);

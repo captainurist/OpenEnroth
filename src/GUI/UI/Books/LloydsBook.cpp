@@ -55,26 +55,26 @@ GUIWindow_LloydsBook::GUIWindow_LloydsBook(Pid casterPid, SpellCastFlags castFla
     pBtn_Book_1 = CreateButton({415, 13}, {39, 36}, 1, 0, UIMSG_LloydBookFlipButton, 0, Io::InputAction::Invalid, localization->GetString(LSTR_SET_BEACON));
     pBtn_Book_2 = CreateButton({415, 48}, {39, 36}, 1, 0, UIMSG_LloydBookFlipButton, 1, Io::InputAction::Invalid, localization->GetString(LSTR_RECALL_BEACON));
 
-    int casterId = casterPid.id();
-    assert(casterId < pParty->pCharacters.size());
+    assert(_casterPid.type() == OBJECT_Character && _casterPid.id() < pParty->pCharacters.size());
+
     if (engine->config->debug.AllMagic.value()) {
-        _maxBeacons = 5;
         _waterMastery = CHARACTER_SKILL_MASTERY_GRANDMASTER;
         _spellLevel = 10;
     } else {
-        CombinedSkillValue skill = pParty->pCharacters[casterId].getActualSkillValue(CHARACTER_SKILL_WATER);
-        _maxBeacons = masteryToMaxBeacons[skill.mastery()];
-        if (castFlags & ON_CAST_CastViaScroll) skill = SCROLL_OR_NPC_SPELL_SKILL_VALUE;
+        CombinedSkillValue skill = pParty->pCharacters[_casterPid.id()].getActualSkillValue(CHARACTER_SKILL_WATER);
+        if (castFlags & ON_CAST_CastViaScroll)
+            skill = SCROLL_OR_NPC_SPELL_SKILL_VALUE;
         _waterMastery = skill.mastery();
         _spellLevel = skill.level();
     }
+    _maxBeacons = masteryToMaxBeacons[_waterMastery];
 
     for (int i = 0; i < _maxBeacons; ++i) {
         CreateButton({lloydsBeaconsPreviewXs[i], lloydsBeaconsPreviewYs[i]}, {92, 68}, 1, UIMSG_HintBeaconSlot, UIMSG_InstallOrRecallBeacon, i);
     }
 
     // purges expired beacons
-    pParty->pCharacters[casterId].cleanupBeacons();
+    pParty->pCharacters[_casterPid.id()].cleanupBeacons();
 }
 
 void GUIWindow_LloydsBook::Update() {
