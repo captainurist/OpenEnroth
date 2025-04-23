@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.5"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OpenEnroth: RawIconFrameTable Struct Reference</title>
+<title>OpenEnroth: src/Engine/Tables/ChestTable.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">OpenEnroth<span id="projectnumber">&#160;3be8dba</span>
+   <div id="projectname">OpenEnroth<span id="projectnumber">&#160;1759916</span>
    </div>
   </td>
  </tr>
@@ -67,65 +67,72 @@ $(function() {
 </div>
 </div>
 
+<div id="nav-path" class="navpath">
+  <ul>
+<li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_3072bc1f55ed1280fe4fbe6b21c78379.html">Engine</a></li><li class="navelem"><a class="el" href="dir_1ffd5d9cbf2cf27fe69ac5a09184dea7.html">Tables</a></li>  </ul>
+</div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#pub-attribs">Public Attributes</a> &#124;
-<a href="structRawIconFrameTable-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">RawIconFrameTable Struct Reference</div></div>
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
+  <div class="headertitle"><div class="title">ChestTable.h File Reference</div></div>
 </div><!--header-->
 <div class="contents">
-
-<p><code>#include &lt;IconFrameTable.h&gt;</code></p>
-<div class="dynheader">
-Inheritance diagram for RawIconFrameTable:</div>
-<div class="dyncontent">
- <div class="center">
-  <img src="structRawIconFrameTable.png" usemap="#RawIconFrameTable_map" alt=""/>
-  <map id="RawIconFrameTable_map" name="RawIconFrameTable_map">
-<area href="classIconFrameTable.html" alt="IconFrameTable" shape="rect" coords="0,56,127,80"/>
-  </map>
-</div></div>
-<table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
-Public Attributes</h2></td></tr>
-<tr class="memitem:a867874786b19c5077d6cbc055157cf44"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="structIconFrameData.html">IconFrameData</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRawIconFrameTable.html#a867874786b19c5077d6cbc055157cf44">frames</a></td></tr>
-<tr class="separator:a867874786b19c5077d6cbc055157cf44"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ab5ec39d23be43143b330768b7707f8"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="classGraphicsImage.html">GraphicsImage</a> * &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRawIconFrameTable.html#a7ab5ec39d23be43143b330768b7707f8">textures</a></td></tr>
-<tr class="separator:a7ab5ec39d23be43143b330768b7707f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<div class="textblock"><code>#include &lt;array&gt;</code><br />
+<code>#include &quot;<a class="el" href="ChestData_8h.html">Engine/Data/ChestData.h</a>&quot;</code><br />
+</div><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:a9ecb1bc4c1e03ce244a6caadc3e48976"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChestTable_8h.html#a9ecb1bc4c1e03ce244a6caadc3e48976">initializeChests</a> ()</td></tr>
+<tr class="separator:a9ecb1bc4c1e03ce244a6caadc3e48976"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a67b3588262fa881dc58d5266b8f7ed84"><td class="memItemLeft" align="right" valign="top">std::array&lt; <a class="el" href="structChestData.html">ChestData</a>, 8 &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ChestTable_8h.html#a67b3588262fa881dc58d5266b8f7ed84">chestTable</a></td></tr>
+<tr class="separator:a67b3588262fa881dc58d5266b8f7ed84"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Member Data Documentation</h2>
-<a id="a867874786b19c5077d6cbc055157cf44" name="a867874786b19c5077d6cbc055157cf44"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a867874786b19c5077d6cbc055157cf44">&#9670;&#160;</a></span>frames</h2>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="a9ecb1bc4c1e03ce244a6caadc3e48976" name="a9ecb1bc4c1e03ce244a6caadc3e48976"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9ecb1bc4c1e03ce244a6caadc3e48976">&#9670;&#160;</a></span>initializeChests()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::vector&lt;<a class="el" href="structIconFrameData.html">IconFrameData</a>&gt; RawIconFrameTable::frames</td>
+          <td class="memname">void initializeChests </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a7ab5ec39d23be43143b330768b7707f8" name="a7ab5ec39d23be43143b330768b7707f8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7ab5ec39d23be43143b330768b7707f8">&#9670;&#160;</a></span>textures</h2>
+<h2 class="groupheader">Variable Documentation</h2>
+<a id="a67b3588262fa881dc58d5266b8f7ed84" name="a67b3588262fa881dc58d5266b8f7ed84"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67b3588262fa881dc58d5266b8f7ed84">&#9670;&#160;</a></span>chestTable</h2>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::vector&lt;<a class="el" href="classGraphicsImage.html">GraphicsImage</a> *&gt; RawIconFrameTable::textures</td>
+          <td class="memname">std::array&lt;<a class="el" href="structChestData.html">ChestData</a>, 8&gt; chestTable</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">extern</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<hr/>The documentation for this struct was generated from the following file:<ul>
-<li>src/Engine/Tables/<a class="el" href="IconFrameTable_8h.html">IconFrameTable.h</a></li>
-</ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

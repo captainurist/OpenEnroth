@@ -21,7 +21,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">OpenEnroth<span id="projectnumber">&#160;3be8dba</span>
+   <div id="projectname">OpenEnroth<span id="projectnumber">&#160;1759916</span>
    </div>
   </td>
  </tr>
@@ -100,14 +100,18 @@ Public Member Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-static-methods" name="pri-static-methods"></a>
 Static Private Member Functions</h2></td></tr>
-<tr class="memitem:a35c04793908df2dd339e98716bede5fb"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a35c04793908df2dd339e98716bede5fb">setConfigValue1</a> (std::string_view sectionName, std::string_view <a class="el" href="GameStarter_8cpp.html#a6d59189d2647b209801ac1b1a83142f5">configName</a>, std::string_view value)</td></tr>
-<tr class="separator:a35c04793908df2dd339e98716bede5fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9dbda77059879c891111d59f1dfa2f60"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a9dbda77059879c891111d59f1dfa2f60">setConfigValue2</a> (std::string_view <a class="el" href="GameStarter_8cpp.html#a6d59189d2647b209801ac1b1a83142f5">configName</a>, std::string_view value)</td></tr>
-<tr class="separator:a9dbda77059879c891111d59f1dfa2f60"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a33fc24e756a791ee691a487289aca087"><td class="memItemLeft" align="right" valign="top">static std::optional&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a33fc24e756a791ee691a487289aca087">getConfigValue1</a> (std::string_view sectionName, std::string_view <a class="el" href="GameStarter_8cpp.html#a6d59189d2647b209801ac1b1a83142f5">configName</a>)</td></tr>
-<tr class="separator:a33fc24e756a791ee691a487289aca087"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1d612b574bab295eb2b69fff422b788d"><td class="memItemLeft" align="right" valign="top">static std::optional&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a1d612b574bab295eb2b69fff422b788d">getConfigValue2</a> (std::string_view <a class="el" href="GameStarter_8cpp.html#a6d59189d2647b209801ac1b1a83142f5">configName</a>)</td></tr>
-<tr class="separator:a1d612b574bab295eb2b69fff422b788d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b2dea0be0c1873ee91e402aab506394"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a9b2dea0be0c1873ee91e402aab506394">entry1</a> (std::string_view entryName)</td></tr>
+<tr class="separator:a9b2dea0be0c1873ee91e402aab506394"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa28197bd7264c89d54ed5a4737ecc1ed"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#aa28197bd7264c89d54ed5a4737ecc1ed">entry2</a> (std::string_view <a class="el" href="classConfigBindings.html#a43c04f235d8097c56d5daf6f96424934">sectionName</a>, std::string_view entryName)</td></tr>
+<tr class="separator:aa28197bd7264c89d54ed5a4737ecc1ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adbeb291956632238242bed9ccabf7c6e"><td class="memItemLeft" align="right" valign="top">static std::vector&lt; <a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> * &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#adbeb291956632238242bed9ccabf7c6e">list</a> (std::string_view <a class="el" href="classConfigBindings.html#a43c04f235d8097c56d5daf6f96424934">sectionName</a>, std::string_view filter)</td></tr>
+<tr class="separator:adbeb291956632238242bed9ccabf7c6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aca8f740d647fce1b9dc9ea502abf084f"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#aca8f740d647fce1b9dc9ea502abf084f">path</a> (<a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *entry)</td></tr>
+<tr class="separator:aca8f740d647fce1b9dc9ea502abf084f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a43c04f235d8097c56d5daf6f96424934"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a43c04f235d8097c56d5daf6f96424934">sectionName</a> (<a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *entry)</td></tr>
+<tr class="separator:a43c04f235d8097c56d5daf6f96424934"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a53083ef4abb085cd89fe24b33d181d75"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classConfigBindings.html#a53083ef4abb085cd89fe24b33d181d75">toggle</a> (<a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *entry)</td></tr>
+<tr class="separator:a53083ef4abb085cd89fe24b33d181d75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Function Documentation</h2>
 <a id="a01b99f1b4a9a23f19965de8c1dc764c9" name="a01b99f1b4a9a23f19965de8c1dc764c9"></a>
@@ -138,8 +142,8 @@ Static Private Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a33fc24e756a791ee691a487289aca087" name="a33fc24e756a791ee691a487289aca087"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a33fc24e756a791ee691a487289aca087">&#9670;&#160;</a></span>getConfigValue1()</h2>
+<a id="a9b2dea0be0c1873ee91e402aab506394" name="a9b2dea0be0c1873ee91e402aab506394"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b2dea0be0c1873ee91e402aab506394">&#9670;&#160;</a></span>entry1()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -148,7 +152,33 @@ Static Private Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::optional&lt; std::string &gt; ConfigBindings::getConfigValue1 </td>
+          <td class="memname"><a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> * ConfigBindings::entry1 </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>entryName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aa28197bd7264c89d54ed5a4737ecc1ed" name="aa28197bd7264c89d54ed5a4737ecc1ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa28197bd7264c89d54ed5a4737ecc1ed">&#9670;&#160;</a></span>entry2()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> * ConfigBindings::entry2 </td>
           <td>(</td>
           <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>sectionName</em>, </td>
@@ -157,7 +187,7 @@ Static Private Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>configName</em>&#160;</td>
+          <td class="paramname"><em>entryName</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -174,8 +204,8 @@ Static Private Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a1d612b574bab295eb2b69fff422b788d" name="a1d612b574bab295eb2b69fff422b788d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1d612b574bab295eb2b69fff422b788d">&#9670;&#160;</a></span>getConfigValue2()</h2>
+<a id="adbeb291956632238242bed9ccabf7c6e" name="adbeb291956632238242bed9ccabf7c6e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adbeb291956632238242bed9ccabf7c6e">&#9670;&#160;</a></span>list()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -184,33 +214,7 @@ Static Private Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::optional&lt; std::string &gt; ConfigBindings::getConfigValue2 </td>
-          <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>configName</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a35c04793908df2dd339e98716bede5fb" name="a35c04793908df2dd339e98716bede5fb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a35c04793908df2dd339e98716bede5fb">&#9670;&#160;</a></span>setConfigValue1()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool ConfigBindings::setConfigValue1 </td>
+          <td class="memname">std::vector&lt; <a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> * &gt; ConfigBindings::list </td>
           <td>(</td>
           <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>sectionName</em>, </td>
@@ -219,13 +223,7 @@ Static Private Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>configName</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>value</em>&#160;</td>
+          <td class="paramname"><em>filter</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -242,8 +240,8 @@ Static Private Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a9dbda77059879c891111d59f1dfa2f60" name="a9dbda77059879c891111d59f1dfa2f60"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9dbda77059879c891111d59f1dfa2f60">&#9670;&#160;</a></span>setConfigValue2()</h2>
+<a id="aca8f740d647fce1b9dc9ea502abf084f" name="aca8f740d647fce1b9dc9ea502abf084f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca8f740d647fce1b9dc9ea502abf084f">&#9670;&#160;</a></span>path()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -252,21 +250,63 @@ Static Private Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool ConfigBindings::setConfigValue2 </td>
+          <td class="memname">std::string ConfigBindings::path </td>
           <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>configName</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
+          <td class="paramtype"><a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *&#160;</td>
+          <td class="paramname"><em>entry</em></td><td>)</td>
           <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>value</em>&#160;</td>
         </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a43c04f235d8097c56d5daf6f96424934" name="a43c04f235d8097c56d5daf6f96424934"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a43c04f235d8097c56d5daf6f96424934">&#9670;&#160;</a></span>sectionName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
         <tr>
+          <td class="memname">std::string ConfigBindings::sectionName </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *&#160;</td>
+          <td class="paramname"><em>entry</em></td><td>)</td>
           <td></td>
-          <td>)</td>
-          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a53083ef4abb085cd89fe24b33d181d75" name="a53083ef4abb085cd89fe24b33d181d75"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a53083ef4abb085cd89fe24b33d181d75">&#9670;&#160;</a></span>toggle()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ConfigBindings::toggle </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classAnyConfigEntry.html">AnyConfigEntry</a> *&#160;</td>
+          <td class="paramname"><em>entry</em></td><td>)</td>
+          <td></td>
         </tr>
       </table>
   </td>
