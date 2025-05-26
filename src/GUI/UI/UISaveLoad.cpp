@@ -144,12 +144,10 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
     }
 
     // GUIWindow::GUIWindow
-    this->uFrameX = saveload_dlg_xs[ingame ? 1 : 0];
-    this->uFrameY = saveload_dlg_ys[ingame ? 1 : 0];
-    this->uFrameWidth = saveload_dlg_zs[ingame ? 1 : 0];
-    this->uFrameHeight = saveload_dlg_ws[ingame ? 1 : 0];
-    this->uFrameZ = uFrameX + uFrameWidth - 1;
-    this->uFrameW = uFrameY + uFrameHeight - 1;
+    this->frameRect.x = saveload_dlg_xs[ingame ? 1 : 0];
+    this->frameRect.y = saveload_dlg_ys[ingame ? 1 : 0];
+    this->frameRect.w = saveload_dlg_zs[ingame ? 1 : 0];
+    this->frameRect.h = saveload_dlg_ws[ingame ? 1 : 0];
 
     DrawText(assets->pFontSmallnum.get(), {25, 199}, colorTable.White, localization->GetString(LSTR_READING));
     render->Present();
@@ -242,14 +240,12 @@ void GUIWindow_Load::Update() {
 static void UI_DrawSaveLoad(bool save) {
     if (pSavegameList->pSavegameUsedSlots[pSavegameList->selectedSlot]) {
         GUIWindow save_load_window;
-        save_load_window.uFrameX = pGUIWindow_CurrentMenu->uFrameX + 240;
-        save_load_window.uFrameWidth = 220;
-        save_load_window.uFrameY = (pGUIWindow_CurrentMenu->uFrameY - assets->pFontSmallnum->GetHeight()) + 157;
-        save_load_window.uFrameZ = save_load_window.uFrameX + 219;
-        save_load_window.uFrameHeight = assets->pFontSmallnum->GetHeight();
-        save_load_window.uFrameW = assets->pFontSmallnum->GetHeight() + save_load_window.uFrameY - 1;
+        save_load_window.frameRect.x = pGUIWindow_CurrentMenu->frameRect.x + 240;
+        save_load_window.frameRect.w = 220;
+        save_load_window.frameRect.y = (pGUIWindow_CurrentMenu->frameRect.y - assets->pFontSmallnum->GetHeight()) + 157;
+        save_load_window.frameRect.h = assets->pFontSmallnum->GetHeight();
         if (pSavegameList->pSavegameThumbnails[pSavegameList->selectedSlot]) {
-            render->DrawTextureNew((pGUIWindow_CurrentMenu->uFrameX + 276) / 640.0f, (pGUIWindow_CurrentMenu->uFrameY + 171) / 480.0f,
+            render->DrawTextureNew((pGUIWindow_CurrentMenu->frameRect.x + 276) / 640.0f, (pGUIWindow_CurrentMenu->frameRect.y + 171) / 480.0f,
                                    pSavegameList->pSavegameThumbnails[pSavegameList->selectedSlot]);
         }
         // Draw map name
@@ -259,7 +255,7 @@ static void UI_DrawSaveLoad(bool save) {
         // Draw date
         CivilTime time = pSavegameList->pSavegameHeader[pSavegameList->selectedSlot].playingTime.toCivilTime();
 
-        save_load_window.uFrameY = pGUIWindow_CurrentMenu->uFrameY + 261;
+        save_load_window.frameRect.y = pGUIWindow_CurrentMenu->frameRect.y + 261;
 
         std::string str = fmt::format(
             "{} {}:{:02} {}\n{} {} {}",
@@ -299,8 +295,8 @@ static void UI_DrawSaveLoad(bool save) {
 
         if (!save) {
             maxSaveFiles = pSavegameList->numSavegameFiles;
-            framex = pGUIWindow_CurrentMenu->uFrameX;
-            framey = pGUIWindow_CurrentMenu->uFrameY;
+            framex = pGUIWindow_CurrentMenu->frameRect.x;
+            framey = pGUIWindow_CurrentMenu->frameRect.y;
         }
 
         if (maxSaveFiles > 7) {
@@ -356,25 +352,25 @@ void MainMenuLoad_EventLoop() {
             break;
         }
         case UIMSG_SaveLoadBtn: {
-            new OnSaveLoad({pGUIWindow_CurrentMenu->uFrameX + 241, pGUIWindow_CurrentMenu->uFrameY + 302}, {61, 28}, pBtnLoadSlot);
+            new OnSaveLoad({pGUIWindow_CurrentMenu->frameRect.x + 241, pGUIWindow_CurrentMenu->frameRect.y + 302}, {61, 28}, pBtnLoadSlot);
             break;
         }
         case UIMSG_DownArrow: {
             if (pSavegameList->saveListPosition + 7 < param) {
                 ++pSavegameList->saveListPosition;
             }
-            new OnButtonClick2({pGUIWindow_CurrentMenu->uFrameX + 215, pGUIWindow_CurrentMenu->uFrameY + 323}, {0, 0}, pBtnDownArrow);
+            new OnButtonClick2({pGUIWindow_CurrentMenu->frameRect.x + 215, pGUIWindow_CurrentMenu->frameRect.y + 323}, {0, 0}, pBtnDownArrow);
             break;
         }
         case UIMSG_ArrowUp: {
             --pSavegameList->saveListPosition;
             if (pSavegameList->saveListPosition < 0)
                 pSavegameList->saveListPosition = 0;
-            new OnButtonClick2({pGUIWindow_CurrentMenu->uFrameX + 215, pGUIWindow_CurrentMenu->uFrameY + 197}, {0, 0}, pBtnArrowUp);
+            new OnButtonClick2({pGUIWindow_CurrentMenu->frameRect.x + 215, pGUIWindow_CurrentMenu->frameRect.y + 197}, {0, 0}, pBtnArrowUp);
             break;
         }
         case UIMSG_Cancel: {
-            new OnCancel3({pGUIWindow_CurrentMenu->uFrameX + 350, pGUIWindow_CurrentMenu->uFrameY + 302}, {61, 28}, pBtnCancel);
+            new OnCancel3({pGUIWindow_CurrentMenu->frameRect.x + 350, pGUIWindow_CurrentMenu->frameRect.y + 302}, {61, 28}, pBtnCancel);
             break;
         }
         case UIMSG_Escape: {

@@ -864,12 +864,10 @@ void GUIWindow_CharacterRecord::CharacterUI_SkillsTab_Draw(Character *player) {
 GUIWindow GUIWindow_CharacterRecord::prepareAwardsWindow() {
     GUIWindow awardsWindow;
 
-    awardsWindow.uFrameX = 12;
-    awardsWindow.uFrameY = 48;
-    awardsWindow.uFrameWidth = 424;
-    awardsWindow.uFrameHeight = 290;
-    awardsWindow.uFrameZ = 435;
-    awardsWindow.uFrameW = 337;
+    awardsWindow.frameRect.x = 12;
+    awardsWindow.frameRect.y = 48;
+    awardsWindow.frameRect.w = 424;
+    awardsWindow.frameRect.h = 290;
 
     return awardsWindow;
 }
@@ -963,9 +961,9 @@ void GUIWindow_CharacterRecord::CharacterUI_AwardsTab_Draw(Character *player) {
         std::string str = getAchievedAwardsString(i);
 
         window.DrawText(assets->pFontArrus.get(), {0, 0}, ui_character_award_color[pAwards[_achievedAwardsList[i]].uPriority % 6], str);
-        window.uFrameY = assets->pFontArrus->CalcTextHeight(str, window.uFrameWidth, 0) + window.uFrameY + 8;
+        window.frameRect.y = assets->pFontArrus->CalcTextHeight(str, window.frameRect.w, 0) + window.frameRect.y + 8;
         currentlyDisplayedElems++;
-        if (window.uFrameY > window.uFrameHeight) {
+        if (window.frameRect.y > window.frameRect.h) {
             break;
         }
     }
@@ -1694,8 +1692,8 @@ void GUIWindow_CharacterRecord::fillAwardsData() {
     for (int i = (_achievedAwardsList.size() - 1); i >= 0; --i) {
         std::string str = getAchievedAwardsString(i);
 
-        y += assets->pFontArrus->CalcTextHeight(str, window.uFrameWidth, 0) + 8;
-        if (y > window.uFrameHeight) {
+        y += assets->pFontArrus->CalcTextHeight(str, window.frameRect.w, 0) + 8;
+        if (y > window.frameRect.h) {
             _scrollableAwardSteps = i + 2;
             break;
         }

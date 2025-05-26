@@ -558,12 +558,10 @@ void GUIWindow_PartyCreation::Update() {
         message_window.sHint = localization->GetString(LSTR_PARTY_UNASSIGNED_POINTS);
         if (pBonusNum < 0)
             message_window.sHint = localization->GetString(LSTR_PARTY_TOO_MUCH_POINTS);
-        message_window.uFrameWidth = 300;
-        message_window.uFrameHeight = 100;
-        message_window.uFrameX = 170;
-        message_window.uFrameY = 140;
-        message_window.uFrameZ = 469;
-        message_window.uFrameW = 239;
+        message_window.frameRect.x = 170;
+        message_window.frameRect.y = 140;
+        message_window.frameRect.w = 300;
+        message_window.frameRect.h = 100;
         message_window.DrawMessageBox(0);
     }
 

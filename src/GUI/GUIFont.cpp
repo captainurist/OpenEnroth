@@ -262,7 +262,7 @@ std::string GUIFont::GetPageTop(std::string_view pInString, GUIWindow *pWindow, 
 
     int text_height = 0;
 
-    std::string text_str = FitTextInAWindow(pInString, pWindow->uFrameWidth, uX);
+    std::string text_str = FitTextInAWindow(pInString, pWindow->frameRect.w, uX);
     int text_length = text_str.length();
     for (int i = 0; i < text_length; ++i) {
         unsigned char c = text_str[i];
@@ -270,7 +270,7 @@ std::string GUIFont::GetPageTop(std::string_view pInString, GUIWindow *pWindow, 
             switch (c) {
             case '\n':  // Line Feed 0A 10
                 text_height += (pData.header.uFontHeight - 3);
-                if (text_height >= (int)(a5 * (pWindow->uFrameHeight - (pData.header.uFontHeight - 3)))) {
+                if (text_height >= (int)(a5 * (pWindow->frameRect.h - (pData.header.uFontHeight - 3)))) {
                     return &text_str[i];
                 }
                 break;
@@ -282,7 +282,7 @@ std::string GUIFont::GetPageTop(std::string_view pInString, GUIWindow *pWindow, 
                 i += 3;
                 break;
             }
-            if (text_height >= (int)(a5 * pWindow->uFrameHeight)) {
+            if (text_height >= (int)(a5 * pWindow->frameRect.h)) {
                 break;
             }
         }
@@ -452,13 +452,13 @@ void GUIFont::DrawText(GUIWindow *window, Pointi position, Color color, std::str
 
     std::string string_begin = std::string(text);
     if (maxHeight == 0) {
-        string_begin = FitTextInAWindow(text, window->uFrameWidth, position.x);
+        string_begin = FitTextInAWindow(text, window->frameRect.w, position.x);
     }
     auto string_end = string_begin;
     auto string_base = string_begin;
 
-    int out_x = position.x + window->uFrameX;
-    int out_y = position.y + window->uFrameY;
+    int out_x = position.x + window->frameRect.x;
+    int out_y = position.y + window->frameRect.y;
 
     if (maxHeight != 0 && out_y + pData.header.uFontHeight > maxHeight) {
         return;
@@ -482,12 +482,12 @@ void GUIFont::DrawText(GUIWindow *window, Pointi position, Color color, std::str
                     Dest[3] = 0;
                     v14 += 3;
                     left_margin = atoi(Dest);
-                    out_x = position.x + window->uFrameX + left_margin;
+                    out_x = position.x + window->frameRect.x + left_margin;
                     break;
                 case '\n':
                     position.y = position.y + pData.header.uFontHeight - 3;
-                    out_y = position.y + window->uFrameY;
-                    out_x = position.x + window->uFrameX + left_margin;
+                    out_y = position.y + window->frameRect.y;
+                    out_x = position.x + window->frameRect.x + left_margin;
                     if (maxHeight != 0) {
                         if (pData.header.uFontHeight + out_y - 3 > maxHeight) {
                             return;
@@ -503,8 +503,8 @@ void GUIFont::DrawText(GUIWindow *window, Pointi position, Color color, std::str
                     Dest[3] = 0;
                     v14 += 3;
                     left_margin = atoi(Dest);
-                    out_x = window->uFrameZ - this->GetLineWidth(&string_base[v14]) - left_margin;
-                    out_y = position.y + window->uFrameY;
+                    out_x = window->frameRect.x + window->frameRect.w - 1 - this->GetLineWidth(&string_base[v14]) - left_margin;
+                    out_y = position.y + window->frameRect.y;
                     if (maxHeight != 0) {
                         if (pData.header.uFontHeight + out_y - 3 > maxHeight) {
                             return;
@@ -605,8 +605,8 @@ int GUIFont::DrawTextInRect(GUIWindow *window, Pointi position, Color color, std
 
     Color draw_color = color;
 
-    int text_pos_x = position.x + window->uFrameX;
-    int text_pos_y = position.y + window->uFrameY;
+    int text_pos_x = position.x + window->frameRect.x;
+    int text_pos_y = position.y + window->frameRect.y;
     for (i = 0; i < pNumLen; ++i) {
         uint8_t v15 = buf[i];
         if (this->IsCharValid(v15)) {
@@ -636,7 +636,7 @@ int GUIFont::DrawTextInRect(GUIWindow *window, Pointi position, Color color, std
                 Str[3] = 0;
                 i += 3;
                 unsigned int v23 = this->GetLineWidth(&buf[i]);
-                text_pos_x = window->uFrameZ - v23 - atoi(Str);
+                text_pos_x = window->frameRect.x + window->frameRect.w - 1 - v23 - atoi(Str);
                 text_pos_y = position.y;
                 break;
             }
@@ -672,12 +672,10 @@ void GUIFont::DrawCreditsEntry(GUIFont *pSecondFont, int uFrameX, int uFrameY, u
                                Color firstColor, Color secondColor, std::string_view pString,
                                GraphicsImage *image) {
     GUIWindow draw_window;
-    draw_window.uFrameHeight = h;
-    draw_window.uFrameW = uFrameY + h - 1;
-    draw_window.uFrameWidth = w;
-    draw_window.uFrameZ = uFrameX + w - 1;
-    draw_window.uFrameX = uFrameX;
-    draw_window.uFrameY = uFrameY;
+    draw_window.frameRect.h = h;
+    draw_window.frameRect.w = w;
+    draw_window.frameRect.x = uFrameX;
+    draw_window.frameRect.y = uFrameY;
 
     std::string work_string = FitTwoFontStringINWindow(pString, pSecondFont, &draw_window, 0, 1);
     std::istringstream stream(work_string);
@@ -762,7 +760,7 @@ std::string GUIFont::FitTwoFontStringINWindow(std::string_view inString, GUIFont
                 currentFont = pFontSecond;
                 break;
               default:
-                if ((lineWidth + currentFont->pData.header.pMetrics[c].uWidth + currentFont->pData.header.pMetrics[c].uLeftSpacing + currentFont->pData.header.pMetrics[c].uRightSpacing) < pWindow->uFrameWidth) {
+                if ((lineWidth + currentFont->pData.header.pMetrics[c].uWidth + currentFont->pData.header.pMetrics[c].uLeftSpacing + currentFont->pData.header.pMetrics[c].uRightSpacing) < pWindow->frameRect.w) {
                     if (i > newlinePos)
                         lineWidth += currentFont->pData.header.pMetrics[c].uLeftSpacing;
                     lineWidth += currentFont->pData.header.pMetrics[c].uWidth;

@@ -182,8 +182,7 @@ void GUIWindow_Dialogue::Update() {
     GUIWindow window = *pDialogueWindow;
     NPCData *pNPC = getNPCData(speakingNpcId);
     NpcType npcType = getNPCType(speakingNpcId);
-    window.uFrameWidth -= 10;
-    window.uFrameZ -= 10;
+    window.frameRect.w -= 10;
     render->DrawTextureNew(477 / 640.0f, 0, game_ui_dialogue_background);
     render->DrawTextureNew(468 / 640.0f, 0, game_ui_right_panel_frame);
     render->DrawTextureNew((pNPCPortraits_x[0][0] - 4) / 640.0f, (pNPCPortraits_y[0][0] - 4) / 480.0f, game_ui_evtnpc);
@@ -253,27 +252,26 @@ void GUIWindow_Dialogue::Update() {
 
     // Message window(Окно сообщения)----
     if (!dialogue_string.empty()) {
-        window.uFrameWidth = game_viewport_width;
-        window.uFrameZ = 452;
+        window.frameRect.w = game_viewport_width;
+        window.frameRect.w = 452 - window.frameRect.x + 1;
         GUIFont *font = assets->pFontArrus.get();
-        pTextHeight = assets->pFontArrus->CalcTextHeight(dialogue_string, window.uFrameWidth, 13) + 7;
+        pTextHeight = assets->pFontArrus->CalcTextHeight(dialogue_string, window.frameRect.w, 13) + 7;
         if (352 - pTextHeight < 8) {
             font = assets->pFontCreate.get();
-            pTextHeight = assets->pFontCreate->CalcTextHeight(dialogue_string, window.uFrameWidth, 13) + 7;
+            pTextHeight = assets->pFontCreate->CalcTextHeight(dialogue_string, window.frameRect.w, 13) + 7;
         }
 
         if (ui_leather_mm7)
             render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7, pTextHeight);
 
         render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap);
-        pDialogueWindow->DrawText(font, {13, 354 - pTextHeight}, colorTable.White, font->FitTextInAWindow(dialogue_string, window.uFrameWidth, 13));
+        pDialogueWindow->DrawText(font, {13, 354 - pTextHeight}, colorTable.White, font->FitTextInAWindow(dialogue_string, window.frameRect.w, 13));
     }
 
     // Right panel(Правая панель)-------
     window = *pDialogueWindow;
-    window.uFrameX = SIDE_TEXT_BOX_POS_X;
-    window.uFrameWidth = SIDE_TEXT_BOX_WIDTH;
-    window.uFrameZ = SIDE_TEXT_BOX_POS_Z;
+    window.frameRect.x = SIDE_TEXT_BOX_POS_X;
+    window.frameRect.w = SIDE_TEXT_BOX_WIDTH;
     for (int i = window.pStartingPosActiveItem; i < window.pStartingPosActiveItem + window.pNumPresenceButton; ++i) {
         GUIButton *pButton = window.GetControl(i);
         if (!pButton) {
@@ -312,7 +310,7 @@ void GUIWindow_Dialogue::Update() {
         GUIButton *pButton = pDialogueWindow->GetControl(i);
         if (!pButton)
             break;
-        all_text_height += assets->pFontArrus->CalcTextHeight(pButton->sLabel, window.uFrameWidth, 0);
+        all_text_height += assets->pFontArrus->CalcTextHeight(pButton->sLabel, window.frameRect.w, 0);
         index++;
     }
 
@@ -326,7 +324,7 @@ void GUIWindow_Dialogue::Update() {
             if (!pButton)
                 break;
             pButton->uY = (unsigned int)(v45 + v42);
-            pTextHeight = assets->pFontArrus->CalcTextHeight(pButton->sLabel, window.uFrameWidth, 0);
+            pTextHeight = assets->pFontArrus->CalcTextHeight(pButton->sLabel, window.frameRect.w, 0);
             pButton->uHeight = pTextHeight;
             v42 = pButton->uY + pTextHeight - 1;
             pButton->uW = v42;

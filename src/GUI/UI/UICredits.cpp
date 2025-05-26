@@ -20,16 +20,13 @@ GUICredits::GUICredits() : GUIWindow(WINDOW_Credits, {0, 0}, render->GetRenderDi
     std::string text{ engine->_gameResourceManager->getEventsFile("credits.txt").string_view() };
 
     GUIWindow credit_window;
-    credit_window.uFrameWidth = 250;
-    credit_window.uFrameHeight = 440;
-    credit_window.uFrameX = 389;
-    credit_window.uFrameY = 19;
+    credit_window.frameRect = Recti(389, 19, 250, 440);
 
     int width = 250;
-    int height = _fontQuick->GetStringHeight2(_fontCChar.get(), text, &credit_window, 0, 1) + 2 * credit_window.uFrameHeight;
+    int height = _fontQuick->GetStringHeight2(_fontCChar.get(), text, &credit_window, 0, 1) + 2 * credit_window.frameRect.h;
     _creditsTexture = GraphicsImage::Create(width, height);
 
-    _fontQuick->DrawCreditsEntry(_fontCChar.get(), 0, credit_window.uFrameHeight, width, height, colorTable.CornFlowerBlue, colorTable.Primrose, text, _creditsTexture);
+    _fontQuick->DrawCreditsEntry(_fontCChar.get(), 0, credit_window.frameRect.h, width, height, colorTable.CornFlowerBlue, colorTable.Primrose, text, _creditsTexture);
 
     render->Update_Texture(_creditsTexture);
 
@@ -43,14 +40,11 @@ GUICredits::~GUICredits() {
 
 void GUICredits::Update() {
     GUIWindow credit_window;
-    credit_window.uFrameWidth = 250;
-    credit_window.uFrameHeight = 440;
-    credit_window.uFrameX = 389;
-    credit_window.uFrameY = 19;
+    credit_window.frameRect = Recti(389, 19, 250, 440);
 
     render->DrawTextureNew(0, 0, _mm6TitleTexture);
-    render->SetUIClipRect(Recti(credit_window.uFrameX, credit_window.uFrameY, credit_window.uFrameWidth, credit_window.uFrameHeight));
-    render->DrawTextureOffset(credit_window.uFrameX, credit_window.uFrameY, 0, _moveY, _creditsTexture);
+    render->SetUIClipRect(credit_window.frameRect);
+    render->DrawTextureOffset(credit_window.frameRect.x, credit_window.frameRect.y, 0, _moveY, _creditsTexture);
     render->ResetUIClipRect();
 
     _moveY += 0.25; // TODO(captainurist): #time gotta be dt-based.
