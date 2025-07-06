@@ -362,6 +362,41 @@ void GameBindings::_registerEnums(sol::state_view &solState, sol::table &table) 
     );
 }
 
+#if 0
+void GameBindings::_registerFunctions(sol::state_view &solState, sol::table &table) const {
+    table["debugCallback"] = sol::as_function([] {
+        // Do nothing. You can write your code here.
+
+        pParty->pCharacters[0].inventory.add(Item(ITEM_ARTIFACT_ELFBANE));
+        pParty->pCharacters[0].inventory.add(Item(ITEM_RELIC_KELEBRIM));
+
+        Item necklace(ITEM_SUN_AMULET);
+        necklace.specialEnchantment = ITEM_ENCHANTMENT_OF_STORM;
+        pParty->pCharacters[0].inventory.add(necklace);
+
+        Item ring(ITEM_ANGELS_RING);
+        ring.specialEnchantment = ITEM_ENCHANTMENT_OF_SHIELDING;
+        pParty->pCharacters[0].inventory.add(ring);
+
+        pParty->pCharacters[0].inventory.add(Item(ITEM_SCROLL_SHIELD));
+
+        pParty->pCharacters[0].inventory.add(Item(ITEM_ARTIFACT_GOVERNORS_ARMOR));
+
+        pParty->pCharacters[0].inventory.add(Item(ITEM_PHYNAXIAN_SHIELD));
+
+        pParty->pCharacters[1].SetCondition(CONDITION_DEAD, false);
+        pParty->pCharacters[2].SetCondition(CONDITION_DEAD, false);
+        pParty->pCharacters[3].SetCondition(CONDITION_DEAD, false);
+
+        pParty->pCharacters[0].setSkillValue(CHARACTER_SKILL_ITEM_ID, CombinedSkillValue(10, CHARACTER_SKILL_MASTERY_GRANDMASTER));
+        pParty->pCharacters[0].setSkillValue(CHARACTER_SKILL_CHAIN, CombinedSkillValue(10, CHARACTER_SKILL_MASTERY_GRANDMASTER));
+        pParty->pCharacters[0].setSkillValue(CHARACTER_SKILL_SHIELD, CombinedSkillValue(10, CHARACTER_SKILL_MASTERY_GRANDMASTER));
+
+        pParty->pCharacters[0].uLevel = 100;
+    });
+}
+#endif
+
 Character *getCharacterByIndex(int characterIndex) {
     if (characterIndex >= 0 && characterIndex < pParty->pCharacters.size()) {
         return &pParty->pCharacters[characterIndex];
