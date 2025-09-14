@@ -220,7 +220,7 @@ var searchData=
   ['_5fmobilelights_217',['_mobileLights',['../classEngine.html#a92dd1dbfa201d31489c64f884f5fddcd',1,'Engine']]],
   ['_5fmode_218',['_mode',['../classNullWindow.html#ab2ac7f4cdd3d701fcccb7097be882395',1,'NullWindow']]],
   ['_5fmouselook_219',['_mouseLook',['../classIo_1_1Mouse.html#ab1538a564244e7823241d2fb27332994',1,'Io::Mouse']]],
-  ['_5fmouselookchange_220',['_mouseLookChange',['../classIo_1_1Mouse.html#a1c209b518c0c0f658e575d67d9f34281',1,'Io::Mouse']]],
+  ['_5fmouserelative_220',['_mouseRelative',['../classNullWindow.html#a24f79cb5eda5f47a5a71b8a3e3d82c52',1,'NullWindow']]],
   ['_5fmovementiconids_221',['_movementIconIds',['../classTurnBasedOverlay.html#add379dfdbfe556f85411e2ea1d68c94b',1,'TurnBasedOverlay']]],
   ['_5fmovey_222',['_moveY',['../classGUICredits.html#ab7b67ea6f4a2416f2337383653234e87',1,'GUICredits']]],
   ['_5fmovie_223',['_movie',['../classVideoState.html#a31da15d6f46eba97debf42f87b66dd0d',1,'VideoState']]],
