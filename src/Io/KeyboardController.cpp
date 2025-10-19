@@ -1,43 +1,44 @@
 #include "KeyboardController.h"
 
-#include "Library/Platform/Interface/PlatformEvents.h"
+#include "Library/Platform/Application/PlatformApplication.h"
 
 KeyboardController::KeyboardController() : PlatformEventFilter({EVENT_KEY_PRESS, EVENT_KEY_RELEASE}) {}
 
-bool KeyboardController::IsKeyPressedThisFrame(PlatformKey key) const {
+KeyState KeyboardController::keyState(PlatformKey key) const {
     if (key == PlatformKey::KEY_NONE)
-        return false;
+        return {};
 
-    return isKeyPressedThisFrame_[key];
+    KeyState result;
+    // If a key was pressed & released, we assume it's down until the end of the frame.
+    result.isDown = _isDown[key] || _pressedThisFrame[key];
+    result.pressedThisFrame = _pressedThisFrame[key];
+    result.millisecondsSincePressed = _currentFrameTimeMs - _pressTimeMs[key];
+    return result;
 }
 
-bool KeyboardController::IsKeyDown(PlatformKey key) const {
-    if (key == PlatformKey::KEY_NONE)
-        return false;
+void KeyboardController::reset() {
+    _isDown.fill(false);
+    _pressedThisFrame.fill(false);
+    _pressTimeMs.fill(_currentFrameTimeMs);
+}
 
-    return isKeyDown_[key] || isKeyPressedThisFrame_[key];
+void KeyboardController::processMessages(PlatformEventHandler *eventHandler) {
+    _currentFrameTimeMs = application()->platform()->tickCount();
+    _pressedThisFrame.fill(false);
+    ProxyEventLoop::processMessages(eventHandler);
 }
 
 bool KeyboardController::keyPressEvent(const PlatformKeyEvent *event) {
-    if (isKeyDown_[event->key])
+    if (_isDown[event->key])
         return false; // Auto repeat
 
-    isKeyDown_[event->key] = true;
-    isKeyPressedThisFrame_[event->key] = true;
+    _isDown[event->key] = true;
+    _pressedThisFrame[event->key] = true;
+    _pressTimeMs[event->key] = _currentFrameTimeMs;
     return false;
 }
 
 bool KeyboardController::keyReleaseEvent(const PlatformKeyEvent *event) {
-    isKeyDown_[event->key] = false;
+    _isDown[event->key] = false;
     return false;
-}
-
-void KeyboardController::processMessages(PlatformEventHandler *eventHandler) {
-    isKeyPressedThisFrame_.fill(false);
-    ProxyEventLoop::processMessages(eventHandler);
-}
-
-void KeyboardController::reset() {
-    isKeyDown_.fill(false);
-    isKeyPressedThisFrame_.fill(false);
 }

@@ -1,27 +1,33 @@
 #pragma once
 
-#include "Utility/IndexedArray.h"
-
+#include "Library/Platform/Application/PlatformApplicationAware.h"
 #include "Library/Platform/Filters/PlatformEventFilter.h"
 #include "Library/Platform/Proxy/ProxyEventLoop.h"
 
-class KeyboardController: public PlatformEventFilter, public ProxyEventLoop {
- public:
-    KeyboardController();
+#include "Utility/IndexedArray.h"
 
-    bool IsKeyPressedThisFrame(PlatformKey key) const;
-    bool IsKeyDown(PlatformKey key) const;
+struct KeyState {
+   bool isDown = false;
+   bool pressedThisFrame = false;
+   int64_t millisecondsSincePressed = 0;
+};
 
-    void reset();
+class KeyboardController : public PlatformEventFilter, public ProxyEventLoop, public PlatformApplicationAware {
+public:
+   KeyboardController();
 
- private:
-    virtual bool keyPressEvent(const PlatformKeyEvent *event) override;
-    virtual bool keyReleaseEvent(const PlatformKeyEvent *event) override;
-    virtual void processMessages(PlatformEventHandler *eventHandler) override;
+   [[nodiscard]] KeyState keyState(PlatformKey key) const;
 
- private:
-    /** Whether the key is currently held down. */
-    IndexedArray<bool, PlatformKey::KEY_FIRST, PlatformKey::KEY_LAST> isKeyDown_ = {{}};
+   void reset();
 
-    IndexedArray<bool, PlatformKey::KEY_FIRST, PlatformKey::KEY_LAST> isKeyPressedThisFrame_ = {{}};
+private:
+   virtual void processMessages(PlatformEventHandler *eventHandler) override;
+   virtual bool keyPressEvent(const PlatformKeyEvent *event) override;
+   virtual bool keyReleaseEvent(const PlatformKeyEvent *event) override;
+
+private:
+   IndexedArray<bool, PlatformKey::KEY_FIRST, PlatformKey::KEY_LAST> _isDown = {{}};
+   IndexedArray<bool, PlatformKey::KEY_FIRST, PlatformKey::KEY_LAST> _pressedThisFrame = {{}};
+   IndexedArray<int64_t, PlatformKey::KEY_FIRST, PlatformKey::KEY_LAST> _pressTimeMs = {{}};
+   int64_t _currentFrameTimeMs = 0;
 };

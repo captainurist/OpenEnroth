@@ -62,10 +62,12 @@ void Io::KeyboardInputHandler::GeneratePausedActions() {
     for (auto action : allInputActions()) {
         bool isTriggered = false;
         for (PlatformKey key : {actionMapping->keyFor(action), actionMapping->gamepadKeyFor(action)}) {
+            KeyState state = controller->keyState(key);
+
             if (triggerModeForInputAction(action) == TRIGGER_ONCE)
-                isTriggered = controller->IsKeyPressedThisFrame(key);
+                isTriggered = state.pressedThisFrame;
             else
-                isTriggered = controller->IsKeyDown(key);
+                isTriggered = state.isDown;
 
             if (isTriggered) {
                 break;
@@ -83,19 +85,18 @@ void Io::KeyboardInputHandler::GenerateGameplayActions() {
     for (InputAction action : allInputActions()) {
         bool isTriggered = false;
         for (PlatformKey key : {actionMapping->keyFor(action), actionMapping->gamepadKeyFor(action)}) {
+            KeyState state = controller->keyState(key);
+
             switch (triggerModeForInputAction(action)) {
             default: assert(false); [[fallthrough]];
             case TRIGGER_ONCE:
-                isTriggered = controller->IsKeyPressedThisFrame(key);
+                isTriggered = state.pressedThisFrame;
                 break;
             case TRIGGER_CONTINUOUSLY:
-                isTriggered = controller->IsKeyDown(key);
+                isTriggered = state.isDown;
                 break;
             case TRIGGER_WITH_KEYREPEAT:
-                // TODO(captainurist): This logic breaks down if we press & release a key every frame.
-                //                     Better way to implement this would be to generate the input actions from inside
-                //                     the event handler.
-                if (controller->IsKeyDown(key)) {
+                if (state.isDown) {
                     resettimer = false;
                     if (!this->keydelaytimer) {
                         isTriggered = true;
@@ -122,7 +123,8 @@ void Io::KeyboardInputHandler::GenerateGameplayActions() {
         this->keydelaytimer = 0_ticks;
     } else {
         // use timer so pacing is consistent across framerates
-        if (this->keydelaytimer < DELAY_TOGGLE_TIME_FIRST) this->keydelaytimer += pEventTimer->dt();
+        if (this->keydelaytimer < DELAY_TOGGLE_TIME_FIRST)
+            this->keydelaytimer += pEventTimer->dt();
     }
 }
 
@@ -467,29 +469,29 @@ void Io::KeyboardInputHandler::SetTextInput(std::string_view text) {
 }
 
 bool Io::KeyboardInputHandler::IsRunKeyToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_SHIFT);
+    return controller->keyState(PlatformKey::KEY_SHIFT).isDown;
 }
 
 bool Io::KeyboardInputHandler::IsTurnStrafingToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_CONTROL);
+    return controller->keyState(PlatformKey::KEY_CONTROL).isDown;
 }
 
 bool Io::KeyboardInputHandler::IsStealingToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_CONTROL);
+    return controller->keyState(PlatformKey::KEY_CONTROL).isDown;
 }
 
 bool Io::KeyboardInputHandler::IsTakeAllToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_CONTROL);
+    return controller->keyState(PlatformKey::KEY_CONTROL).isDown;
 }
 
 bool Io::KeyboardInputHandler::IsAdventurerBackcycleToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_SHIFT);
+    return controller->keyState(PlatformKey::KEY_SHIFT).isDown;
 }
 
 bool Io::KeyboardInputHandler::IsSpellBackcycleToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_SHIFT);
+    return controller->keyState(PlatformKey::KEY_SHIFT).isDown;
 }
 
 bool Io::KeyboardInputHandler::IsCastOnClickToggled() const {
-    return controller->IsKeyDown(PlatformKey::KEY_SHIFT);
+    return controller->keyState(PlatformKey::KEY_SHIFT).isDown;
 }
