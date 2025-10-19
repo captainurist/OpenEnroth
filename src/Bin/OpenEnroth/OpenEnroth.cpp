@@ -72,13 +72,19 @@ void migrateTrace(OpenEnrothOptions::Migration migration, EventTrace *trace) {
         return;
     case OpenEnrothOptions::MIGRATION_DROP_REDUNDANT_KEY_EVENTS:
         return trace::migrateDropRedundantKeyEvents(trace);
-    case OpenEnrothOptions::MIGRATION_COLLAPSE_KEY_EVENTS:
+    case OpenEnrothOptions::MIGRATION_DROP_PRESS_RELEASE_FOR_CONTINUOUS_ACTIONS:
         for (InputAction inputAction : allInputActions())
             if (triggerModeForInputAction(inputAction) != TRIGGER_ONCE)
                 keys.insert(keyboardActionMapping->keyFor(inputAction));
-        return trace::migrateCollapseKeyPressReleaseEvents(keys, trace);
+        return trace::migrateDropKeyPressReleaseEvents(keys, trace);
     case OpenEnrothOptions::MIGRATION_DROP_PAINT_AFTER_ACTIVATE:
         return trace::migrateDropPaintAfterActivate(trace);
+    case OpenEnrothOptions::MIGRATION_TIGHTEN_KEY_EVENTS:
+        keys.insert(PlatformKey::KEY_X); // Jump.
+        keys.insert(PlatformKey::KEY_SPACE); // Interact.
+        keys.insert(PlatformKey::KEY_PAGEDOWN); // Look up.
+        keys.insert(PlatformKey::KEY_DELETE); // Look down.
+        return trace::migrateTightenKeyEvents(keys, trace);
     }
 }
 
