@@ -97,6 +97,44 @@ void trace::migrateDropKeyPressReleaseEvents(const std::unordered_set<PlatformKe
     trace->events = mergeFromFrames(std::move(frames));
 }
 
+void trace::migrateDropKeyReleasePressEvents(const std::unordered_set<PlatformKey> &keys, EventTrace *trace) {
+    // Non-negative value => in-frame index, negative value => released in another frame.
+    std::unordered_map<PlatformKey, int> releaseIndexByKey;
+
+    auto frames = splitIntoFrames(std::move(trace->events));
+    for (auto &frame : frames) {
+        for (size_t i = 0; i < frame.size(); i++) {
+            if (frame[i]->type != EVENT_KEY_PRESS && frame[i]->type != EVENT_KEY_RELEASE)
+                continue;
+
+            PlatformKey key = static_cast<PlatformKeyEvent *>(frame[i].get())->key;
+            if (!keys.contains(key))
+                continue;
+
+            if (frame[i]->type == EVENT_KEY_RELEASE) {
+                assert(!releaseIndexByKey.contains(key));
+                releaseIndexByKey[key] = i;
+            } else {
+                // Not every press has a release before it.
+                if (releaseIndexByKey.contains(key)) {
+                    int index = releaseIndexByKey[key];
+                    releaseIndexByKey.erase(key);
+
+                    if (index >= 0) {
+                        // Release & press inside a single frame, should drop.
+                        frame[index].reset();
+                        frame[i].reset();
+                    }
+                }
+            }
+        }
+
+        for (auto &[_, index] : releaseIndexByKey)
+            index = -1;
+    }
+    trace->events = mergeFromFrames(std::move(frames));
+}
+
 void trace::migrateDropPaintAfterActivate(EventTrace *trace) {
     std::queue<int64_t> paintTicks;
     bool dropNextPaintEvent = false;

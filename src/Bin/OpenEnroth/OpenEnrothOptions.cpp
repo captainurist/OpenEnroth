@@ -19,6 +19,7 @@ MM_DEFINE_ENUM_SERIALIZATION_FUNCTIONS(OpenEnrothOptions::Migration, CASE_INSENS
     {OpenEnrothOptions::MIGRATION_NONE, "none"},
     {OpenEnrothOptions::MIGRATION_DROP_REDUNDANT_KEY_EVENTS, "drop_redundant_key_events"},
     {OpenEnrothOptions::MIGRATION_DROP_PRESS_RELEASE_FOR_CONTINUOUS_ACTIONS, "drop_press_release_for_continuous_actions"},
+    {OpenEnrothOptions::MIGRATION_DROP_RELEASE_PRESS_FOR_CONTINUOUS_ACTIONS, "drop_release_press_for_continuous_actions"},
     {OpenEnrothOptions::MIGRATION_DROP_PAINT_AFTER_ACTIVATE, "drop_paint_after_activate"},
     {OpenEnrothOptions::MIGRATION_TIGHTEN_KEY_EVENTS, "tighten_key_events"}
 })

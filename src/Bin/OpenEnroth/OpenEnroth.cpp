@@ -77,6 +77,11 @@ void migrateTrace(OpenEnrothOptions::Migration migration, EventTrace *trace) {
             if (triggerModeForInputAction(inputAction) != TRIGGER_ONCE)
                 keys.insert(keyboardActionMapping->keyFor(inputAction));
         return trace::migrateDropKeyPressReleaseEvents(keys, trace);
+    case OpenEnrothOptions::MIGRATION_DROP_RELEASE_PRESS_FOR_CONTINUOUS_ACTIONS:
+        for (InputAction inputAction : allInputActions())
+            if (triggerModeForInputAction(inputAction) != TRIGGER_ONCE)
+                keys.insert(keyboardActionMapping->keyFor(inputAction));
+        return trace::migrateDropKeyReleasePressEvents(keys, trace);
     case OpenEnrothOptions::MIGRATION_DROP_PAINT_AFTER_ACTIVATE:
         return trace::migrateDropPaintAfterActivate(trace);
     case OpenEnrothOptions::MIGRATION_TIGHTEN_KEY_EVENTS:

@@ -25,6 +25,14 @@ void migrateDropRedundantKeyEvents(EventTrace *trace);
 void migrateDropKeyPressReleaseEvents(const std::unordered_set<PlatformKey> &keys, EventTrace *trace);
 
 /**
+ * Drops key release & press events if they are inside a single frame.
+ *
+ * @param keys                      Set of keys to migrate events for.
+ * @param[in, out] trace            Trace to update.
+ */
+void migrateDropKeyReleasePressEvents(const std::unordered_set<PlatformKey> &keys, EventTrace *trace);
+
+/**
  * Drops one paint event after each `EVENT_WINDOW_ACTIVATE` and fixes frame timings.
  *
  * @param[in, out] trace            Trace to update.
