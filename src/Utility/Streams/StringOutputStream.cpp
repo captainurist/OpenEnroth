@@ -21,7 +21,7 @@ void StringOutputStream::write(const void *data, size_t size) {
     assert(_target);
 
     _target->resize(_target->size() + size);
-    memcpy(_target->data() + _target->size() - size, data, size);
+    memcpy(_target->data() + _target->size() - size, data, size); // TODO(captainurist): #cpp23 resize_and_overwrite
 }
 
 void StringOutputStream::flush() {

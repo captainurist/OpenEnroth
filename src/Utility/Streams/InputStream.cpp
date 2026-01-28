@@ -20,7 +20,7 @@ std::string InputStream::readAll(size_t maxSize) {
     while (true) {
         size_t oldSize = result.size();
         size_t newSize = std::min(oldSize + chunkSize, maxSize);
-        result.resize(newSize); // TODO(captainurist): Use C++23 resize_and_overwrite.
+        result.resize(newSize); // TODO(captainurist): #cpp23 Use C++23 resize_and_overwrite.
 
         size_t bytesRequested = newSize - oldSize;
         size_t bytesRead = read(result.data() + oldSize, bytesRequested);
