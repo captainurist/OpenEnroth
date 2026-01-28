@@ -19,11 +19,16 @@ void BlobOutputStream::open(Blob *target, std::string_view displayPath) {
     assert(target);
 
     closeInternal();
-    assert(Embedded::get().empty());
 
     _target = target;
     _displayPath = displayPath;
-    base_type::open(&Embedded::get());
+}
+
+void BlobOutputStream::write(const void *data, size_t size) {
+    assert(_target);
+
+    _buffer.resize(_buffer.size() + size);
+    memcpy(_buffer.data() + _buffer.size() - size, data, size); // TODO(captainurist): #cpp23 resize_and_overwrite
 }
 
 void BlobOutputStream::flush() {
@@ -31,7 +36,7 @@ void BlobOutputStream::flush() {
 
     // Flushing does the only sane thing, which is just making a copy. Shouldn't really be necessary in any of the
     // possible use cases.
-    *_target = Blob::fromString(Embedded::get()).withDisplayPath(_displayPath);
+    *_target = Blob::fromString(_buffer).withDisplayPath(_displayPath);
 }
 
 void BlobOutputStream::close() {
@@ -46,8 +51,8 @@ void BlobOutputStream::closeInternal() {
     if (!_target)
         return;
 
-    base_type::close();
-    *_target = Blob::fromString(std::move(Embedded::get())).withDisplayPath(_displayPath);
+    *_target = Blob::fromString(std::move(_buffer)).withDisplayPath(_displayPath);
     _target = nullptr;
+    _buffer = {};
     _displayPath = {};
 }

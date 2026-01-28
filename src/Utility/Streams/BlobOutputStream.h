@@ -7,8 +7,7 @@
 
 #include "StringOutputStream.h"
 
-class BlobOutputStream : private Embedded<std::string>, public StringOutputStream {
-    using base_type = StringOutputStream;
+class BlobOutputStream : public OutputStream {
  public:
     BlobOutputStream();
     explicit BlobOutputStream(Blob *target, std::string_view displayPath = {});
@@ -16,14 +15,18 @@ class BlobOutputStream : private Embedded<std::string>, public StringOutputStrea
 
     void open(Blob *target, std::string_view displayPath = {});
 
+    virtual void write(const void *data, size_t size) override;
     virtual void flush() override;
     virtual void close() override;
     [[nodiscard]] virtual std::string displayPath() const override;
+
+    using OutputStream::write;
 
  private:
     void closeInternal();
 
  private:
     Blob *_target = nullptr;
-    std::string _displayPath; // TODO(captainurist): Use StringOutputStream's _displayPath instead.
+    std::string _buffer;
+    std::string _displayPath;
 };
