@@ -40,7 +40,7 @@ var searchData=
   ['findclosestactor_37',['FindClosestActor',['../structstru319.html#a4ab96c293aef4104c607572590186c0d',1,'stru319']]],
   ['findfreeindex_38',['findFreeIndex',['../classInventory.html#aa8b31c7b7db4c09cb1884940460b726b',1,'Inventory']]],
   ['findfreeitemslot_39',['FindFreeItemSlot',['../structChest.html#a0dd1fd02c3d5e4cfcfe0f584018cb59b',1,'Chest']]],
-  ['findmonsterbytexturename_40',['FindMonsterByTextureName',['../structMonsterStats.html#aea778d25b8c145de882db37b35b245e0',1,'MonsterStats']]],
+  ['findmonsterbyinternalname_40',['FindMonsterByInternalName',['../structMonsterStats.html#a22f1a371d7a84525ef34f41386e7fa2c',1,'MonsterStats']]],
   ['findspace_41',['findSpace',['../classInventory.html#ab6f1ea13c1f99fa8596fdc78f3d3d7c9',1,'Inventory::findSpace(Sizei size) const'],['../classInventory.html#a38f3fe6c94225432bb425d16bfa6fb81',1,'Inventory::findSpace(const Item &amp;item) const'],['../classChestInventory.html#ab6f1ea13c1f99fa8596fdc78f3d3d7c9',1,'ChestInventory::findSpace(Sizei size) const'],['../classChestInventory.html#a38f3fe6c94225432bb425d16bfa6fb81',1,'ChestInventory::findSpace(const Item &amp;item) const'],['../classCharacterInventory.html#a38f3fe6c94225432bb425d16bfa6fb81',1,'CharacterInventory::findSpace(const Item &amp;item) const'],['../classCharacterInventory.html#ab6f1ea13c1f99fa8596fdc78f3d3d7c9',1,'CharacterInventory::findSpace(Sizei size) const']]],
   ['findspanningvariant_42',['findSpanningVariant',['../classTileGenerator.html#aac8ac0a049a49f5c5adbe6b210201021',1,'TileGenerator']]],
   ['finish_43',['finish',['../classEngineDeterministicComponent.html#abe8828fbdd4ee0207d0d5e7a6c2d0b15',1,'EngineDeterministicComponent']]],
