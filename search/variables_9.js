@@ -45,7 +45,7 @@ var searchData=
   ['is_5ffog_42',['is_fog',['../classEngine.html#acfbc7ab994a8c97c5517ec42f4f240c8',1,'Engine']]],
   ['is_5fgive_43',['is_give',['../classEvtInstruction.html#a89bf751bf8715d12c8a6e18bd15702c1',1,'EvtInstruction']]],
   ['is_5finitializer_5flist_5fv_44',['is_initializer_list_v',['../namespacedetail.html#a2a68b6b2f889f935ff44d6e1ab8a693c',1,'detail']]],
-  ['is_5fmemcopy_5fserializable_5fv_45',['is_memcopy_serializable_v',['../MemCopySerialization_8h.html#a1020e86d4a3a2f3646c53d69404efd48',1,'MemCopySerialization.h']]],
+  ['is_5fmemcopy_5fserializable_5fv_45',['is_memcopy_serializable_v',['../BinaryFwd_8h.html#a1020e86d4a3a2f3646c53d69404efd48',1,'BinaryFwd.h']]],
   ['is_5fmonthly_46',['is_monthly',['../classEvtInstruction.html#ad1ae70c9f3da680a089acf6bdb7eb61b',1,'EvtInstruction']]],
   ['is_5fnop_47',['is_nop',['../classEvtInstruction.html#a4d240da2d581efad8a95d02dc4859271',1,'EvtInstruction']]],
   ['is_5fon_48',['is_on',['../classEvtInstruction.html#a5b68f09a714090962bcc3aa65ba4d271',1,'EvtInstruction']]],
