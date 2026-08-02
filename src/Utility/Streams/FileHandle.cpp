@@ -22,8 +22,6 @@
 
 #ifdef _WINDOWS
 #   include "Utility/String/Encoding.h"
-
-static_assert(std::is_same_v<FileHandle::NativeHandle, HANDLE>);
 #endif
 
 namespace {
@@ -31,17 +29,6 @@ namespace {
 // Largest chunk we pass to a single OS-level read / write. `ReadFile` / `WriteFile` on Windows take a `DWORD`, and
 // Linux caps a single `read` / `write` at slightly under 2Gb.
 constexpr size_t MAX_IO_CHUNK_SIZE = 0x7ffff000;
-
-/**
- * Closes a native handle, ignoring errors. Used on error paths where we already have an exception to throw.
- */
-void closeNativeHandle(FileHandle::NativeHandle handle) {
-#ifdef _WINDOWS
-    CloseHandle(handle);
-#else
-    ::close(handle);
-#endif
-}
 
 } // namespace
 
@@ -58,6 +45,10 @@ void FileHandle::openForWriting(std::string_view path) {
 }
 
 void FileHandle::open(std::string_view path, bool forWriting) {
+#ifdef _WINDOWS
+    static_assert(std::is_same_v<NativeHandle, HANDLE>);
+#endif
+
     // Reopening an already open handle is a caller bug, but closing here means that we never leak in release builds.
     assert(!isOpen());
     (void) close();
@@ -94,35 +85,28 @@ void FileHandle::open(std::string_view path, bool forWriting) {
         Exception::throwFromOsError(displayPath);
 #endif
 
-    // The handle is ours from this point on, so make sure it's released if anything below throws.
-    bool succeeded = false;
-    MM_AT_SCOPE_EXIT(if (!succeeded) closeNativeHandle(handle));
-
-    if (!forWriting) {
-#ifdef _WINDOWS
-        // `CreateFileW` already refuses directories, but pipes and consoles do open, and `size()` makes no sense for
-        // them. Reject here so that we behave the same way on all platforms.
-        if (GetFileType(handle) != FILE_TYPE_DISK)
-            throw Exception("{}: not a regular file", displayPath);
-#else
-        struct stat fileStat = {};
-        if (fstat(handle, &fileStat) != 0)
-            Exception::throwFromOsError(displayPath);
-
-        // `open` happily opens directories for reading, but reading from them always fails. Fail early instead, so
-        // that we behave the same way on all platforms - `CreateFileW` just fails for directories.
-        if (S_ISDIR(fileStat.st_mode))
-            Exception::throwFromErrc(std::errc::is_a_directory, displayPath);
-
-        // Same for pipes and character devices - `st_size` is meaningless for those, so `size()` would lie.
-        if (!S_ISREG(fileStat.st_mode))
-            throw Exception("{}: not a regular file", displayPath);
-#endif
-    }
-
-    succeeded = true;
     _handle = handle;
     _displayPath = std::move(displayPath);
+
+    // The handle is ours from this point on, so make sure it's released if the validation below throws.
+    bool succeeded = false;
+    MM_AT_SCOPE_EXIT(if (!succeeded) (void) close());
+
+#ifndef _WINDOWS
+    // `open` happily opens directories for reading, but reading from them always fails. Fail early instead, so that
+    // we behave the same way on all platforms - `CreateFileW` just fails for directories. Anything else that's not a
+    // regular file is fine, it just doesn't have a meaningful size, see `size()`.
+    if (!forWriting) {
+        struct stat fileStat = {};
+        if (fstat(_handle, &fileStat) != 0)
+            Exception::throwFromOsError(_displayPath);
+
+        if (S_ISDIR(fileStat.st_mode))
+            Exception::throwFromErrc(std::errc::is_a_directory, _displayPath);
+    }
+#endif
+
+    succeeded = true;
 }
 
 int FileHandle::close() {
@@ -216,12 +200,15 @@ void FileHandle::write(const void *data, size_t size) {
 size_t FileHandle::size() const {
     assert(isOpen());
 
-    uint64_t result;
 #ifdef _WINDOWS
+    // Pipes, consoles and the like have no size, and `GetFileSizeEx` fails on them.
+    if (GetFileType(_handle) != FILE_TYPE_DISK)
+        return static_cast<size_t>(-1);
+
     LARGE_INTEGER nativeSize;
     if (!GetFileSizeEx(_handle, &nativeSize))
         Exception::throwFromOsError(_displayPath);
-    result = static_cast<uint64_t>(nativeSize.QuadPart);
+    uint64_t result = static_cast<uint64_t>(nativeSize.QuadPart);
 
     // `InputStream` uses `size_t` for stream positions, so there's no way for us to handle files larger than 4Gb on
     // 32-bit builds. This can't trigger on POSIX, where `st_size` is an `off_t` that's never wider than `size_t`.
@@ -231,7 +218,13 @@ size_t FileHandle::size() const {
     struct stat fileStat = {};
     if (fstat(_handle, &fileStat) != 0)
         Exception::throwFromOsError(_displayPath);
-    result = static_cast<uint64_t>(fileStat.st_size);
+
+    // `st_size` is only meaningful for regular files - it's always 0 for pipes and character devices, which would
+    // make us look like an empty file.
+    if (!S_ISREG(fileStat.st_mode))
+        return static_cast<size_t>(-1);
+
+    uint64_t result = static_cast<uint64_t>(fileStat.st_size);
 #endif
 
     return static_cast<size_t>(result);

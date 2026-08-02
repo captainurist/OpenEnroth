@@ -555,6 +555,42 @@ UNIT_TEST(FileInputStream, UnicodePath) {
     EXPECT_THROW_MESSAGE(FileInputStream in2(missing), missing);
 }
 
+#ifndef _WINDOWS
+UNIT_TEST(FileInputStream, UnsizedStream) {
+    // `/dev/null` has no size and reads as empty. It used to open as a zero-sized stream, which happened to look the
+    // same - what matters is that `size()` says "unknown" rather than lying about a concrete size.
+    FileInputStream in("/dev/null");
+    EXPECT_TRUE(in.isOpen());
+    EXPECT_EQ(in.size(), static_cast<size_t>(-1));
+
+    // `/dev/null` reads as end-of-stream straight away, so nothing is consumed and `position()` never moves.
+    char buf[10] = {};
+    EXPECT_EQ(in.position(), 0u);
+    EXPECT_EQ(in.read(buf, sizeof(buf)), 0u);
+    EXPECT_EQ(in.position(), 0u);
+    EXPECT_EQ(in.readAll(), ""); // Goes through the unsized branch of `readAll`.
+    EXPECT_EQ(in.position(), 0u);
+    EXPECT_EQ(in.skip(1000), 0u); // Read-and-discard, since we can't seek to an unknown end.
+    EXPECT_EQ(in.position(), 0u);
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, UnsizedStreamReadAndSkip) {
+    // `/dev/zero` is an endless stream of zero bytes - unsized, but unlike `/dev/null` it actually has data, so it
+    // exercises the read-and-discard skip path properly.
+    FileInputStream in("/dev/zero", 64);
+    EXPECT_EQ(in.size(), static_cast<size_t>(-1));
+
+    char buf[10] = {};
+    EXPECT_EQ(in.read(buf, sizeof(buf)), 10u);
+    EXPECT_EQ(std::string_view(buf, 10), std::string(10, '\0'));
+
+    EXPECT_EQ(in.skip(5000), 5000u); // Exceeds the buffer, so it goes through the read-and-discard path.
+    EXPECT_EQ(in.position(), 5010u);
+    in.close();
+}
+#endif
+
 UNIT_TEST(FileInputStream, PositionResetsOnReopen) {
     const char *tmpfile1 = "tmp_pos_reopen1_test.txt";
     const char *tmpfile2 = "tmp_pos_reopen2_test.txt";

@@ -150,12 +150,14 @@ UNIT_TEST(FileHandle, OpenMissingFileThrows) {
 }
 
 #ifndef _WINDOWS
-UNIT_TEST(FileHandle, OpenNonRegularFileForReadingThrows) {
-    // `st_size` is always 0 for a character device, which would make `size()` lie. Windows rejects these too, via
-    // `GetFileType`, so the two platforms stay in sync.
+UNIT_TEST(FileHandle, NonRegularFileIsUnsized) {
+    // `st_size` is 0 for a character device, which would make it look like an empty file. Report it as unsized
+    // instead, so that `InputStream` falls back to reading until end of stream.
     FileHandle handle;
-    EXPECT_THROW(handle.openForReading("/dev/null"), Exception);
-    EXPECT_FALSE(handle.isOpen());
+    handle.openForReading("/dev/null");
+    EXPECT_TRUE(handle.isOpen());
+    EXPECT_EQ(handle.size(), static_cast<size_t>(-1));
+    EXPECT_EQ(handle.close(), 0);
 }
 #endif
 

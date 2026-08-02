@@ -61,6 +61,21 @@ size_t FileInputStream::_underflow(void *data, size_t size, Buffer *buffer) {
     } else if (data) {
         // Large read: read directly into the target buffer, leaving our buffer alone.
         return _handle.read(data, size);
+    } else if (this->size() == static_cast<size_t>(-1)) {
+        // Large skip on an unsized stream - we have no idea where the end is, and it might not even be seekable, so
+        // just read the data in and drop it on the floor. Note that we're reusing `_buf` as scratch here, which is
+        // safe because the window it holds has already been fully consumed.
+        if (!_buf)
+            _buf = std::make_unique_for_overwrite<char[]>(_bufSize);
+
+        size_t bytesSkipped = 0;
+        while (bytesSkipped < size) {
+            size_t bytesRead = _handle.read(_buf.get(), std::min(size - bytesSkipped, _bufSize));
+            if (bytesRead == 0)
+                break; // End of stream.
+            bytesSkipped += bytesRead;
+        }
+        return bytesSkipped;
     } else {
         // Large skip: seek. Clamping is needed because seeking past the end of a file is not an error. Note that the
         // file might have grown since its size was sampled at open time, so this has to saturate rather than

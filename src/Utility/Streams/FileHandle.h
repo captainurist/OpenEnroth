@@ -14,14 +14,6 @@
  */
 class FileHandle {
  public:
-#ifdef _WINDOWS
-    using NativeHandle = void *; // This is a `HANDLE`, but we don't want to drag `<Windows.h>` into a header.
-    static constexpr NativeHandle INVALID_HANDLE = nullptr; // `CreateFileW` never returns `NULL` on success.
-#else
-    using NativeHandle = int;
-    static constexpr NativeHandle INVALID_HANDLE = -1; // Note that `0` is `stdin`, and thus is a valid handle.
-#endif
-
     FileHandle() = default;
     ~FileHandle();
 
@@ -63,7 +55,8 @@ class FileHandle {
      * Queries the current size of the file. This is not cached - callers that need a stable value should sample it
      * once and keep it, like `FileInputStream` does.
      *
-     * @return                          Size of the file, in bytes.
+     * @return                          Size of the file in bytes, or `size_t(-1)` for pipes, sockets and
+     *                                  character devices, which don't have one.
      * @throws Exception                On error.
      */
     [[nodiscard]] size_t size() const;
@@ -103,6 +96,14 @@ class FileHandle {
     void seek(size_t position);
 
  private:
+#ifdef _WINDOWS
+    using NativeHandle = void *; // This is a `HANDLE`, but we don't want to drag `<Windows.h>` into a header.
+    static constexpr NativeHandle INVALID_HANDLE = nullptr; // `CreateFileW` never returns `NULL` on success.
+#else
+    using NativeHandle = int;
+    static constexpr NativeHandle INVALID_HANDLE = -1; // Note that `0` is `stdin`, and thus is a valid handle.
+#endif
+
     void open(std::string_view path, bool forWriting);
 
  private:
