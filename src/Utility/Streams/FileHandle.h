@@ -22,12 +22,6 @@ class FileHandle {
     static constexpr NativeHandle INVALID_HANDLE = -1; // Note that `0` is `stdin`, and thus is a valid handle.
 #endif
 
-    /**
-     * Largest chunk that can be passed to a single OS-level read / write. `ReadFile` / `WriteFile` on Windows take
-     * a `DWORD`, and Linux caps a single `read` / `write` at slightly under 2Gb.
-     */
-    static constexpr size_t MAX_IO_CHUNK_SIZE = 0x7ffff000;
-
     FileHandle() = default;
     ~FileHandle();
 
@@ -38,21 +32,17 @@ class FileHandle {
      * Opens an existing file for reading. Fails if the path doesn't point to a regular file.
      *
      * @param path                      Absolute UTF-8 path of the file to open.
-     * @param maxChunkSize              Largest chunk to pass to a single OS-level read, see `MAX_IO_CHUNK_SIZE`.
-     *                                  Lowering this is only useful in tests, as it's the only way to make the
-     *                                  chunking loop run on a small file.
      * @throws Exception                On error.
      */
-    void openForReading(std::string_view path, size_t maxChunkSize = MAX_IO_CHUNK_SIZE);
+    void openForReading(std::string_view path);
 
     /**
      * Creates or truncates a file, and opens it for writing.
      *
      * @param path                      Absolute UTF-8 path of the file to open.
-     * @param maxChunkSize              Largest chunk to pass to a single OS-level write, see `openForReading`.
      * @throws Exception                On error.
      */
-    void openForWriting(std::string_view path, size_t maxChunkSize = MAX_IO_CHUNK_SIZE);
+    void openForWriting(std::string_view path);
 
     /**
      * Closes this handle. Never throws - the handle is always released, and closing errors are reported through the
@@ -70,19 +60,13 @@ class FileHandle {
     [[nodiscard]] bool isOpen() const { return _handle != INVALID_HANDLE; }
 
     /**
-     * @return                          Size of the file as sampled at open time. Always `0` for write handles.
+     * Queries the current size of the file. This is not cached - callers that need a stable value should sample it
+     * once and keep it, like `FileInputStream` does.
+     *
+     * @return                          Size of the file, in bytes.
+     * @throws Exception                On error.
      */
-    [[nodiscard]] size_t size() const { return _size; }
-
-    /**
-     * @return                          Current OS file offset, tracked internally, without a syscall.
-     */
-    [[nodiscard]] size_t offset() const { return _offset; }
-
-    /**
-     * @return                          Saturating `size() - offset()`. Only meaningful for read handles.
-     */
-    [[nodiscard]] size_t bytesLeft() const { return _size > _offset ? _size - _offset : 0; }
+    [[nodiscard]] size_t size() const;
 
     /**
      * @return                          Path this handle was opened with, to be used for debugging and error reporting.
@@ -110,20 +94,18 @@ class FileHandle {
     void write(const void *data, size_t size);
 
     /**
-     * Moves the file offset forward.
+     * Moves the file position. Note that seeking past the end of a file is not an error, so it's up to the caller to
+     * clamp if that's not what's wanted.
      *
-     * @param size                      Number of bytes to seek forward by.
+     * @param position                  New position, in bytes from the beginning of the file.
      * @throws Exception                On error.
      */
-    void seekForward(size_t size);
+    void seek(size_t position);
 
  private:
-    void open(std::string_view path, bool forWriting, size_t maxChunkSize);
+    void open(std::string_view path, bool forWriting);
 
  private:
     NativeHandle _handle = INVALID_HANDLE;
-    size_t _size = 0;
-    size_t _offset = 0;
-    size_t _maxChunkSize = MAX_IO_CHUNK_SIZE;
     std::string _displayPath;
 };

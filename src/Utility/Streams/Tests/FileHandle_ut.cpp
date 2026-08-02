@@ -20,10 +20,7 @@ static void writeFile(std::string_view path, std::string_view data) {
     EXPECT_EQ(handle.close(), 0);
 }
 
-// Deliberately not a divisor of the data size below, so that the last iteration of the chunking loop is a partial one.
-static constexpr size_t TEST_CHUNK_SIZE = 7;
-
-UNIT_TEST(FileHandle, ChunkedWriteThenReadReassembles) {
+UNIT_TEST(FileHandle, WriteThenReadRoundTrip) {
     const char *tmpfile = "tmp_fh_chunked.bin";
     ScopedTestFileSlot tmp(tmpfile);
 
@@ -31,57 +28,20 @@ UNIT_TEST(FileHandle, ChunkedWriteThenReadReassembles) {
 
     {
         FileHandle handle;
-        handle.openForWriting(tmpfile, TEST_CHUNK_SIZE);
+        handle.openForWriting(tmpfile);
         handle.write(data.data(), data.size());
-        EXPECT_EQ(handle.offset(), data.size());
         EXPECT_EQ(handle.close(), 0);
     }
 
     EXPECT_EQ(std::filesystem::file_size(tmpfile), data.size());
 
     FileHandle handle;
-    handle.openForReading(tmpfile, TEST_CHUNK_SIZE);
+    handle.openForReading(tmpfile);
     EXPECT_EQ(handle.size(), data.size());
 
     std::string buffer(data.size(), '\0');
     EXPECT_EQ(handle.read(buffer.data(), buffer.size()), data.size());
     EXPECT_EQ(buffer, data);
-    EXPECT_EQ(handle.offset(), data.size());
-    EXPECT_EQ(handle.close(), 0);
-}
-
-UNIT_TEST(FileHandle, ChunkedReadPastEof) {
-    const char *tmpfile = "tmp_fh_chunkedeof.bin";
-    ScopedTestFileSlot tmp(tmpfile);
-
-    std::string data = makeData(5000);
-    writeFile(tmpfile, data);
-
-    // Asking for more than the file holds must still reassemble every chunk, and then stop at end of file.
-    FileHandle handle;
-    handle.openForReading(tmpfile, TEST_CHUNK_SIZE);
-    std::string buffer(data.size() + 1000, '\0');
-    EXPECT_EQ(handle.read(buffer.data(), buffer.size()), data.size());
-    EXPECT_EQ(buffer.substr(0, data.size()), data);
-    EXPECT_EQ(handle.bytesLeft(), 0u);
-    EXPECT_EQ(handle.close(), 0);
-}
-
-UNIT_TEST(FileHandle, ChunkedSeekAndRead) {
-    const char *tmpfile = "tmp_fh_chunkedseek.bin";
-    ScopedTestFileSlot tmp(tmpfile);
-
-    std::string data = makeData(5000);
-    writeFile(tmpfile, data);
-
-    // Seeking is a single syscall regardless of the chunk size, so the offset must stay in sync with chunked reads.
-    FileHandle handle;
-    handle.openForReading(tmpfile, TEST_CHUNK_SIZE);
-    handle.seekForward(1000);
-    std::string buffer(500, '\0');
-    EXPECT_EQ(handle.read(buffer.data(), buffer.size()), 500u);
-    EXPECT_EQ(buffer, data.substr(1000, 500));
-    EXPECT_EQ(handle.offset(), 1500u);
     EXPECT_EQ(handle.close(), 0);
 }
 
@@ -96,12 +56,10 @@ UNIT_TEST(FileHandle, ReadPastEofReturnsShort) {
     char buffer[100] = {};
     EXPECT_EQ(handle.read(buffer, sizeof(buffer)), 10u);
     EXPECT_EQ(handle.read(buffer, sizeof(buffer)), 0u);
-    EXPECT_EQ(handle.offset(), 10u);
-    EXPECT_EQ(handle.bytesLeft(), 0u);
     EXPECT_EQ(handle.close(), 0);
 }
 
-UNIT_TEST(FileHandle, SizeOffsetAndBytesLeft) {
+UNIT_TEST(FileHandle, Size) {
     const char *tmpfile = "tmp_fh_size.bin";
     ScopedTestFileSlot tmp(tmpfile);
     writeFile(tmpfile, "hello world!");
@@ -109,18 +67,29 @@ UNIT_TEST(FileHandle, SizeOffsetAndBytesLeft) {
     FileHandle handle;
     handle.openForReading(tmpfile);
     EXPECT_EQ(handle.size(), 12u);
-    EXPECT_EQ(handle.offset(), 0u);
-    EXPECT_EQ(handle.bytesLeft(), 12u);
 
     char buffer[5] = {};
     EXPECT_EQ(handle.read(buffer, sizeof(buffer)), 5u);
-    EXPECT_EQ(handle.size(), 12u); // Size is a snapshot taken at open time.
-    EXPECT_EQ(handle.offset(), 5u);
-    EXPECT_EQ(handle.bytesLeft(), 7u);
+    EXPECT_EQ(handle.size(), 12u); // Reading doesn't move it.
     EXPECT_EQ(handle.close(), 0);
 }
 
-UNIT_TEST(FileHandle, SeekForward) {
+UNIT_TEST(FileHandle, SizeIsNotCached) {
+    const char *tmpfile = "tmp_fh_livesize.bin";
+    ScopedTestFileSlot tmp(tmpfile);
+    writeFile(tmpfile, "hello");
+
+    FileHandle handle;
+    handle.openForReading(tmpfile);
+    EXPECT_EQ(handle.size(), 5u);
+
+    writeFile(tmpfile, "hello world!"); // Rewrite the file behind our back.
+
+    EXPECT_EQ(handle.size(), 12u); // `size()` queries the OS every time, so it sees the new size.
+    EXPECT_EQ(handle.close(), 0);
+}
+
+UNIT_TEST(FileHandle, Seek) {
     const char *tmpfile = "tmp_fh_seek.bin";
     ScopedTestFileSlot tmp(tmpfile);
 
@@ -131,16 +100,12 @@ UNIT_TEST(FileHandle, SeekForward) {
     handle.openForReading(tmpfile);
 
     char buffer[10] = {};
-    handle.seekForward(0); // Should be a no-op.
-    EXPECT_EQ(handle.offset(), 0u);
     EXPECT_EQ(handle.read(buffer, sizeof(buffer)), 10u);
     EXPECT_EQ(std::string_view(buffer, 10), data.substr(0, 10));
 
-    handle.seekForward(490);
-    EXPECT_EQ(handle.offset(), 500u);
+    handle.seek(500);
     EXPECT_EQ(handle.read(buffer, sizeof(buffer)), 10u);
     EXPECT_EQ(std::string_view(buffer, 10), data.substr(500, 10));
-    EXPECT_EQ(handle.offset(), 510u);
     EXPECT_EQ(handle.close(), 0);
 }
 
@@ -186,8 +151,8 @@ UNIT_TEST(FileHandle, OpenMissingFileThrows) {
 
 #ifndef _WINDOWS
 UNIT_TEST(FileHandle, OpenNonRegularFileForReadingThrows) {
-    // `size()` is sampled once at open time, which is meaningless for a character device - `st_size` is 0 there, so
-    // this used to look like an empty file. Windows fails these in `GetFileSizeEx` anyway.
+    // `st_size` is always 0 for a character device, which would make `size()` lie. Windows rejects these too, via
+    // `GetFileType`, so the two platforms stay in sync.
     FileHandle handle;
     EXPECT_THROW(handle.openForReading("/dev/null"), Exception);
     EXPECT_FALSE(handle.isOpen());

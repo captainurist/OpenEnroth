@@ -41,13 +41,10 @@ void FileInputStream::open(std::string_view path, size_t bufferSize) {
 size_t FileInputStream::_underflow(void *data, size_t size, Buffer *buffer) {
     assert(buffer->remaining() == 0);
 
-    // Note that in refill mode (`size == 0`, called from `readUntilSlow`) `position()` over-reports by
-    // `buffer->used()`, and thus must not be used here. This is why the code below goes through `_handle`.
-    //
-    // Note that this also holds after a failed read - `FileHandle` only throws from operations that didn't move the
-    // file offset, reporting a partial transfer as a short read instead.
-    assert(size == 0 || _handle.offset() == position());
 
+    // Note that in refill mode (`size == 0`, called from `readUntilSlow`) `position()` over-reports by
+    // `buffer->used()`, because the base class folds it into `_bufferBase` before calling us. The branches below that
+    // use `position()` are never reached in that mode.
     if (size < _bufSize) {
         // Small read/skip/refill: fill the internal buffer.
         if (!_buf)
@@ -65,9 +62,12 @@ size_t FileInputStream::_underflow(void *data, size_t size, Buffer *buffer) {
         // Large read: read directly into the target buffer, leaving our buffer alone.
         return _handle.read(data, size);
     } else {
-        // Large skip: seek. Clamping is needed because seeking past the end of a file succeeds on POSIX.
-        size_t bytesToSkip = std::min(size, _handle.bytesLeft());
-        _handle.seekForward(bytesToSkip);
+        // Large skip: seek. Clamping is needed because seeking past the end of a file is not an error. Note that the
+        // file might have grown since its size was sampled at open time, so this has to saturate rather than
+        // underflow.
+        size_t bytesLeft = this->size() > position() ? this->size() - position() : 0;
+        size_t bytesToSkip = std::min(size, bytesLeft);
+        _handle.seek(position() + bytesToSkip);
         return bytesToSkip;
     }
 }
