@@ -86,7 +86,7 @@ class ShrinkingInputStream : public InputStream {
     size_t _pos = 0;
 };
 
-UNIT_TEST(InputStream, PositionAfterReadUntilAtEof) {
+UNIT_TEST(InputStream, PositionAfterReadUntilAtEnd) {
     // The delimiter is never found, so `readUntilSlow` runs out of data and hits the default `_underflow`.
     MemoryInputStream in("hello", 5);
     EXPECT_EQ(in.readUntil('\0'), "hello");

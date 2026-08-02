@@ -45,7 +45,7 @@ UNIT_TEST(FileHandle, WriteThenReadRoundTrip) {
     EXPECT_EQ(handle.close(), 0);
 }
 
-UNIT_TEST(FileHandle, ReadPastEofReturnsShort) {
+UNIT_TEST(FileHandle, ReadStopsAtEndOfFile) {
     const char *tmpfile = "tmp_fh_eof.bin";
     ScopedTestFileSlot tmp(tmpfile);
     writeFile(tmpfile, "0123456789");
