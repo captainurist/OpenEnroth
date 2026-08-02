@@ -56,6 +56,68 @@ class UnsizedInputStream : public InputStream {
     size_t _pos = 0;
 };
 
+/**
+ * An input stream that lies about its size, reporting more bytes than it will ever hand out. Used for testing that
+ * `readAll` doesn't return uninitialized data when a sized stream turns out to be shorter than it claimed - which is
+ * what happens when a file shrinks after `FileInputStream` has sampled its size.
+ */
+class ShrinkingInputStream : public InputStream {
+ public:
+    ShrinkingInputStream(const void *data, size_t size, size_t reportedSize) :
+        _data(static_cast<const char *>(data)), _dataSize(size) {
+        open({}, reportedSize, {});
+    }
+
+ protected:
+    virtual size_t _underflow(void *data, size_t size, Buffer *buffer) override {
+        buffer->reset(nullptr, nullptr, nullptr);
+
+        size_t bytesAvailable = _dataSize - _pos;
+        size_t bytesRead = std::min(size, bytesAvailable);
+        if (data)
+            memcpy(data, _data + _pos, bytesRead);
+        _pos += bytesRead;
+        return bytesRead;
+    }
+
+ private:
+    const char *_data;
+    size_t _dataSize;
+    size_t _pos = 0;
+};
+
+UNIT_TEST(InputStream, PositionAfterReadUntilAtEof) {
+    // The delimiter is never found, so `readUntilSlow` runs out of data and hits the default `_underflow`.
+    MemoryInputStream in("hello", 5);
+    EXPECT_EQ(in.readUntil('\0'), "hello");
+    EXPECT_EQ(in.position(), 5u);
+    EXPECT_EQ(in.position(), in.size());
+}
+
+UNIT_TEST(InputStream, ReadAllPastReportedSize) {
+    std::string data(100, 'a');
+
+    // Reports 5 bytes, but actually has 100 - i.e. a file that grew after its size was sampled at open time.
+    ShrinkingInputStream in(data.data(), data.size(), 5);
+
+    char buf[50];
+    EXPECT_EQ(in.read(buf, sizeof(buf)), 50u);
+    EXPECT_GT(in.position(), in.size()); // Read past the reported size.
+
+    EXPECT_EQ(in.readAll(), ""); // Must not underflow into a nonsensical allocation.
+}
+
+UNIT_TEST(InputStream, ReadAllShrinksOnShortRead) {
+    std::string data(10, 'a');
+
+    ShrinkingInputStream in(data.data(), data.size(), 100);
+
+    std::string result;
+    EXPECT_EQ(in.readAll(&result), 10u);
+    EXPECT_EQ(result.size(), 10u);
+    EXPECT_EQ(result, data);
+}
+
 UNIT_TEST(InputStream, ReadAll) {
     std::string largeString(10000, 'a');
     MemoryInputStream input(largeString.data(), largeString.size());

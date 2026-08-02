@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cstdio>
 #include <memory>
 #include <string_view>
 
+#include "FileHandle.h"
 #include "InputStream.h"
-
-// TODO(captainurist): just use raw file io, not FILE*
 
 /**
  * Input stream that reads from a file.
@@ -41,7 +39,7 @@ class FileInputStream : public InputStream {
     virtual void _close(bool canThrow) override;
 
  private:
-    FILE *_file = nullptr;
+    FileHandle _handle;
     std::unique_ptr<char[]> _buf;
     size_t _bufSize = 0;
 };

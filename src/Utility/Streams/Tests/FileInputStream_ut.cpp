@@ -6,6 +6,7 @@
 
 #include "Utility/Streams/FileOutputStream.h"
 #include "Utility/Streams/FileInputStream.h"
+#include "Utility/Exception.h"
 
 UNIT_TEST(FileInputStream, Skip) {
     const char *tmpfile = "tmp_test.txt";
@@ -152,11 +153,12 @@ UNIT_TEST(FileInputStream, LargeSkip) {
     // Use a small buffer so that skip(200) exceeds buffer size and triggers the seek path.
     FileInputStream in(tmpfile, 128);
 
-    // Small skip: goes through buffered fread.
+    // Small skip: goes through the buffer.
     size_t skipped = in.skip(50);
     EXPECT_EQ(skipped, 50);
 
-    // Large skip: exceeds buffer size, triggers fseeko.
+    // Note that this one doesn't seek either - it drains the 78 buffered bytes first, and the remaining 122 bytes
+    // still fit into the buffer. See `LargeSkipUsesSeek` for the test that does reach the seeking branch.
     skipped = in.skip(200);
     EXPECT_EQ(skipped, 200);
 
@@ -332,7 +334,7 @@ UNIT_TEST(FileInputStream, PositionAdvancesOnSkip) {
     (void) in.skip(50);
     EXPECT_EQ(in.position(), 50u);
 
-    (void) in.skip(200); // Large skip via seek.
+    (void) in.skip(200); // Still goes through the buffer, see the comment in `LargeSkip`.
     EXPECT_EQ(in.position(), 250u);
 
     EXPECT_EQ(in.readAll(), data.substr(250));
@@ -353,6 +355,204 @@ UNIT_TEST(FileInputStream, PositionAfterReadAll) {
     EXPECT_EQ(in.position(), 5u);
     EXPECT_EQ(in.position(), in.size());
     in.close();
+}
+
+UNIT_TEST(FileInputStream, LargeSkipUsesSeek) {
+    const char *tmpfile = "tmp_skipseek_test.txt";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    std::string data(2000, 'a');
+    for (size_t i = 0; i < data.size(); i++)
+        data[i] = static_cast<char>('a' + (i % 26));
+
+    FileOutputStream out(tmpfile);
+    out.write(data);
+    out.close();
+
+    // Nothing is buffered yet, so this skip goes straight into the seeking branch of `_underflow`.
+    FileInputStream in(tmpfile, 128);
+    EXPECT_EQ(in.skip(500), 500u);
+    EXPECT_EQ(in.position(), 500u);
+    EXPECT_EQ(in.readAll(), data.substr(500));
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, SkipAfterBufferedReadUsesSeek) {
+    const char *tmpfile = "tmp_skipseek2_test.txt";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    std::string data(2000, 'a');
+    for (size_t i = 0; i < data.size(); i++)
+        data[i] = static_cast<char>('a' + (i % 26));
+
+    FileOutputStream out(tmpfile);
+    out.write(data);
+    out.close();
+
+    FileInputStream in(tmpfile, 128);
+    char buf[10];
+    in.readOrFail(buf, 10);
+
+    // 500 bytes doesn't fit into the buffer even after the buffered tail is drained, so this seeks.
+    EXPECT_EQ(in.skip(500), 500u);
+    EXPECT_EQ(in.position(), 510u);
+    EXPECT_EQ(in.readAll(), data.substr(510));
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, ReadAtBufferSizeBoundary) {
+    const char *tmpfile = "tmp_readboundary_test.txt";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    std::string data(4096, 'a');
+    for (size_t i = 0; i < data.size(); i++)
+        data[i] = static_cast<char>('a' + (i % 26));
+
+    FileOutputStream out(tmpfile);
+    out.write(data);
+    out.close();
+
+    // `_underflow` switches between the buffered and the direct path at exactly `bufferSize`.
+    for (size_t readSize : {1023, 1024, 1025}) {
+        FileInputStream in(tmpfile, 1024);
+        std::string buffer(readSize, '\0');
+        EXPECT_EQ(in.read(buffer.data(), readSize), readSize);
+        EXPECT_EQ(buffer, data.substr(0, readSize));
+        EXPECT_EQ(in.position(), readSize);
+        EXPECT_EQ(in.readAll(), data.substr(readSize));
+        in.close();
+    }
+}
+
+UNIT_TEST(FileInputStream, BinaryRoundTripAllByteValues) {
+    const char *tmpfile = "tmp_binary_test.bin";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    std::string data;
+    for (int i = 0; i < 8; i++)
+        for (int c = 0; c < 256; c++)
+            data += static_cast<char>(c);
+
+    FileOutputStream out(tmpfile);
+    out.write(data);
+    out.close();
+
+    EXPECT_EQ(std::filesystem::file_size(tmpfile), 2048u);
+
+    FileInputStream in(tmpfile);
+    EXPECT_EQ(in.size(), 2048u);
+    EXPECT_EQ(in.readAll(), data);
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, EmptyFileSkipAndRead) {
+    const char *tmpfile = "tmp_emptyfile_test.txt";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    FileOutputStream out(tmpfile);
+    out.close();
+
+    FileInputStream in(tmpfile, 4);
+    EXPECT_EQ(in.size(), 0u);
+    EXPECT_EQ(in.skip(1000), 0u);
+    EXPECT_EQ(in.position(), 0u);
+
+    char buf[10] = {};
+    EXPECT_EQ(in.read(buf, sizeof(buf)), 0u);
+    EXPECT_EQ(in.read(buf, sizeof(buf)), 0u);
+    EXPECT_EQ(in.readUntil('\n'), "");
+    EXPECT_EQ(in.position(), 0u);
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, ReopenWithSmallerBufferSize) {
+    const char *tmpfile1 = "tmp_reopenbuf1_test.txt";
+    const char *tmpfile2 = "tmp_reopenbuf2_test.txt";
+    ScopedTestFileSlot tmp1(tmpfile1);
+    ScopedTestFileSlot tmp2(tmpfile2);
+
+    std::string data(2000, 'q');
+
+    FileOutputStream out1(tmpfile1);
+    out1.write("first");
+    out1.close();
+
+    FileOutputStream out2(tmpfile2);
+    out2.write(data);
+    out2.close();
+
+    // The buffer allocated for the first stream must not be reused for the second one.
+    FileInputStream in(tmpfile1, 4096);
+    EXPECT_EQ(in.readAll(), "first");
+    in.close();
+
+    in.open(tmpfile2, 64);
+    EXPECT_EQ(in.readAll(), data);
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, TwoConcurrentReaders) {
+    const char *tmpfile = "tmp_concurrent_test.txt";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    FileOutputStream out(tmpfile);
+    out.write("hello world");
+    out.close();
+
+    // Two readers on the same file at the same time. On Windows this only works with a permissive share mode.
+    FileInputStream in1(tmpfile);
+    FileInputStream in2(tmpfile);
+    EXPECT_EQ(in1.readAll(), "hello world");
+    EXPECT_EQ(in2.readAll(), "hello world");
+    in1.close();
+    in2.close();
+}
+
+UNIT_TEST(FileInputStream, OpenDirectoryThrows) {
+    std::string path = std::filesystem::current_path().generic_string();
+
+    // Opening a directory used to fail at first read on POSIX and at open on Windows. Now it always fails at open.
+    EXPECT_THROW(FileInputStream in(path), Exception);
+}
+
+UNIT_TEST(FileInputStream, DefaultConstructedThenOpen) {
+    const char *tmpfile = "tmp_defaultctor_test.txt";
+    ScopedTestFileSlot tmp(tmpfile);
+
+    FileOutputStream out(tmpfile);
+    out.write("hello");
+    out.close();
+
+    { FileInputStream in; } // Destructing a never-opened stream is fine.
+
+    FileInputStream in;
+    EXPECT_FALSE(in.isOpen());
+    in.open(tmpfile);
+    EXPECT_TRUE(in.isOpen());
+    EXPECT_EQ(in.readAll(), "hello");
+    in.close();
+}
+
+UNIT_TEST(FileInputStream, UnicodePath) {
+    std::u8string u8path = u8"файл_input.txt"; // "File" in Russian.
+    std::string path = reinterpret_cast<const char *>(u8path.c_str());
+    ScopedTestFileSlot tmp(path);
+
+    std::string data(300, 'u');
+
+    FileOutputStream out(path);
+    out.write(data);
+    out.close();
+
+    FileInputStream in(path);
+    EXPECT_EQ(in.size(), data.size());
+    EXPECT_EQ(in.readAll(), data);
+    in.close();
+
+    std::u8string u8missing = u8"файл_missing_zzz.txt";
+    std::string missing = reinterpret_cast<const char *>(u8missing.c_str());
+    EXPECT_FALSE(std::filesystem::exists(u8missing));
+    EXPECT_THROW_MESSAGE(FileInputStream in2(missing), missing);
 }
 
 UNIT_TEST(FileInputStream, PositionResetsOnReopen) {

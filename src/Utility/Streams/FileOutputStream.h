@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cstdio>
 #include <memory>
 #include <string_view>
 
+#include "FileHandle.h"
 #include "OutputStream.h"
-
-// TODO(captainurist): just use raw file io, not FILE*
 
 /**
  * Output stream that writes to a file.
@@ -41,10 +39,11 @@ class FileOutputStream : public OutputStream {
     virtual void _flush(Buffer *buffer) override;
     virtual void _close(Buffer *buffer, bool canThrow) override;
 
-    void writeBuffer(const Buffer &buffer, bool canThrow);
+    void writeBuffer(Buffer *buffer, bool canThrow);
 
  private:
-    FILE *_file = nullptr;
+    FileHandle _handle;
     std::unique_ptr<char[]> _buf;
     size_t _bufSize = 0;
+    bool _failed = false; // Set once a write fails, so that we don't write the same buffer out twice.
 };
