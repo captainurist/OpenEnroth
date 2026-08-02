@@ -15,12 +15,16 @@ size_t InputStream::readAll(std::string *dst) {
     dst->clear();
 
     if (_size != static_cast<size_t>(-1)) {
-        // Sized stream: pre-allocate and read in one go.
-        size_t bytesTotal = _size - position();
+        // Sized stream: pre-allocate and read in one go. Note that the size is sampled once, when the stream is
+        // opened, so a stream that has grown since then can read past it - clamp instead of underflowing into
+        // a nonsensical allocation.
+        size_t bytesTotal = _size > position() ? _size - position() : 0;
         if (bytesTotal == 0)
             return 0;
         dst->resize_and_overwrite(bytesTotal, [](char *, size_t n) { return n; }); // Technically UB, but throwing from
-        return read(dst->data(), bytesTotal);                                      // the callback is also UB, so...
+        size_t bytesRead = read(dst->data(), bytesTotal);                          // the callback is also UB, so...
+        dst->resize(bytesRead); // The stream might have shrunk since its size was sampled.
+        return bytesRead;
     } else {
         // Unsized stream: accumulate in chunks, materialize once.
         MemoryScratchpad scratchpad;
@@ -50,6 +54,11 @@ void InputStream::open(Buffer buffer, size_t size, std::string_view displayPath)
 
 size_t InputStream::_underflow(void *, size_t, Buffer *buffer) {
     assert(buffer->remaining() == 0);
+
+    // Note that the buffer has to be reset even though there's no more data. `readUntilSlow` folds `buffer->used()`
+    // into `_bufferBase` before calling us, so leaving a non-zero `used()` here would double-count it into
+    // `position()`.
+    buffer->reset(nullptr, nullptr, nullptr);
     return 0;
 }
 
