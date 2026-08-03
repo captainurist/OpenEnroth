@@ -48,6 +48,7 @@ ALLOWED_DOMAINS=(
     githubusercontent.com   # raw content, avatars, user content
     blob.core.windows.net   # productionresultssa{1-19}, vscode, etc.
     npmjs.org               # registry.npmjs.org
+    bazel.build             # releases.bazel.build, bcr.bazel.build, mirror.bazel.build
     pypi.org                # Python package index — pip installs for tooling.
     gitlab.freedesktop.org
     pythonhosted.org        # files.pythonhosted.org — pip package downloads.
