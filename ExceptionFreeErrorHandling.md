@@ -540,7 +540,40 @@ The budget file doubles as the migration to-do list.
 
 ## 8. Verification
 
-* `OpenEnroth_UnitTest` — 413 tests, all passing (up from 408; the new ones cover `Error`, `Result`, the `MM_TRY`
+### Performance: level loading
+
+`src/Bin/LoadBench` sweeps every map in `games.lod` — decompress + deserialize of all 76 `.blv`/`.odm` locations
+and their `.dlv`/`.ddm` deltas, 66 MB of decompressed payload — and reports best-of-N per bucket. It exists so
+that every step of this migration can be measured against master on the exact workload that exercises the
+serialization layer hardest.
+
+Measured on linux-aarch64, GCC 15, `-O3 -DNDEBUG`, best of 5 runs × 15 iterations (ms):
+
+| variant | decompress | locations | deltas | total |
+| --- | ---: | ---: | ---: | ---: |
+| master, Release | 153.8 | 2.25 | 0.48 | 156.6 |
+| branch, Release | 155.0 | 2.26 | 0.48 | 157.7 |
+| master, Release + LTO | 152.8 | 2.20 | 0.48 | 155.5 |
+| branch, Release + LTO | 151.5 | 2.19 | 0.47 | 154.1 |
+
+Takeaways:
+
+* **The branch costs nothing.** Master vs branch is within run-to-run noise in every bucket, with and without
+  LTO — the `Result` boundary layer is invisible on this workload.
+* **zlib decompression outweighs deserialization ~57:1** (≈154 ms vs ≈2.7 ms for the entire game's maps).
+  Deserialization itself runs at memcpy speed (~24 GB/s here), because the bulk of the byte volume goes through
+  the plain span/memcopy paths. This is also the budget context for the Option D rollout: even a several-percent
+  regression in the deserialize buckets would be invisible behind zlib, though the measured coroutine overhead
+  predicts far less than that.
+* **LTO is worth ~1–2% end-to-end** (mostly zlib call inlining), equally on both variants.
+
+Caveat: this container is linux-aarch64 with GCC only — no MSVC (`/GL /LTCG`), no AppleClang, no x86 hardware.
+The tool is in the tree precisely so the remaining legs of the matrix can be run on real CI machines; Windows is
+the important one, both for MSVC LTCG numbers and for coroutine codegen once the Option D port lands.
+
+### Tests
+
+* `OpenEnroth_UnitTest` — 419 tests, all passing (up from 408; the new ones cover `Error`, `Result`, the `MM_TRY`
   macros, `tryCatch`, `discard`, and `tryDeserialize`).
 * `Run_GameTest_Headless_Parallel` — 332/332 passing against MM7 game data. No trace desynchronization, so game
   logic is bit-for-bit unchanged.
