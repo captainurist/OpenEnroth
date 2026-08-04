@@ -31,8 +31,8 @@ Result<void> SndReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<SndEntry> entries;
-    deserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>);
-    MM_TRY_VOID(withContext(stream.check(), "File '{}' is not a valid SND", blob.displayPath()));
+    MM_TRY_VOID(tryDeserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>)
+                    .withContext("File '{}' is not a valid SND", blob.displayPath()));
 
     std::unordered_map<std::string, SndEntry> files;
     for (SndEntry &entry : entries) {
@@ -81,7 +81,7 @@ Result<Blob> SndReader::read(std::string_view filename) const {
             // Some of the SNDs shipped with the vanilla games have corrupt checksums, try to recover what we can.
             result = zlib::uncompressBestEffort(compressed, entry.decompressedSize);
             if (!result)
-                return withContext(std::move(uncompressed), "SndReader: failed to decompress '{}'", path);
+                return std::move(uncompressed).withContext("SndReader: failed to decompress '{}'", path);
             logger->warning("SndReader: '{}' has corrupt checksum, recovered {} of {} expected bytes",
                             path, result.size(), entry.decompressedSize);
         } else {

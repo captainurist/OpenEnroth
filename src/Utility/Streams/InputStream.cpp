@@ -14,9 +14,6 @@ size_t InputStream::readAll(std::string *dst) {
     assert(dst);
     dst->clear();
 
-    if (failed()) [[unlikely]]
-        return 0;
-
     if (_size != static_cast<size_t>(-1)) {
         // Sized stream: pre-allocate and read in one go.
         size_t bytesTotal = _size - position();
@@ -49,7 +46,6 @@ void InputStream::open(Buffer buffer, size_t size, std::string_view displayPath)
     _size = size;
     _isOpen = true;
     _displayPath = displayPath;
-    _error.reset();
 }
 
 size_t InputStream::_underflow(void *, size_t, Buffer *buffer) {
@@ -57,19 +53,13 @@ size_t InputStream::_underflow(void *, size_t, Buffer *buffer) {
     return 0;
 }
 
-void InputStream::checkOrThrow() const {
-    if (failed())
-        throw Exception("{}", _error->message());
-}
-
-void InputStream::_close(bool /*canReportErrors*/) {
+void InputStream::_close(bool /*canThrow*/) {
     assert(isOpen());
     _buffer.reset(nullptr, nullptr, nullptr);
     _bufferBase = 0;
     _size = static_cast<size_t>(-1);
     _isOpen = false;
     _displayPath = {};
-    _error.reset();
 }
 
 size_t InputStream::underflow(void *data, size_t size) {
@@ -120,10 +110,10 @@ size_t InputStream::readUntilSlow(char delimiter, std::string *dst) {
     return bytesRead;
 }
 
-void InputStream::setReadError(size_t requested, size_t actual) {
-    setFailed(Error("Failed to read the requested number of bytes from stream '{}', requested {}, got {}", _displayPath, requested, actual));
+void InputStream::throwReadError(size_t requested, size_t actual) const {
+    throw Exception("Failed to read the requested number of bytes from stream '{}', requested {}, got {}", _displayPath, requested, actual);
 }
 
-void InputStream::setSkipError(size_t requested, size_t actual) {
-    setFailed(Error("Failed to skip the requested number of bytes in stream '{}', requested {}, got {}", _displayPath, requested, actual));
+void InputStream::throwSkipError(size_t requested, size_t actual) const {
+    throw Exception("Failed to skip the requested number of bytes in stream '{}', requested {}, got {}", _displayPath, requested, actual);
 }

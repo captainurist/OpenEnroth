@@ -270,7 +270,8 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     bLoaded = true;
 
     IndoorLocation_MM7 location;
-    MM_TRY(Blob locationBlob, pGames_LOD->read(blv_filename).and_then(lod::decodeMaybeCompressed));
+    MM_TRY(Blob rawLocationBlob, pGames_LOD->read(blv_filename));
+    MM_TRY(Blob locationBlob, lod::decodeMaybeCompressed(rawLocationBlob));
     MM_TRY_VOID(tryDeserialize(locationBlob, &location));
     reconstruct(location, this);
 
@@ -305,13 +306,15 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     assert(respawnInitial + respawnTimed <= 1);
 
     if (respawnInitial) {
-        MM_TRY(Blob pristine, pGames_LOD->read(dlv_filename).and_then(lod::decodeMaybeCompressed));
+        MM_TRY(Blob rawPristine, pGames_LOD->read(dlv_filename));
+        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
         MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
         *indoor_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
         auto visibleOutlines = delta.visibleOutlines;
-        MM_TRY(Blob pristine, pGames_LOD->read(dlv_filename).and_then(lod::decodeMaybeCompressed));
+        MM_TRY(Blob rawPristine, pGames_LOD->read(dlv_filename));
+        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
         MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
         delta.header = header;
         delta.visibleOutlines = visibleOutlines;
@@ -949,7 +952,7 @@ void loadAndPrepareBLV(MapId mapid, bool bLoading) {
     pStationaryLightsStack->uNumLightsActive = 0;
     // TODO(captainurist): #exceptions This is where the migration should continue - a broken map should take the
     //                     player back to the main menu with an error message, not kill the process.
-    mustSucceed(pIndoor->Load(mapFilename, pParty->GetPlayingTime().toDays() + 1, respawn_interval, &indoor_was_respawned));
+    pIndoor->Load(mapFilename, pParty->GetPlayingTime().toDays() + 1, respawn_interval, &indoor_was_respawned).mustSucceed();
     if (!(dword_6BE364_game_settings_1 & GAME_SETTINGS_LOADING_SAVEGAME_SKIP_RESPAWN)) {
         Actor::InitializeActors();
         SpriteObject::InitializeSpriteObjects();

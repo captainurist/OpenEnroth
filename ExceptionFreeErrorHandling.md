@@ -56,7 +56,16 @@ see §3.
 
 ```cpp
 template<class T = void>
-using Result = std::expected<T, Error>;
+class [[nodiscard]] Result { ... };   // Wraps an std::expected<T, Error>.
+```
+
+`Result<T>` is a class, not an alias, so everything you do with one is a method and chains off the call:
+
+```cpp
+Blob data = reader.read(filename).orThrow();                                  // CLI tools & tests.
+Blob table = engine->resources()->eventsData("dsft.bin").mustSucceed();       // Startup invariants.
+MM_TRY(Font font, oef::decode(data).withContext("while loading '{}'", name)); // Propagation with context.
+discard(ufs->remove(path));                                                   // Explicit "don't care".
 ```
 
 `Error` (`Utility/Error/Error.h`) is constructed exactly like `Exception` was — a format string and its arguments:
@@ -65,17 +74,12 @@ using Result = std::expected<T, Error>;
 return fail("Invalid PCX version '{}' in '{}'", header->version, data.displayPath());
 ```
 
-so **we keep the error messages we like**. `Error` additionally supports a *chain of context frames*:
-
-```cpp
-MM_TRY_VOID(withContext(stream.check(), "File '{}' is not a valid SND", blob.displayPath()));
-```
-
-Frames are joined with `": "`, outermost first:
+so **we keep the error messages we like**. `Error` additionally supports a *chain of context frames*, added via
+`.withContext(...)` as the error travels up. Frames are joined with `": "`, outermost first:
 
 ```
 Couldn't load texture 'lava': Cannot decode LOD entry 'bitmaps.lod/lava' as LOD image:
-  Could not read 'LodImageHeader_MM6' from binary stream 'bitmaps.lod/lava': expected 48 bytes, got only 12
+  Failed to read the requested number of bytes from stream 'bitmaps.lod/lava', requested 48, got 12
 ```
 
 This is strictly better than what exceptions gave us. Today every `LodReader` message manually re-formats
@@ -85,6 +89,10 @@ reports what went wrong and the outer code says what it was doing.
 `Error` is one `shared_ptr` — 16 bytes, cheap to copy and move, so `sizeof(Result<T>)` stays close to `sizeof(T)`
 and the whole cost (formatting, allocating) is paid only on the error path. There's a unit test asserting this.
 
+The class carries `[[nodiscard]]`, which means *every* function returning a `Result` is nodiscard automatically —
+no per-declaration attribute to forget. Ignoring a return doesn't compile; dropping an error on purpose takes an
+explicit, greppable `discard(...)` call.
+
 ### Propagation
 
 C++ has no `?` operator and, since MSVC is a supported compiler, no statement expressions. So propagation is two
@@ -93,22 +101,24 @@ macros:
 ```cpp
 MM_TRY(Blob data, fs->read(path));   // Declares `Blob data`, or early-returns the error.
 MM_TRY(_pixels, decodePixels(data)); // Also works with an existing lvalue.
-MM_TRY_VOID(stream.check());         // Discards the value.
+MM_TRY_VOID(reader.open(blob));      // Discards the value / for Result<void>.
 ```
 
 Both use `__COUNTER__` for their temporaries. `MM_TRY_VOID` is a single statement; `MM_TRY` is not, and so needs
 braces under a bodyless `if` — that's a compile error, not a silent bug, and it's documented.
 
-For chaining two fallible calls in one expression, `std::expected`'s monadic operations do the job and read well:
+We deliberately do **not** use monadic chaining (`and_then` / `transform`): nesting logic inside lambdas passed to
+member calls reads terribly. Where two fallible calls feed each other, that's just two statements:
 
 ```cpp
-MM_TRY(Blob deltaBlob, pGames_LOD->read(dlv_filename).and_then(lod::decodeMaybeCompressed));
+MM_TRY(Blob raw, pGames_LOD->read(blv_filename));
+MM_TRY(Blob location, lod::decodeMaybeCompressed(raw));
 ```
 
-### Handling: three explicit policies
+### Handling: the policies, all explicit
 
 The point of the change isn't that errors stop happening — it's that *deciding what to do about them stops being
-implicit*. There are exactly three answers, and each has a name:
+implicit*. Every policy is a named method:
 
 ```cpp
 // 1. Propagate. Your caller knows better than you do.
@@ -122,99 +132,162 @@ if (!image) {
 }
 
 // 3. Die, on purpose, with a message. Startup-time invariants only.
-Blob blob = mustSucceed(engine->resources()->eventsData("dsft.bin"));
+Blob blob = engine->resources()->eventsData("dsft.bin").mustSucceed();
+
+// 4. Throw. CLI tools and tests, where the top-level catch is the error handling — and TODO-marked
+//    engine code that hasn't been ported yet.
+LodImage lodImage = lod::decodeImage(entry).orThrow();
+
+// 5. Drop, explicitly and greppably.
+discard(ufs->remove(path));
 ```
 
 `mustSucceed` routes through an installable `FatalErrorHandler`, so once there's a UI, "the game data is broken"
 becomes a message box instead of a silent exit. And unlike a `throw`, it's greppable: you can audit every place the
 game is still allowed to die.
 
-### Bridges
-
-Two helpers convert between the worlds, both deliberately conspicuous:
-
-* `tryCatch(callable)` — runs code that throws and returns a `Result`. For third-party libraries we can't change
-  (nlohmann/json, sol2, CLI11, the standard library).
-* `orThrow(result)` — turns a `Result` back into an exception. Correct and permanent in `src/Bin/*` and `test/`,
-  where the top-level `catch` *is* the error handling. Anywhere in the engine, it's a `TODO` marking the migration
-  frontier.
+`tryCatch(callable)` is the bridge in the other direction — it runs code that throws and returns a `Result`. It's
+for third-party libraries we can't change (nlohmann/json, sol2, CLI11, the standard library) and for our own
+internals that still throw (see §3). A callable that itself returns a `Result` is passed through without
+double-wrapping, so `fail()` / `MM_TRY` and throwing calls can be mixed inside one `tryCatch` block.
 
 
-## 3. The interesting part: sticky error state on streams
+## 3. The open question: how to chain `deserialize` calls
 
-Threading `Result` through the binary deserialization layer was never going to work. Here's a real function from
-`CompositeSnapshots.cpp`:
+This is the one place where `Result` alone doesn't give a clean answer, so here are the options. First, the shape
+of the problem — a real function from `CompositeSnapshots.cpp`:
 
 ```cpp
-void deserialize(InputStream &src, IndoorDelta_MM7 *dst, const IndoorLocation_MM7 &ctx) {
+void deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
     deserialize(src, &dst->header);
     deserialize(src, &dst->visibleOutlines);
-    deserialize(src, &dst->faceAttributes, tags::presized(ctx.faces.size()));
-    deserialize(src, &dst->decorationFlags, tags::presized(ctx.decorations.size()));
+    deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size()));
+    deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size()));
     deserialize(src, &dst->actors);
     // ...eight more lines of exactly this.
 }
 ```
 
 There are **195 `deserialize()` call sites** outside the serialization libraries, spread across ~15 files (about
-half of them in `CompositeSnapshots.cpp` alone), plus a templated combinator layer
-(`std::vector`, `std::array`, `std::span`, tag dispatch) that all of them go through. Putting an `MM_TRY_VOID`
-around each one means 195 mechanical edits, ~15 signature changes, a rewrite of the combinators, and a permanent
-tax on the readability of pure data-shuffling code.
+half in `CompositeSnapshots.cpp` alone), plus a templated combinator layer (`std::vector`, `std::array`,
+`std::span`, tag dispatch) that all of them go through. Failure in any read makes everything after it meaningless —
+parsing is monotone — so *some* mechanism has to short-circuit the rest of the sequence and carry the error out.
+Exceptions did that implicitly. The options for replacing them:
 
-Instead, `InputStream` grew a **sticky error state**, exactly like `std::ios::failbit`:
+### Option A — exception island *(what the branch does today)*
 
-* The first error is stored in the stream and never overwritten — the first one is the one that explains what
-  actually happened.
-* Once failed, `read` / `skip` / `readAll` become no-ops returning 0.
-* A failed read **zero-fills whatever it couldn't read**, so deserialized objects are always well-defined. Nothing
-  downstream can trip over uninitialized memory before the error is noticed. (The existing bound check on
-  size-prefixed containers means a garbage length prefix still can't turn into a huge allocation — there's a
-  regression test for this.)
-* `stream.check()` returns a `Result<void>` with the first error.
-
-So the 195 call sites above change by **zero lines**. The function that owns the stream checks once:
+The internals of `InputStream` and `Library/Binary` keep throwing, unchanged. Every *public* decoder converts at
+its own boundary — `tryDeserialize(stream, dst, tags...)` is `tryCatch` around `deserialize`:
 
 ```cpp
 Result<Palette> lod::decodePalette(const Blob &blob) {
-    MemoryInputStream stream(blob.data(), blob.size(), blob.displayPath());
-    LodImageHeader_MM6 header;
-    deserialize(stream, &header);
-    stream.skipOrFail(header.dataSize);
+    if (!detectImage(blob))
+        return fail("Cannot decode LOD entry '{}' as LOD palette", blob.displayPath());
 
-    Palette result;
-    deserialize(stream, &result);
-    MM_TRY_VOID(stream.check());   // <- the one check
+    return tryCatch([&] {
+        MemoryInputStream stream(blob.data(), blob.size(), blob.displayPath());
+        LodImageHeader_MM6 header;
+        deserialize(stream, &header);
+        stream.skipOrFail(header.dataSize);
+
+        Palette result;
+        deserialize(stream, &result);
+        return result;
+    });
+}
+```
+
+* **Diff**: zero changes to the 195 call sites, zero to the combinator layer. Already done.
+* **Bodies**: unchanged, maximally readable.
+* **How errors short-circuit**: stack unwinding, contained inside the library.
+* **Costs**: two mechanisms coexist; the island is permanent unless replaced; a boundary function that forgets its
+  `tryCatch` leaks an exception upward (mitigated by the small number of boundaries and by the budget file pinning
+  the island so it can't grow).
+* **Failure semantics**: the half-deserialized object is abandoned, same as with exceptions today.
+
+### Option B — thread `Result` through explicitly
+
+`deserialize` returns `Result<void>`; every call site checks:
+
+```cpp
+Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
+    MM_TRY_VOID(deserialize(src, &dst->header));
+    MM_TRY_VOID(deserialize(src, &dst->visibleOutlines));
+    MM_TRY_VOID(deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size())));
+    MM_TRY_VOID(deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size())));
+    MM_TRY_VOID(deserialize(src, &dst->actors));
+    // ...
+}
+```
+
+* **Diff**: ~200 mechanical call-site edits, ~50 deserializer signatures, a rewrite of the templated combinator
+  layer. The largest of the three by far.
+* **Bodies**: every line grows an `MM_TRY_VOID(...)` wrapper, forever. For pure data-shuffling code this is real
+  visual tax, but nothing is hidden.
+* **How errors short-circuit**: an early return per line, in plain sight.
+* **Costs**: churn and permanent verbosity. **Benefits**: exactly one error mechanism everywhere; the serialization
+  layer becomes genuinely exception-free; nothing to forget at boundaries — the type system carries it.
+
+### Option C — a parse cursor that carries the error
+
+Move the failure state where the parse lives: not in `InputStream` (which stays a clean, general-purpose I/O
+abstraction), but in a short-lived reader object created at the parse boundary:
+
+```cpp
+Result<IndoorDelta_MM7> loadDelta(const Blob &blob) {
+    BlobInputStream stream(blob);
+    BinaryReader src(&stream);       // Wraps the stream + holds the first Error.
+    IndoorDelta_MM7 result;
+    deserialize(src, &result);       // Bodies identical to today; src no-ops after the first failure.
+    MM_TRY_VOID(src.check());        // The one check.
     return result;
 }
 ```
 
-The generic error message also got better in the process, because the stream knows its own display path:
+`deserialize` overloads take `BinaryReader &` instead of `InputStream &`. The reader forwards reads until something
+fails, records the first `Error`, and turns every subsequent read into a zero-filling no-op. Deserializer *bodies*
+don't change at all; only the ~50 signatures swap the source type. The combinator layer is templated on the source
+type, so both `InputStream` (for code that wants to keep streaming) and `BinaryReader` instantiate from one set of
+templates.
 
-```
-Could not read 'LodImageHeader_MM6' from binary stream 'bitmaps.lod/lava': expected 48 bytes, got only 12
-```
+* **Diff**: one new class, ~50 signature swaps, combinator layer templated on the source. Medium.
+* **Bodies**: unchanged.
+* **How errors short-circuit**: deferred checking — the same idea as `std::ios` failbits, but scoped to a
+  stack-local object whose only job is one parse, rather than baked into a long-lived stream. `InputStream` itself
+  never learns about errors.
+* **Costs**: it *is* deferred error state, relocated. If the objection to stateful streams was to deferred checking
+  as such, this option is out too. If the objection was to polluting a general-purpose I/O class with parse
+  concerns, this is the fix.
+* **Failure semantics**: better than A/B — the reader zero-fills unread output, so a failed parse yields a
+  well-defined (if meaningless) object rather than a partially-written one.
 
-**Why this is safe rather than sloppy.** The objection to sticky state is "you can forget to check." Three things
-answer it:
+### Considered and rejected
 
-1. Parsing is monotone. Once the data is bad, everything after it is meaningless, and there is no useful action
-   between the first failure and the end of the parse. Checking at each step buys nothing.
-2. Failure is contained. A failed stream produces zeros, not garbage, and the checks that guard allocations still
-   run. Forgetting to check produces a zero-filled object, not memory corruption.
-3. The check happens at the boundary, and the boundary is exactly where `Result<T>` and `[[nodiscard]]` take over.
-   `lod::decodePalette` returns `Result<Palette>`; its callers cannot ignore that.
+* **Monadic chaining** (`and_then` pipelines) — unreadable, ruled out (see §2).
+* **Coroutines** (`co_await read<Header>(src)` as a `?`-operator) — C++23 can express this, but every deserializer
+  becomes a coroutine with a potentially-allocating frame on the hottest loading path, HALO elision is not reliable
+  across our three compilers, and debugging through coroutine frames is misery. Not worth it for what is
+  syntactically a one-character win over `MM_TRY_VOID`.
 
-This is the design decision most worth arguing about, so it's worth being explicit: sticky state is used **only**
-for the byte-level parsing layer, where the call chains are deep and mechanical. Everything above it — every public
-API — is `Result<T>`.
+### Recommendation
+
+**A is a perfectly good end state**, not just an interim: the island is small, bounded by the budget file, and
+invisible from outside — every public API is `Result`, and no exception crosses a library boundary. The
+determinism goal is met at the level where it matters.
+
+If we later decide exceptions must leave the parse layer too, **C is the cheapest way to get there** that doesn't
+tax every line of deserializer code — take it only if scoped deferred checking is acceptable. **B is the purist
+answer**; it buys "one mechanism everywhere" at the price of ~200 wrapped lines and a combinator rewrite, and we
+can still do it later — A doesn't paint us into a corner, since switching means editing the serialization layer
+and the ~30 boundary functions, not the whole engine.
 
 
 ## 4. What's been ported
 
 The whole asset-loading pipeline, end to end, plus every one of its call sites. **All 45 throws in
-`Library/{Lod,Snd,Vid,LodFormats,Image,Compression}` are gone**, along with the ones in the stream and binary
-serialization layers.
+`Library/{Lod,Snd,Vid,LodFormats,Image,Compression}` are gone.** The stream and binary serialization internals
+still throw — that's the Option A island of §3 — but every public API below is `Result`, and exceptions don't
+escape past it.
 
 | Library | New signature |
 | --- | --- |
@@ -225,8 +298,8 @@ serialization layers.
 | `LodReader::open`, `LodReader::read` | `Result<void>` / `Result<Blob>` |
 | `SndReader::open`, `SndReader::read` | `Result<void>` / `Result<Blob>` |
 | `VidReader::open`, `VidReader::read` | `Result<void>` / `Result<Blob>` |
-| `InputStream::readOrFail`, `skipOrFail` | sticky, `check()` returns `Result<void>` |
-| `tryDeserialize(const Blob &, T *)` | `Result<void>` |
+| `tryDeserialize(InputStream &, T *, tags...)` | `Result<void>` (boundary wrapper) |
+| `tryDeserialize(const Blob &, T *, tags...)` | `Result<void>` (boundary wrapper) |
 | `LodTextureCache::read`, `LoadCompressedTexture` | `Result<Blob>` |
 | `ResourceManager::open`, `eventsData` | `Result<void>` / `Result<Blob>` |
 | `IndoorLocation::Load`, `OutdoorLocation::Load` | `Result<void>` |
@@ -264,14 +337,15 @@ return result;
 
 // After
 auto tryDecode = [&] (auto atlasTag) -> Result<LodFont> {
-    LodFont result;
-    BlobInputStream stream(blob);
-    deserialize(stream, &result._header, tags::via<LodFontHeader_MM7>);
-    deserialize(stream, &result._atlas, atlasTag);
-    result._pixels = stream.readAllAsBlob();
-    MM_TRY_VOID(stream.check());
-    MM_TRY_VOID(fixAndValidateFont(blob, result));
-    return result;
+    return tryCatch([&] () -> Result<LodFont> {
+        LodFont result;
+        BlobInputStream stream(blob);
+        deserialize(stream, &result._header, tags::via<LodFontHeader_MM7>);
+        deserialize(stream, &result._atlas, atlasTag);
+        result._pixels = stream.readAllAsBlob();
+        MM_TRY_VOID(fixAndValidateFont(blob, result));
+        return result;
+    });
 };
 
 Result<LodFont> result = tryDecode(tags::via<LodFontAtlas_MM7>);
@@ -309,7 +383,7 @@ original zlib message as a context frame rather than dropping it.
 
 ## 5. Migration plan for the rest
 
-Each phase is independently shippable; the `orThrow` / `checkOrThrow` bridges hold the boundary in between.
+Each phase is independently shippable; the `.orThrow()` / `tryCatch` bridges hold the boundary in between.
 `CMakeModules/exception_budget.txt` is the ratchet — see §6.
 
 1. **`Blob::fromFile` and `Library/FileSystem`** (4 throws, wide fan-out). `FileSystemException` already carries a
@@ -321,13 +395,15 @@ Each phase is independently shippable; the `orThrow` / `checkOrThrow` bridges ho
 3. **`Engine/Snapshots`** (5 throws) — savegame and map deserialization. The highest-value remaining phase: a
    corrupt savegame should show an error in the UI, not take the game down. The bridge is already marked with a
    `TODO` in `CompositeSnapshots.cpp`.
-4. **`Engine/Evt`** (7 throws) — event script decoding. `EvtInstruction::parse` currently ends with an explicit
-   `stream.checkOrThrow()`; converting it to `Result` is mechanical.
+4. **`Engine/Evt`** (7 throws) — event script decoding.
 5. **`Library/Config`** (3) and **`Library/Fsm`** (3).
 6. **The two `mustSucceed` calls on the map-loading path** (`Indoor.cpp`, `Outdoor.cpp`). These are not a
    serialization problem but a UX one: the game needs a "couldn't load the level, returning to the main menu" flow.
    Both sites are marked with a `TODO`.
 7. **Install a real `FatalErrorHandler`** during startup so `mustSucceed` shows a message box.
+
+Also part of the plan: **decide §3** — whether the exception island stays (Option A), or the serialization layer
+gets ported via Option B or C. Everything above works the same either way.
 
 Staying as-is, permanently:
 
@@ -356,7 +432,7 @@ directory and compares them against `CMakeModules/exception_budget.txt`. Every e
 
 ```
 $ ninja check_exceptions
-check_exceptions: 90 throw statements, all within budget.
+check_exceptions: 94 throw statements, all within budget.
 ```
 
 The budget file doubles as the migration to-do list.
@@ -367,19 +443,23 @@ The budget file doubles as the migration to-do list.
 * **`MM_TRY` is not a statement.** It expands to a declaration plus an `if`, so it needs braces as the body of a
   bodyless `if` or loop. This is a compile error rather than a silent bug, but it's a papercut. It's unavoidable
   without GNU statement expressions, which MSVC doesn't have.
-* **Nested fallible calls need two lines**, or `and_then`. You can't write `f(g(x))` when both return `Result`.
-* **Sticky stream state can be forgotten.** See §3 for why the blast radius is a zero-filled struct rather than
-  anything worse, but it is a real trade-off, deliberately taken.
-* **`.value()`, `*`, and `->` on a `Result` are unchecked** in release builds, same as any `std::expected`. Reviewer
-  attention is the mitigation; `[[nodiscard]]` catches the more common mistake of ignoring the result entirely.
-* **Two `tryDeserialize` overload families exist right now** with different return types. Phase 2 above unifies them.
-* **The diff touches 76 files** (+1660/-519). Most of it is mechanical, but it does need review.
+* **Nested fallible calls need two lines.** You can't write `f(g(x))` when both return `Result`, and we've ruled
+  out monadic chaining on readability grounds. Two `MM_TRY` lines it is.
+* **The exception island (§3, Option A) means two mechanisms coexist** inside the serialization layer, and a
+  boundary function that forgets its `tryCatch` leaks an exception. The budget file pins the island; replacing it
+  outright is Options B/C.
+* **`*` and `->` on a `Result` are `assert`-checked**, not release-checked — same trade-off as `std::expected`.
+  Reviewer attention is the mitigation; the class-level `[[nodiscard]]` catches the more common mistake of ignoring
+  the result entirely (it already caught three real ones during the port).
+* **Two `tryDeserialize` overload families exist right now** with different return types — the `std::string_view`
+  enum-parsing overloads return `bool`, the new binary ones return `Result<void>`. Phase 2 above unifies them.
+* **The diff needs review.** Most of it is mechanical, but it touches ~80 files.
 
 
 ## 8. Verification
 
-* `OpenEnroth_UnitTest` — 412 tests, all passing (up from 408; the new ones cover `Error`, `Result`, the `MM_TRY`
-  macros, the sticky stream state, and `tryDeserialize`).
+* `OpenEnroth_UnitTest` — 413 tests, all passing (up from 408; the new ones cover `Error`, `Result`, the `MM_TRY`
+  macros, `tryCatch`, `discard`, and `tryDeserialize`).
 * `Run_GameTest_Headless_Parallel` — 332/332 passing against MM7 game data. No trace desynchronization, so game
   logic is bit-for-bit unchanged.
 * `check_style` — clean.

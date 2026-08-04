@@ -61,14 +61,11 @@ UNIT_TEST(BlobInputStream, ReadAllAsBlobAfterExhausting) {
     EXPECT_EQ(result.size(), 0u);
 }
 
-UNIT_TEST(BlobInputStream, ReadAsBlobOrFailSetsError) {
+UNIT_TEST(BlobInputStream, ReadAsBlobOrFailThrows) {
     Blob blob = Blob::fromString("short");
     BlobInputStream stream(std::move(blob));
 
-    Blob result = stream.readAsBlobOrFail(100);
-    EXPECT_FALSE(result);
-    ASSERT_TRUE(stream.failed());
-    EXPECT_THAT(stream.error().message(), testing::HasSubstr("100"));
+    EXPECT_THROW_MESSAGE((void) stream.readAsBlobOrFail(100), "100");
 }
 
 UNIT_TEST(BlobInputStream, ReadAsBlobShort) {

@@ -3,11 +3,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <optional>
 #include <string>
-#include <utility>
 
-#include "Utility/Error/Result.h"
 #include "Utility/Streams/StreamBuffer.h"
 
 /**
@@ -18,38 +15,6 @@
  *
  * Data is provided either by setting the buffer directly (for memory-backed streams) or through overriding
  * the `_underflow` virtual method.
- *
- * # Error handling
- *
- * Input streams don't throw. Instead, they have a sticky error state, much like `std::ios` does – the first error
- * that happens is stored inside the stream, and from that point on the stream is dead: all reads return zero bytes,
- * and all subsequent errors are ignored so that the first (most informative) one is preserved.
- *
- * This is what makes deserialization code readable. Deserializers are long sequences of unconditional reads, and
- * having to check every single one of them would drown the actual logic:
- * ```
- * void deserialize(InputStream &src, IndoorDelta_MM7 *dst) {
- *     deserialize(src, &dst->header);
- *     deserialize(src, &dst->visibleOutlines);
- *     deserialize(src, &dst->actors);
- *     // ...20 more lines of exactly this.
- * }
- * ```
- * With a sticky error state, none of these lines need to change. The caller that created the stream checks once,
- * at the end:
- * ```
- * Result<IndoorDelta_MM7> loadDelta(const Blob &blob) {
- *     BlobInputStream stream(blob);
- *     IndoorDelta_MM7 result;
- *     deserialize(stream, &result);
- *     MM_TRY_VOID(stream.check());
- *     return result;
- * }
- * ```
- *
- * Note that a failed read never leaves the caller's buffer uninitialized – whatever couldn't be read is zero-filled,
- * see `read` and `readOrFail`. Deserialized objects are therefore well-defined (if meaningless) even on the error
- * path, so the code that reads them can't trip over uninitialized memory before the error is noticed.
  */
 class InputStream {
  public:
@@ -58,13 +23,11 @@ class InputStream {
     virtual ~InputStream();
 
     /**
-     * Note that on an already-failed stream this method zero-fills `data` and returns 0, so that the caller never
-     * observes uninitialized memory.
-     *
      * @param[out] data                 Output buffer to write read data into.
      * @param size                      Number of bytes to read.
      * @return                          Number of bytes actually read. A return value that's less than `size` signals
-     *                                  end of stream, or a failed stream.
+     *                                  end of stream.
+     * @throws Exception                On error.
      */
     [[nodiscard]] size_t read(void *data, size_t size) {
         assert(isOpen());
@@ -73,11 +36,6 @@ class InputStream {
         if (size == 0)
             return 0;
 
-        if (failed()) [[unlikely]] {
-            memset(data, 0, size);
-            return 0;
-        }
-
         if (size <= _buffer.remaining())
             return _buffer.read(data, size);
 
@@ -85,19 +43,16 @@ class InputStream {
     }
 
     /**
-     * Reads the requested amount of data from the stream, putting the stream into a failed state if unable to do so.
-     *
-     * On failure the part of `data` that couldn't be read is zero-filled. Check the result with `check` or `failed`.
+     * Reads the requested amount of data from the stream, or fails with an exception if unable to do so.
      *
      * @param[out] data                 Output buffer to write read data into.
      * @param size                      Number of bytes to read.
+     * @throws Exception                On error.
      */
     void readOrFail(void *data, size_t size) {
         size_t bytesRead = read(data, size);
-        if (bytesRead != size) [[unlikely]] {
-            memset(static_cast<char *>(data) + bytesRead, 0, size - bytesRead);
-            setReadError(size, bytesRead);
-        }
+        if (bytesRead != size)
+            throwReadError(size, bytesRead);
     }
 
     /**
@@ -105,6 +60,7 @@ class InputStream {
      *
      * @param[out] dst                  String to write the data into. Previous contents are cleared.
      * @return                          Number of bytes read from the stream.
+     * @throws Exception                On error.
      */
     [[nodiscard]] size_t readAll(std::string *dst);
 
@@ -112,6 +68,7 @@ class InputStream {
      * Reads everything that's in this stream.
      *
      * @return                          Data read from the stream, as `std::string`.
+     * @throws Exception                On error.
      */
     [[nodiscard]] std::string readAll() {
         std::string result;
@@ -122,13 +79,11 @@ class InputStream {
     /**
      * @param size                      Number of bytes to skip.
      * @return                          Number of bytes actually skipped. A return value that's less than `size` signals
-     *                                  end of stream, or a failed stream.
+     *                                  end of stream.
+     * @throws Exception                On error.
      */
     [[nodiscard]] size_t skip(size_t size) {
         assert(isOpen());
-
-        if (failed()) [[unlikely]]
-            return 0;
 
         if (size <= _buffer.remaining())
             return _buffer.skip(size);
@@ -140,11 +95,12 @@ class InputStream {
      * Same as `readOrFail`, but for skipping bytes.
      *
      * @param size                      Number of bytes to skip.
+     * @throws Exception                On error.
      */
     void skipOrFail(size_t size) {
         size_t bytesSkipped = skip(size);
-        if (bytesSkipped != size) [[unlikely]]
-            setSkipError(size, bytesSkipped);
+        if (bytesSkipped != size)
+            throwSkipError(size, bytesSkipped);
     }
 
     /**
@@ -154,14 +110,12 @@ class InputStream {
      * @param delimiter                 Delimiter character to search for.
      * @param[out] dst                  String to write the data into. Previous contents are cleared.
      * @return                          Number of bytes read from the stream, including the delimiter if it was found.
+     * @throws Exception                On error.
      */
     [[nodiscard]] size_t readUntil(char delimiter, std::string *dst) {
         assert(isOpen());
         assert(dst);
         dst->clear();
-
-        if (failed()) [[unlikely]]
-            return 0;
 
         if (const char *p = static_cast<const char *>(memchr(_buffer.pos(), delimiter, _buffer.remaining()))) {
             size_t bytesRead = _buffer.read(dst, p - _buffer.pos());
@@ -178,6 +132,7 @@ class InputStream {
      *
      * @param delimiter                 Delimiter character to search for.
      * @return                          Data read from the stream, up to (but not including) the delimiter.
+     * @throws Exception                On error.
      */
     [[nodiscard]] std::string readUntil(char delimiter) {
         std::string result;
@@ -189,6 +144,8 @@ class InputStream {
      * Closes this input stream. Reading from a closed stream will result in undefined behavior.
      *
      * Does nothing if the stream is already closed.
+     *
+     * @throws Exception                On error.
      */
     void close() {
         if (isOpen())
@@ -199,55 +156,6 @@ class InputStream {
      * @return                          Whether this stream is open.
      */
     [[nodiscard]] bool isOpen() const { return _isOpen; }
-
-    /**
-     * @return                          Whether this stream has failed. A failed stream stays failed until it is
-     *                                  reopened.
-     */
-    [[nodiscard]] bool failed() const { return _error.has_value(); }
-
-    /**
-     * @return                          The first error that this stream has encountered. Only valid if `failed`
-     *                                  returns `true`.
-     */
-    [[nodiscard]] const Error &error() const {
-        assert(failed());
-        return *_error;
-    }
-
-    /**
-     * The one call that turns a sequence of unchecked reads into a checked operation. See the class-level docs.
-     *
-     * @return                          Success if this stream hasn't failed, and the first error it has encountered
-     *                                  otherwise.
-     */
-    [[nodiscard]] Result<void> check() const {
-        if (failed()) [[unlikely]]
-            return std::unexpected(*_error);
-        return {};
-    }
-
-    /**
-     * Puts this stream into a failed state. Does nothing if the stream has already failed – the first error wins,
-     * as it is the one that describes what actually went wrong.
-     *
-     * Intended to be used by the code that reads from the stream, to report semantic errors (e.g. a bad signature)
-     * through the same channel that read errors go through.
-     *
-     * @param error                     Error to store.
-     */
-    void setFailed(Error error) {
-        if (!_error.has_value()) [[likely]]
-            _error = std::move(error);
-    }
-
-    /**
-     * Migration bridge for the code that hasn't been converted to `Result` yet – throws an `Exception` if this
-     * stream has failed.
-     *
-     * @throws Exception                If this stream has failed.
-     */
-    void checkOrThrow() const;
 
     /**
      * @return                          Current position in the stream, in bytes from the beginning.
@@ -290,8 +198,8 @@ class InputStream {
      * @param[out] data                 Buffer to read into, or `nullptr` for skip/refill.
      * @param size                      Number of bytes to read or skip.
      * @param[out] buffer               New buffer state.
-     * @return                          Number of bytes read into `data` or skipped. Implementations should call
-     *                                  `setFailed` and return 0 on I/O errors.
+     * @return                          Number of bytes read into `data` or skipped.
+     * @throws Exception                On error.
      */
     virtual size_t _underflow(void *data, size_t size, Buffer *buffer);
 
@@ -299,22 +207,23 @@ class InputStream {
      * Closes the underlying source, releasing any held resources. Override in subclasses that need cleanup.
      * Derived implementations should call `InputStream::_close()` at the end.
      *
-     * @param canReportErrors           Whether the implementation is allowed to report errors through `setFailed`.
-     *                                  When called from a destructor via `destroy()`, this is `false` and the
-     *                                  implementation should do best-effort cleanup silently.
+     * @param canThrow                  Whether the implementation is allowed to throw. When called from a destructor
+     *                                  via `destroy()`, this is `false` and the implementation should do best-effort
+     *                                  cleanup without throwing.
+     * @throws Exception                On error, only if `canThrow` is `true`.
      */
-    virtual void _close(bool canReportErrors);
+    virtual void _close(bool canThrow);
 
     /**
-     * Silent close for use in derived destructors. Calls `_close` with `canReportErrors=false`.
+     * Non-throwing close for use in derived destructors. Calls `_close` with `canThrow=false`.
      */
     void destroy() noexcept {
         if (isOpen())
             _close(false);
     }
 
-    void setReadError(size_t requested, size_t actual);
-    void setSkipError(size_t requested, size_t actual);
+    [[noreturn]] void throwReadError(size_t requested, size_t actual) const;
+    [[noreturn]] void throwSkipError(size_t requested, size_t actual) const;
 
  private:
     size_t underflow(void *data, size_t size);
@@ -326,5 +235,4 @@ class InputStream {
     size_t _size = static_cast<size_t>(-1);
     bool _isOpen = false;
     std::string _displayPath;
-    std::optional<Error> _error;
 };

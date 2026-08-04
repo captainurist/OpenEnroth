@@ -18,7 +18,7 @@ class LodSpriteCache {
     LodSpriteCache();
     ~LodSpriteCache();
 
-    bool open(Blob blob);
+    Result<void> open(Blob blob);
 
     void reserveLoadedSprites();
     void releaseUnreserved();

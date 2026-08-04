@@ -16,5 +16,6 @@ Result<void> ResourceManager::open() {
 }
 
 Result<Blob> ResourceManager::eventsData(std::string_view filename) {
-    return _eventsLodReader.read(filename).and_then(lod::decodeMaybeCompressed);
+    MM_TRY(Blob data, _eventsLodReader.read(filename));
+    return lod::decodeMaybeCompressed(data);
 }

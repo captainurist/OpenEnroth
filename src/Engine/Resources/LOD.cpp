@@ -10,6 +10,6 @@ bool Initialize_GamesLOD_NewLOD() {
     pGames_LOD = std::make_unique<LodReader>();
     // TODO(captainurist): #exceptions Should be surfaced to the user as "please reinstall the game", see
     //                     ResourceManager::open.
-    mustSucceed(pGames_LOD->open(dfs->read("data/games.lod")));
+    pGames_LOD->open(dfs->read("data/games.lod")).mustSucceed();
     return true;
 }

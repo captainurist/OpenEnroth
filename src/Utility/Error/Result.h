@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <expected>
 #include <type_traits>
 #include <utility>
@@ -8,13 +9,23 @@
 
 #include "Error.h"
 
+template<class T = void>
+class Result;
+
+namespace detail {
+template<class T>
+constexpr bool is_result_v = false;
+template<class T>
+constexpr bool is_result_v<Result<T>> = true;
+} // namespace detail
+
 /**
  * Return type for functions that can fail in a recoverable way.
  *
- * `Result<T>` is an `std::expected<T, Error>` – it holds either a `T`, or an `Error` explaining why the `T` couldn't
- * be produced. It's the replacement for throwing an `Exception`: instead of unwinding the stack from somewhere deep
- * inside the engine, a function makes the failure part of its signature, and the caller is forced by
- * `[[nodiscard]]` to decide what to do about it.
+ * `Result<T>` holds either a `T`, or an `Error` explaining why the `T` couldn't be produced. It's the replacement
+ * for throwing an `Exception`: instead of unwinding the stack from somewhere deep inside the engine, a function
+ * makes the failure part of its signature, and the caller is forced by `[[nodiscard]]` to decide what to do
+ * about it.
  *
  * Producing an error:
  * ```
@@ -29,49 +40,211 @@
  * Propagating an error – use `MM_TRY` / `MM_TRY_VOID`, they early-return from the enclosing function:
  * ```
  * Result<Font> loadFont(std::string_view name) {
- *     MM_TRY(Blob data, fs->read(name));                              // Declares `Blob data`.
- *     MM_TRY(Font font, withContext(oef::decode(data), "while loading font '{}'", name));
- *     MM_TRY_VOID(validate(font));                                    // Value-less call.
+ *     MM_TRY(Blob data, fs->read(name));
+ *     MM_TRY(Font font, oef::decode(data).withContext("while loading font '{}'", name));
+ *     MM_TRY_VOID(validate(font));
  *     return font;
  * }
  * ```
  *
- * Handling an error – pick one of the three policies, explicitly:
+ * Handling an error – pick one of the policies, explicitly:
  * ```
  * // 1. Propagate, adding context. See MM_TRY above.
  *
- * // 2. Degrade. The game keeps running with a fallback.
+ * // 2. Degrade. The game keeps running with a fallback. This is the right answer inside the game loop.
  * Result<RgbaImage> image = pcx::decode(thumbnail);
  * if (!image) {
  *     logger->warning("Bad savegame thumbnail: {}", image.error());
  *     return nullptr;
  * }
  *
- * // 3. Die, loudly and on purpose. Only for things that make the game unusable.
- * Blob icon = mustSucceed(dfs->read("images/OpenEnroth.png"));
+ * // 3. Die, loudly and on purpose. Only for things that make the game unusable, and preferably only at startup.
+ * Blob icon = dfs->read("images/OpenEnroth.png").mustSucceed();
+ *
+ * // 4. Throw. Only in CLI tools and tests, where the top-level catch is the error handling, and in
+ * //    not-yet-ported engine code, where every use is a TODO.
+ * Blob data = reader.read(filename).orThrow();
  * ```
  *
  * @see Error
  */
-template<class T = void>
-using Result = std::expected<T, Error>;
+template<class T>
+class [[nodiscard]] Result {
+    static_assert(!std::is_same_v<T, Error>, "Result<Error> doesn't make sense.");
+ public:
+    Result(T value) : _impl(std::move(value)) {} // NOLINT(runtime/explicit): implicit conversion is intended.
+    Result(Error error) : _impl(std::unexpect, std::move(error)) {} // NOLINT(runtime/explicit): same.
+
+    /**
+     * @return                          Whether this `Result` holds a value.
+     */
+    [[nodiscard]] bool ok() const {
+        return _impl.has_value();
+    }
+
+    [[nodiscard]] explicit operator bool() const {
+        return ok();
+    }
+
+    [[nodiscard]] T &operator*() & {
+        assert(ok());
+        return *_impl;
+    }
+
+    [[nodiscard]] const T &operator*() const & {
+        assert(ok());
+        return *_impl;
+    }
+
+    [[nodiscard]] T &&operator*() && {
+        assert(ok());
+        return *std::move(_impl);
+    }
+
+    [[nodiscard]] T *operator->() {
+        assert(ok());
+        return &*_impl;
+    }
+
+    [[nodiscard]] const T *operator->() const {
+        assert(ok());
+        return &*_impl;
+    }
+
+    /**
+     * @return                          The error held by this `Result`. Must not be called on a `Result` holding
+     *                                  a value.
+     */
+    [[nodiscard]] const Error &error() const & {
+        assert(!ok());
+        return _impl.error();
+    }
+
+    [[nodiscard]] Error error() && {
+        assert(!ok());
+        return std::move(_impl).error();
+    }
+
+    /**
+     * Unwraps this `Result`, throwing an `Exception` if it holds an error.
+     *
+     * This is for code that legitimately wants to handle errors by throwing:
+     * - Command-line tools and unit tests, where the top-level `catch` is the error handling, and there is no game
+     *   loop to keep running.
+     * - Engine code that hasn't been converted to `Result` yet – there, every use of this method is a `TODO`.
+     *
+     * Never use it in the game itself. `mustSucceed` is the honest way to say "this can't fail" there.
+     *
+     * @return                          The value held by this `Result`.
+     * @throws Exception                If this `Result` holds an error.
+     */
+    T orThrow() && {
+        if (!ok())
+            throw Exception("{}", _impl.error().message());
+        return *std::move(_impl);
+    }
+
+    /**
+     * Unwraps this `Result`, terminating the process through `fatalError` if it holds an error.
+     *
+     * This is the explicit, greppable equivalent of letting an exception escape into `main`. Use it only where
+     * there is genuinely nothing to fall back to – e.g. when the game data folder turns out to be unreadable during
+     * startup. Never use it on anything that runs inside the game loop.
+     *
+     * @return                          The value held by this `Result`.
+     */
+    T mustSucceed() && {
+        if (!ok())
+            fatalError(_impl.error());
+        return *std::move(_impl);
+    }
+
+    /**
+     * @param fallback                  Value to return if this `Result` holds an error.
+     * @return                          The value held by this `Result`, or `fallback`.
+     */
+    [[nodiscard]] T valueOr(T fallback) && {
+        if (!ok())
+            return fallback;
+        return *std::move(_impl);
+    }
+
+    /**
+     * @param fmt                       Format string describing what the caller was doing.
+     * @param args                      Format arguments.
+     * @return                          This `Result`, with an additional context frame if it holds an error.
+     */
+    template<class... Args>
+    Result withContext(fmt::format_string<Args...> fmt, Args &&... args) && {
+        if (ok())
+            return std::move(*this);
+        return Result(std::move(_impl).error().withContext(fmt, std::forward<Args>(args)...));
+    }
+
+ private:
+    std::expected<T, Error> _impl;
+};
+
+template<>
+class [[nodiscard]] Result<void> {
+ public:
+    Result() = default;
+    Result(Error error) : _impl(std::unexpect, std::move(error)) {} // NOLINT(runtime/explicit): implicit is intended.
+
+    [[nodiscard]] bool ok() const {
+        return _impl.has_value();
+    }
+
+    [[nodiscard]] explicit operator bool() const {
+        return ok();
+    }
+
+    [[nodiscard]] const Error &error() const & {
+        assert(!ok());
+        return _impl.error();
+    }
+
+    [[nodiscard]] Error error() && {
+        assert(!ok());
+        return std::move(_impl).error();
+    }
+
+    void orThrow() && {
+        if (!ok())
+            throw Exception("{}", _impl.error().message());
+    }
+
+    void mustSucceed() && {
+        if (!ok())
+            fatalError(_impl.error());
+    }
+
+    template<class... Args>
+    Result withContext(fmt::format_string<Args...> fmt, Args &&... args) && {
+        if (ok())
+            return {};
+        return Result(std::move(_impl).error().withContext(fmt, std::forward<Args>(args)...));
+    }
+
+ private:
+    std::expected<void, Error> _impl;
+};
 
 /**
- * Creates a failed `Result`.
+ * Creates an `Error` for returning from a `Result`-returning function.
  *
- * The return type is implicitly convertible to `Result<T>` for any `T`, so this is meant to be used directly in a
- * `return` statement:
+ * This is just a more readable synonym for constructing an `Error` in a `return` statement:
  * ```
  * return fail("Entry '{}' doesn't exist in LOD file '{}'", filename, _lod.displayPath());
  * ```
  *
  * @param fmt                           Format string.
  * @param args                          Format arguments.
- * @return                              Error wrapped into an `std::unexpected`.
+ * @return                              `Error` with the formatted message.
  */
 template<class... Args>
-[[nodiscard]] std::unexpected<Error> fail(fmt::format_string<Args...> fmt, Args &&... args) {
-    return std::unexpected(Error(fmt, std::forward<Args>(args)...));
+[[nodiscard]] Error fail(fmt::format_string<Args...> fmt, Args &&... args) {
+    return Error(fmt, std::forward<Args>(args)...);
 }
 
 /**
@@ -80,93 +253,62 @@ template<class... Args>
  * @param code                          Error code to attach.
  * @param fmt                           Format string.
  * @param args                          Format arguments.
- * @return                              Error wrapped into an `std::unexpected`.
+ * @return                              `Error` with the formatted message and the error code.
  */
 template<class... Args>
-[[nodiscard]] std::unexpected<Error> fail(std::error_code code, fmt::format_string<Args...> fmt, Args &&... args) {
-    return std::unexpected(Error(code, fmt, std::forward<Args>(args)...));
+[[nodiscard]] Error fail(std::error_code code, fmt::format_string<Args...> fmt, Args &&... args) {
+    return Error(code, fmt, std::forward<Args>(args)...);
 }
 
 /**
- * Adds a context frame to a failed `Result`, passing successful ones through unchanged.
+ * Explicitly discards a `Result`, error and all.
  *
- * @param result                        Result to add context to.
- * @param fmt                           Format string describing what the caller was doing.
- * @param args                          Format arguments.
- * @return                              `result`, with an additional context frame if it holds an error.
- */
-template<class T, class... Args>
-[[nodiscard]] Result<T> withContext(Result<T> result, fmt::format_string<Args...> fmt, Args &&... args) {
-    if (result)
-        return result;
-    return std::unexpected(result.error().withContext(fmt, std::forward<Args>(args)...));
-}
-
-/**
- * Unwraps a `Result`, terminating the process through `fatalError` if it holds an error.
+ * `Result` is `[[nodiscard]]`, so simply ignoring a return value doesn't compile – we don't want errors to be
+ * dropped by accident. This function is the way to drop one *on purpose*, and it's greppable:
+ * ```
+ * discard(ufs->remove(path)); // We don't care whether it existed.
+ * ```
  *
- * This is the explicit, greppable equivalent of letting an exception escape into `main`. Use it only where there is
- * genuinely nothing to fall back to – e.g. when the game data folder turns out to be unreadable during startup.
- * Never use it on anything that runs inside the game loop.
- *
- * @param result                        Result to unwrap.
- * @return                              The value held by `result`.
+ * @param result                        Result to discard.
  */
 template<class T>
-T mustSucceed(Result<T> &&result) {
-    if (!result)
-        fatalError(result.error());
-    return *std::move(result);
-}
-
-template<class T>
-T mustSucceed(const Result<T> &result) {
-    if (!result)
-        fatalError(result.error());
-    return *result;
-}
-
-/**
- * Unwraps a `Result`, throwing an `Exception` if it holds an error.
- *
- * This is for code that legitimately wants to handle errors by throwing:
- * - Command-line tools and unit tests, where the top-level `catch` is the error handling, and there is no game loop
- *   to keep running.
- * - Engine code that hasn't been converted to `Result` yet – there, every use of this function is a `TODO`.
- *
- * Never use it in the game itself. `mustSucceed` is the honest way to say "this can't fail" there.
- *
- * @param result                        Result to unwrap.
- * @return                              The value held by `result`.
- * @throws Exception                    If `result` holds an error.
- */
-template<class T>
-T orThrow(Result<T> result) {
-    if (!result)
-        throw Exception("{}", result.error().message());
-    return *std::move(result);
-}
+void discard(Result<T> &&result) {} // NOLINT(misc-unused-parameters)
 
 /**
  * Runs a callable, converting any exception it throws into an `Error`.
  *
- * This is the bridge to third-party code that we can't make exception-free – e.g. the JSON library, the Lua
- * bindings, or the standard library itself. Exceptions should not travel any further up the stack than this.
+ * This is the bridge from code that throws – third-party libraries (nlohmann/json, sol2, CLI11, the standard
+ * library), and the parts of our own code that haven't been converted to `Result` yet. Exceptions should not travel
+ * any further up the stack than this.
+ *
+ * The callable itself may also return a `Result` – it won't get double-wrapped, so it's OK to mix `fail()` /
+ * `MM_TRY` with throwing calls inside one `tryCatch` block.
  *
  * @param callable                      Callable to run.
  * @return                              Whatever `callable` returned, or the exception it threw, as an `Error`.
  */
 template<class Callable>
-[[nodiscard]] auto tryCatch(Callable &&callable) -> Result<std::invoke_result_t<Callable>> {
-    try {
-        if constexpr (std::is_void_v<std::invoke_result_t<Callable>>) {
-            std::forward<Callable>(callable)();
-            return {};
-        } else {
+[[nodiscard]] auto tryCatch(Callable &&callable) {
+    using R = std::invoke_result_t<Callable>;
+    if constexpr (detail::is_result_v<R>) {
+        try {
             return std::forward<Callable>(callable)();
+        } catch (...) {
+            return R(Error::fromCurrentException());
         }
-    } catch (...) {
-        return std::unexpected(Error::fromCurrentException());
+    } else if constexpr (std::is_void_v<R>) {
+        try {
+            std::forward<Callable>(callable)();
+            return Result<>();
+        } catch (...) {
+            return Result<>(Error::fromCurrentException());
+        }
+    } else {
+        try {
+            return Result<R>(std::forward<Callable>(callable)());
+        } catch (...) {
+            return Result<R>(Error::fromCurrentException());
+        }
     }
 }
 
@@ -177,14 +319,14 @@ template<class Callable>
 #define MM_DETAIL_TRY(tmp, decl, ...)                                                                                  \
     auto tmp = (__VA_ARGS__);                                                                                          \
     if (!tmp) /* NOLINT */                                                                                             \
-        return std::unexpected(std::move(tmp).error());                                                                \
+        return std::move(tmp).error();                                                                                 \
     decl = *std::move(tmp)
 
 #define MM_DETAIL_TRY_VOID(tmp, ...)                                                                                   \
     do {                                                                                                               \
         auto tmp = (__VA_ARGS__);                                                                                      \
         if (!tmp) /* NOLINT */                                                                                         \
-            return std::unexpected(std::move(tmp).error());                                                            \
+            return std::move(tmp).error();                                                                             \
     } while (false)
 
 /**
@@ -211,6 +353,6 @@ template<class Callable>
 /**
  * Same as `MM_TRY`, but discards the value. Use it for `Result<void>`, or when the value isn't needed.
  *
- * @param ...                           Expression evaluating to a `Result`.
+ * @param ...                          Expression evaluating to a `Result`.
  */
 #define MM_TRY_VOID(...) MM_DETAIL_TRY_VOID(MM_DETAIL_TRY_TMP, __VA_ARGS__)

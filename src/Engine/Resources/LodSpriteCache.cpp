@@ -24,9 +24,8 @@ LodSpriteCache::~LodSpriteCache() {
         sprite.Release();
 }
 
-bool LodSpriteCache::open(Blob blob) {
-    _reader.open(std::move(blob));
-    return true;
+Result<void> LodSpriteCache::open(Blob blob) {
+    return _reader.open(std::move(blob));
 }
 
 void LodSpriteCache::reserveLoadedSprites() {  // final init
@@ -67,7 +66,13 @@ bool LodSpriteCache::LoadSpriteFromFile(LodSprite *pSprite, std::string_view pCo
     if (!_reader.exists(pContainer))
         return false;
 
-    Result<LodSprite> sprite = _reader.read(pContainer).and_then(lod::decodeSprite);
+    Result<Blob> data = _reader.read(pContainer);
+    if (!data) {
+        logger->warning("Couldn't load sprite '{}': {}", pContainer, data.error());
+        return false;
+    }
+
+    Result<LodSprite> sprite = lod::decodeSprite(*data);
     if (!sprite) {
         logger->warning("Couldn't load sprite '{}': {}", pContainer, sprite.error());
         return false;

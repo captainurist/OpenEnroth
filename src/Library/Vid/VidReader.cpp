@@ -31,8 +31,8 @@ Result<void> VidReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<VidEntry> entries;
-    deserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>);
-    MM_TRY_VOID(withContext(stream.check(), "File '{}' is not a valid VID", blob.displayPath()));
+    MM_TRY_VOID(tryDeserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>)
+                    .withContext("File '{}' is not a valid VID", blob.displayPath()));
     std::ranges::sort(entries, std::ranges::less(), &VidEntry::offset);
 
     std::unordered_map<std::string, VidRegion> files;

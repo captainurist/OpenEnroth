@@ -268,7 +268,7 @@ bool OutdoorLocation::Initialize(std::string_view filename, int days_played,
 
         // TODO(captainurist): #exceptions This is where the migration should continue - a broken map should take
         //                     the player back to the main menu with an error message, not kill the process.
-        mustSucceed(Load(filename, days_played, respawn_interval_days, outdoors_was_respawned));
+        Load(filename, days_played, respawn_interval_days, outdoors_was_respawned).mustSucceed();
 
         if (isMapUnderwater(engine->_currentLoadedMapId))
             SetUnderwaterFog();
@@ -457,7 +457,8 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     odm_filename.replace(odm_filename.length() - 4, 4, ".odm");
 
     OutdoorLocation_MM7 location;
-    MM_TRY(Blob locationBlob, pGames_LOD->read(odm_filename).and_then(lod::decodeMaybeCompressed));
+    MM_TRY(Blob rawLocationBlob, pGames_LOD->read(odm_filename));
+    MM_TRY(Blob locationBlob, lod::decodeMaybeCompressed(rawLocationBlob));
     MM_TRY_VOID(tryDeserialize(locationBlob, &location));
     reconstruct(location, this);
 
@@ -498,14 +499,16 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     assert(respawnInitial + respawnTimed <= 1);
 
     if (respawnInitial) {
-        MM_TRY(Blob pristine, pGames_LOD->read(ddm_filename).and_then(lod::decodeMaybeCompressed));
+        MM_TRY(Blob rawPristine, pGames_LOD->read(ddm_filename));
+        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
         MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
         *outdoors_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
         auto fullyRevealedCells = delta.fullyRevealedCells;
         auto partiallyRevealedCells = delta.partiallyRevealedCells;
-        MM_TRY(Blob pristine, pGames_LOD->read(ddm_filename).and_then(lod::decodeMaybeCompressed));
+        MM_TRY(Blob rawPristine, pGames_LOD->read(ddm_filename));
+        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
         MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
         delta.header = header;
         delta.fullyRevealedCells = fullyRevealedCells;

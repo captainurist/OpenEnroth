@@ -568,7 +568,7 @@ GAME_TEST(Issues, Issue1340) {
     test.playTraceFromTestData("issue_1340.mm7", "issue_1340.json", [] {
         // Harmondale should not have been visited - check that the dlv data is the same as what's in games.lod.
         const Blob &saveHarmondale = pMapDeltas.at("d29.dlv");
-        Blob origHarmondale = orThrow(pGames_LOD->read("d29.dlv"));
+        Blob origHarmondale = pGames_LOD->read("d29.dlv").orThrow();
         EXPECT_EQ(saveHarmondale.str(), origHarmondale.str());
     });
 

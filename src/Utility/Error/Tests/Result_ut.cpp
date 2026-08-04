@@ -17,7 +17,7 @@ static Result<int> parsePositive(int value) {
 
 static Result<int> sumPositive(int l, int r) {
     MM_TRY(int lv, parsePositive(l));
-    MM_TRY(int rv, withContext(parsePositive(r), "while parsing the second argument"));
+    MM_TRY(int rv, parsePositive(r).withContext("while parsing the second argument"));
     return lv + rv;
 }
 
@@ -78,12 +78,14 @@ UNIT_TEST(Error, FromCurrentException) {
 UNIT_TEST(Result, Success) {
     Result<int> result = parsePositive(10);
     ASSERT_TRUE(result);
+    EXPECT_TRUE(result.ok());
     EXPECT_EQ(*result, 10);
 }
 
 UNIT_TEST(Result, Failure) {
     Result<int> result = parsePositive(-1);
     ASSERT_FALSE(result);
+    EXPECT_FALSE(result.ok());
     EXPECT_EQ(result.error().message(), "'-1' is not a positive number");
 }
 
@@ -135,19 +137,31 @@ UNIT_TEST(Result, TryWorksWithMoveOnlyTypes) {
     EXPECT_FALSE(use(false));
 }
 
-UNIT_TEST(Result, TryWorksWithCommasInExpression) {
-    auto add = [] (int l, int r) -> Result<int> { return l + r; };
-    auto run = [&] () -> Result<int> {
-        MM_TRY(int value, add(1, 2)); // Comma is inside parentheses, so the preprocessor is fine with it.
-        return value;
-    };
+UNIT_TEST(Result, WithContext) {
+    Result<int> bad = parsePositive(-1).withContext("while doing '{}'", "something");
+    ASSERT_FALSE(bad);
+    EXPECT_EQ(bad.error().message(), "while doing 'something': '-1' is not a positive number");
 
-    EXPECT_EQ(*run(), 3);
+    // Context on a successful result is a no-op.
+    EXPECT_EQ(*parsePositive(1).withContext("unused"), 1);
+
+    // Also works for Result<void>.
+    Result<void> badVoid = checkPositive(0).withContext("outer");
+    ASSERT_FALSE(badVoid);
+    EXPECT_EQ(badVoid.error().message(), "outer: '0' is not a positive number");
 }
 
 UNIT_TEST(Result, ValueOr) {
-    EXPECT_EQ(parsePositive(-1).value_or(0), 0);
-    EXPECT_EQ(parsePositive(5).value_or(0), 5);
+    EXPECT_EQ(parsePositive(-1).valueOr(0), 0);
+    EXPECT_EQ(parsePositive(5).valueOr(0), 5);
+}
+
+UNIT_TEST(Result, OrThrow) {
+    EXPECT_EQ(parsePositive(3).orThrow(), 3);
+    EXPECT_THROW_MESSAGE(parsePositive(-3).orThrow(), "positive");
+
+    EXPECT_NO_THROW(checkPositive(3).orThrow());
+    EXPECT_THROW_MESSAGE(checkPositive(-3).orThrow(), "positive");
 }
 
 UNIT_TEST(Result, TryCatch) {
@@ -163,8 +177,24 @@ UNIT_TEST(Result, TryCatch) {
     EXPECT_TRUE(voidFine);
 }
 
+UNIT_TEST(Result, TryCatchDoesntDoubleWrap) {
+    // A callable that returns a Result is passed through, not wrapped into a Result<Result<...>>. This is what
+    // makes it OK to mix fail() / MM_TRY with throwing calls inside one tryCatch block.
+    Result<int> failed = tryCatch([] () -> Result<int> { return fail("nope"); });
+    ASSERT_FALSE(failed);
+    EXPECT_EQ(failed.error().message(), "nope");
+
+    Result<int> thrown = tryCatch([] () -> Result<int> { throw Exception("oops"); });
+    ASSERT_FALSE(thrown);
+    EXPECT_EQ(thrown.error().message(), "oops");
+
+    Result<int> fine = tryCatch([] () -> Result<int> { return 5; });
+    ASSERT_TRUE(fine);
+    EXPECT_EQ(*fine, 5);
+}
+
 UNIT_TEST(Result, MustSucceed) {
-    EXPECT_EQ(mustSucceed(parsePositive(3)), 3);
+    EXPECT_EQ(parsePositive(3).mustSucceed(), 3);
 
     // Check that the fatal handler gets the message. We can't let `mustSucceed` actually terminate here, so the
     // handler longjmps out via an exception.
@@ -174,9 +204,16 @@ UNIT_TEST(Result, MustSucceed) {
         reported = error.message();
         throw FatalError();
     });
-    EXPECT_THROW(mustSucceed(parsePositive(-3)), FatalError);
+    EXPECT_THROW(parsePositive(-3).mustSucceed(), FatalError);
     setFatalErrorHandler(oldHandler);
     EXPECT_EQ(reported, "'-3' is not a positive number");
+}
+
+UNIT_TEST(Result, Discard) {
+    // `discard` is the explicit way to drop a Result. Mostly a compilation test - `parsePositive(-1);` alone
+    // wouldn't compile because Result is [[nodiscard]].
+    discard(parsePositive(-1));
+    discard(checkPositive(-1));
 }
 
 UNIT_TEST(Result, SizeIsSmall) {

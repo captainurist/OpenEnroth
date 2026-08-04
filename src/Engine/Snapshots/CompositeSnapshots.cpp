@@ -763,30 +763,30 @@ void serialize(const SaveGame_MM7 &src, Blob *dst) {
 //                     behavior.
 void deserialize(const Blob &src, SaveGame_MM7 *dst) {
     LodReader lodReader;
-    orThrow(lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES));
+    lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES).orThrow();
 
-    deserialize(orThrow(lodReader.read("header.bin")), &dst->header);
-    deserialize(orThrow(lodReader.read("party.bin")), &dst->party);
-    deserialize(orThrow(lodReader.read("clock.bin")), &dst->eventTimer);
-    deserialize(orThrow(lodReader.read("overlay.bin")), &dst->overlays);
-    deserialize(orThrow(lodReader.read("npcdata.bin")), &dst->npcData);
-    deserialize(orThrow(lodReader.read("npcgroup.bin")), &dst->npcGroups);
+    deserialize(lodReader.read("header.bin").orThrow(), &dst->header);
+    deserialize(lodReader.read("party.bin").orThrow(), &dst->party);
+    deserialize(lodReader.read("clock.bin").orThrow(), &dst->eventTimer);
+    deserialize(lodReader.read("overlay.bin").orThrow(), &dst->overlays);
+    deserialize(lodReader.read("npcdata.bin").orThrow(), &dst->npcData);
+    deserialize(lodReader.read("npcgroup.bin").orThrow(), &dst->npcGroups);
 
     dst->mapDeltas.clear();
     for (const std::string &name : lodReader.ls())
         if (name.ends_with(".ddm") || name.ends_with(".dlv"))
-            dst->mapDeltas[name] = orThrow(lodReader.read(name));
+            dst->mapDeltas[name] = lodReader.read(name).orThrow();
 
     dst->lloydImages.clear();
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 5; j++) {
             std::string name = fmt::format("lloyd{}{}.pcx", i + 1, j + 1);
             if (lodReader.exists(name))
-                dst->lloydImages[{i, j}] = orThrow(lodReader.read(name));
+                dst->lloydImages[{i, j}] = lodReader.read(name).orThrow();
         }
     }
 
-    dst->thumbnail = orThrow(lodReader.read("image.pcx"));
+    dst->thumbnail = lodReader.read("image.pcx").orThrow();
 }
 
 void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
@@ -796,9 +796,9 @@ void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
 
 void deserialize(const Blob &src, SaveGameLite_MM7 *dst) {
     LodReader lodReader;
-    orThrow(lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES));
-    deserialize(orThrow(lodReader.read("header.bin")), &dst->header);
-    dst->thumbnail = orThrow(lodReader.read("image.pcx"));
+    lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES).orThrow();
+    deserialize(lodReader.read("header.bin").orThrow(), &dst->header);
+    dst->thumbnail = lodReader.read("image.pcx").orThrow();
 }
 
 void reconstruct(const SpriteFrameTable_MM7 &src, SpriteFrameTable *dst) {

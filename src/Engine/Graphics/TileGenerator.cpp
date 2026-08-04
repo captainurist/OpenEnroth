@@ -97,7 +97,8 @@ RgbaImageView TileGenerator::loadTile(Tileset tileset, TileVariant variant) {
 
     // Need to load directly from LOD, caching layer contains desaturated images.
     std::string_view name = pTileTable->tile(pTileTable->tileId(tileset, variant)).textureName;
-    LodImage image = mustSucceed(pBitmaps_LOD->read(name).and_then(lod::decodeImage)); // Tile table is data we ship.
+    Blob data = pBitmaps_LOD->read(name).mustSucceed(); // Tile table is data we ship, it can't be broken.
+    LodImage image = lod::decodeImage(data).mustSucceed();
     return _tileByTilesetVariant.emplace(key, makeRgbaImage(image.image, image.palette)).first->second;
 }
 
