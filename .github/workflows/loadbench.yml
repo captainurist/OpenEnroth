@@ -1,0 +1,148 @@
+name: LoadBench
+
+# Cross-platform level-loading benchmark for the error handling migration, see ExceptionFreeErrorHandling.md.
+# Builds the LoadBench tool in Release, with and without LTO (/GL /LTCG on MSVC), runs it against games.lod, and
+# publishes the RESULT lines in the job summary.
+
+on:
+  push:
+    branches:
+      - feature/exception-free
+    paths:
+      - '.github/workflows/loadbench.yml'
+  workflow_dispatch: null
+
+jobs:
+  loadbench:
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - windows_x86
+          - windows_x86_64
+          - darwin_arm64
+          - linux_x86_64
+        lto:
+          - 'ON'
+          - 'OFF'
+    runs-on: >-
+      ${{
+        startsWith(matrix.target, 'windows_') && 'windows-2022' ||
+        startsWith(matrix.target, 'darwin_')  && 'macos-15'     ||
+        'ubuntu-24.04'
+      }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 'Initialize matrix vars'
+        run: |
+          set -euo pipefail
+          target="${{matrix.target}}"
+          case "$target" in
+            windows_x86)    platform=windows; architecture=x86;    cmake_args="";;
+            windows_x86_64) platform=windows; architecture=x86_64; cmake_args="";;
+            darwin_arm64)   platform=darwin;  architecture=arm64;  cmake_args="-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11";;
+            linux_x86_64)   platform=linux;   architecture=x86_64; cmake_args="-DCMAKE_C_COMPILER=gcc-15 -DCMAKE_CXX_COMPILER=g++-15";;
+            *) echo "Unknown target: $target" >&2; exit 1;;
+          esac
+          echo "MATRIX_PLATFORM=$platform" >> "$GITHUB_ENV"
+          echo "MATRIX_ARCHITECTURE=$architecture" >> "$GITHUB_ENV"
+          echo "MATRIX_CMAKE_ARGS=$cmake_args" >> "$GITHUB_ENV"
+
+      - name: '[darwin] Set up Xcode'
+        if: env.MATRIX_PLATFORM == 'darwin'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 16.3
+
+      - name: 'Checkout'
+        uses: actions/checkout@v5.0.0
+        with:
+          submodules: recursive
+
+      - name: '[linux] Install dependencies'
+        if: env.MATRIX_PLATFORM == 'linux'
+        uses: Wandalen/wretry.action@master
+        with:
+          attempt_limit: 3
+          attempt_delay: 5000
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y gcc-multilib g++-multilib lld libgmp-dev libmpfr-dev libmpc-dev libisl-dev flex bison
+            sudo apt-get install -y libglu1-mesa-dev libdwarf-dev libelf-dev
+
+      # Same gcc-15-from-source setup as build_all.yml, sharing its cache key.
+      - name: '[linux] Set GCC_PREFIX'
+        if: env.MATRIX_PLATFORM == 'linux'
+        run: echo "GCC_PREFIX=$HOME/gcc-15" >> "$GITHUB_ENV"
+
+      - name: '[linux] Restore gcc-15 cache'
+        if: env.MATRIX_PLATFORM == 'linux'
+        id: gcc-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{env.GCC_PREFIX}}
+          key: gcc-15-${{env.ImageOS}}-${{runner.arch}}-${{hashFiles('scripts/build_gcc_15.sh')}}
+
+      - name: '[linux] Build gcc-15'
+        if: env.MATRIX_PLATFORM == 'linux' && steps.gcc-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build_gcc_15.sh "$GCC_PREFIX"
+
+      - name: '[linux] Add gcc-15 to PATH'
+        if: env.MATRIX_PLATFORM == 'linux'
+        run: |
+          echo "$GCC_PREFIX/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$GCC_PREFIX/lib64:$GCC_PREFIX/lib32${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+
+      - name: '[windows] Setup MSVC environment'
+        if: env.MATRIX_PLATFORM == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: '${{env.MATRIX_ARCHITECTURE}}'
+
+      - name: 'Restore data cache'
+        id: restore_data_cache
+        uses: actions/cache/restore@v4.2.4
+        with:
+          path: |
+            OpenEnroth_GameData
+          key: data-cache
+          enableCrossOsArchive: ${{env.MATRIX_PLATFORM == 'windows'}}
+
+      # Fallback for when the data cache is cold, mirroring build_data_cache.yml. Requires the DATA_ACCESS_TOKEN
+      # secret; does nothing on runs that don't have access to secrets.
+      - name: 'Checkout private data'
+        if: steps.restore_data_cache.outputs.cache-hit != 'true' && env.SECRETS_DATA_TOKEN != ''
+        uses: actions/checkout@v5.0.0
+        with:
+          repository: OpenEnroth/OpenEnroth_GameData
+          path: OpenEnroth_GameData
+          lfs: 'true'
+          token: '${{secrets.DATA_ACCESS_TOKEN}}'
+        env:
+          SECRETS_DATA_TOKEN: '${{secrets.DATA_ACCESS_TOKEN}}'
+
+      - name: 'Configure'
+        run: |
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${{matrix.lto}} -DOE_BUILD_TESTS=OFF ${{env.MATRIX_CMAKE_ARGS}}
+
+      - name: 'Build'
+        working-directory: build
+        run: |
+          ninja LoadBench
+
+      - name: 'Run LoadBench'
+        run: |
+          set -euo pipefail
+          exe=build/src/Bin/LoadBench/LoadBench
+          [ -f "$exe.exe" ] && exe="$exe.exe"
+          lod="$GITHUB_WORKSPACE/OpenEnroth_GameData/mm7/data/games.lod"
+
+          echo "### LoadBench ${{matrix.target}} lto=${{matrix.lto}}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          for run in 1 2 3; do
+            "$exe" "$lod" 15 | tee /dev/stderr | grep RESULT >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
