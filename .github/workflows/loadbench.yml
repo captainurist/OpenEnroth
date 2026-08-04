@@ -23,9 +23,6 @@ jobs:
           - windows_x86_64
           - darwin_arm64
           - linux_x86_64
-        lto:
-          - 'ON'
-          - 'OFF'
     runs-on: >-
       ${{
         startsWith(matrix.target, 'windows_') && 'windows-2022' ||
@@ -144,7 +141,7 @@ jobs:
         run: |
           cat > /tmp/tlv_probe.cpp <<'PROBE'
           #include <cstddef>
-          struct Arena { char buf[65536]; unsigned long top = 0; };
+          struct Arena { char buf[65536] = {}; unsigned long top = 0; };
           constinit thread_local Arena arena;
 
           // Three accesses in one function - one _tlv_get_addr call, or three?
@@ -172,35 +169,41 @@ jobs:
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: 'Configure'
+      - name: 'Configure and build, LTO off and on'
         run: |
-          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=${{matrix.lto}} -DOE_BUILD_TESTS=OFF ${{env.MATRIX_CMAKE_ARGS}}
+          set -euo pipefail
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DOE_BUILD_TESTS=OFF ${{env.MATRIX_CMAKE_ARGS}}
+          ninja -C build LoadBench
+          cmake -B build_lto -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DOE_BUILD_TESTS=OFF ${{env.MATRIX_CMAKE_ARGS}}
+          ninja -C build_lto LoadBench
 
-      - name: 'Build'
-        working-directory: build
-        run: |
-          ninja LoadBench
-
+      # Both configurations run interleaved on the same VM - runner hardware varies too much between jobs for
+      # cross-job timing comparisons to mean anything.
       - name: 'Run LoadBench'
         run: |
           set -euo pipefail
           exe=build/src/Bin/LoadBench/LoadBench
+          exeLto=build_lto/src/Bin/LoadBench/LoadBench
           if [ -f "$exe.exe" ]; then
             exe="$exe.exe"
+            exeLto="$exeLto.exe"
           fi
 
           lod="$GITHUB_WORKSPACE/OpenEnroth_GameData/mm7/data/games.lod"
           if [ ! -f "$lod" ]; then
             echo "::warning::games.lod unavailable on this leg - benchmark skipped, but the build was validated."
-            echo "### LoadBench ${{matrix.target}} lto=${{matrix.lto}}: SKIPPED, no game data" >> "$GITHUB_STEP_SUMMARY"
+            echo "### LoadBench ${{matrix.target}}: SKIPPED, no game data" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          echo "### LoadBench ${{matrix.target}} lto=${{matrix.lto}}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### LoadBench ${{matrix.target}}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           for run in 1 2 3; do
             out=$("$exe" "$lod" 15)
             echo "$out"
-            echo "$out" | grep RESULT >> "$GITHUB_STEP_SUMMARY"
+            echo "lto=OFF $(echo "$out" | grep RESULT)" >> "$GITHUB_STEP_SUMMARY"
+            outLto=$("$exeLto" "$lod" 15)
+            echo "$outLto"
+            echo "lto=ON  $(echo "$outLto" | grep RESULT)" >> "$GITHUB_STEP_SUMMARY"
           done
           echo '```' >> "$GITHUB_STEP_SUMMARY"
