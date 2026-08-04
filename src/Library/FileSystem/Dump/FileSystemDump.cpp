@@ -35,7 +35,7 @@ class FileSystemDumper {
         if (_entries == _maxEntries)
             return;
 
-        std::vector<DirectoryEntry> entries = _fs->ls(path);
+        std::vector<DirectoryEntry> entries = _fs->ls(path).orThrow(); // Dumping is a debugging aid, throwing is fine.
         std::ranges::sort(entries);
 
         for (const DirectoryEntry &entry : entries) {
@@ -67,7 +67,7 @@ class FileSystemDumper {
     void writeOutFile(FileSystemPathView path) {
         Blob content;
         if (_flags & FILE_SYSTEM_DUMP_WITH_CONTENTS)
-            content = _fs->read(path);
+            content = _fs->read(path).orThrow();
 
         if (_target) {
             _target->push_back(FileSystemDumpEntry(path.string(), FILE_REGULAR, std::move(content)));

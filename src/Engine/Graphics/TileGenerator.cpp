@@ -49,7 +49,7 @@ void TileGenerator::fillTable() {
 void TileGenerator::ensureTile(std::string_view name) {
     assert(_tilesetVariantByName.contains(name));
 
-    if (ufs->exists(name))
+    if (ufs->exists(name).valueOr(false))
         return;
 
     auto [tileset, variant] = *valuePtr(_tilesetVariantByName, name);
@@ -59,7 +59,8 @@ void TileGenerator::ensureTile(std::string_view name) {
         return;
     }
 
-    ufs->write(name, *encoded);
+    if (Result<void> written = ufs->write(name, *encoded); !written)
+        logger->error("Couldn't save the generated tile '{}': {}", name, written.error());
 }
 
 RgbaImage TileGenerator::generateTile(Tileset tileset, TileVariant variant) {

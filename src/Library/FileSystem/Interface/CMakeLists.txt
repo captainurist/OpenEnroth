@@ -3,14 +3,14 @@ cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 set(LIBRARY_FILESYSTEM_INTERFACE_SOURCES
         FileSystem.cpp
         FileSystemPath.cpp
-        FileSystemException.cpp
+        FileSystemError.cpp
         ReadOnlyFileSystem.cpp)
 
 set(LIBRARY_FILESYSTEM_INTERFACE_HEADERS
         FileSystem.h
         FileSystemPath.h
         FileSystemEnums.h
-        FileSystemException.h
+        FileSystemError.h
         ReadOnlyFileSystem.h
         FileSystemFwd.h
         FileSystemPathView.h

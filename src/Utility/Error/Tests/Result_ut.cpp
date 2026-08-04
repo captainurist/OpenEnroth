@@ -23,7 +23,6 @@ static Result<int> sumPositive(int l, int r) {
 
 static Result<void> checkPositive(int value) {
     co_await parsePositive(value);
-    co_return {};
 }
 
 UNIT_TEST(Error, Message) {
@@ -186,8 +185,8 @@ UNIT_TEST(Result, MustSucceed) {
 UNIT_TEST(Result, Discard) {
     // `discard` is the explicit way to drop a Result. Mostly a compilation test - `parsePositive(-1);` alone
     // wouldn't compile because Result is [[nodiscard]].
-    discard(parsePositive(-1));
-    discard(checkPositive(-1));
+    parsePositive(-1).discard();
+    checkPositive(-1).discard();
 }
 
 static int coroGuardsDestroyed = 0;
@@ -207,7 +206,6 @@ static Result<int> sumPositiveCoro(int l, int r) {
 
 static Result<void> checkPositiveCoro(int value) {
     co_await parsePositive(value); // Coroutine awaiting a plain Result-returning function.
-    co_return {};
 }
 
 static Result<std::unique_ptr<int>> makeUniqueCoro(bool ok) {
@@ -226,11 +224,15 @@ static Result<int> throwingCoro() {
     co_return 1; // Unreachable, but its presence is what makes this function a coroutine.
 }
 
-static Result<void> forgottenCoReturnCoro() {
+static Result<void> noCoReturnCoro() {
     co_await Result<void>();
-    // Deliberately no `co_return {};` - this test documents the failure mode of a real bug class. Flowing off the
-    // end is formally UB, but both GCC and Clang compile it into "return_value was never called", which our
-    // machinery surfaces as the abandoned-coroutine error rather than as garbage.
+    // No `co_return;` - a `Result<void>` coroutine's promise has `return_void`, so flowing off the end is
+    // well-defined success, same as falling off the end of a plain `void` function.
+}
+
+static Result<void> coAwaitErrorCoro() {
+    co_await fail("raised {}", 42); // Ends the coroutine right here.
+    ADD_FAILURE() << "coAwaitErrorCoro resumed past a failed co_await.";
 }
 
 UNIT_TEST(Result, CoroutineSuccess) {
@@ -271,10 +273,14 @@ UNIT_TEST(Result, CoroutineCatchesExceptions) {
     EXPECT_EQ(thrown.error().message(), "boom 7");
 }
 
-UNIT_TEST(Result, CoroutineFlowingOffTheEndIsAnError) {
-    Result<void> abandoned = forgottenCoReturnCoro();
-    ASSERT_FALSE(abandoned);
-    EXPECT_THAT(abandoned.error().message(), testing::HasSubstr("without co_return"));
+UNIT_TEST(Result, CoroutineFlowingOffTheEndIsSuccess) {
+    EXPECT_TRUE(noCoReturnCoro().ok());
+}
+
+UNIT_TEST(Result, CoroutineCoAwaitError) {
+    Result<void> raised = coAwaitErrorCoro();
+    ASSERT_FALSE(raised.ok());
+    EXPECT_EQ(raised.error().message(), "raised 42");
 }
 
 UNIT_TEST(Result, SizeIsSmall) {

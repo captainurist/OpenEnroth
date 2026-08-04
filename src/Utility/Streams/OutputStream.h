@@ -160,7 +160,7 @@ class OutputStream {
      */
     void destroy() noexcept {
         if (isOpen())
-            discard(_close(&_buffer));
+            _close(&_buffer).discard();
     }
 
  private:

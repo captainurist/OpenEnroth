@@ -85,12 +85,15 @@ GUIWindow_Save::GUIWindow_Save() : GUIWindow(WINDOW_Save, {0, 0}, render->GetRen
         }
 
         std::string str = fmt::format("saves/{}", file_name);
-        if (!ufs->exists(str)) {
+        if (!ufs->exists(str).valueOr(false)) {
             pSavegameList->pSavegameUsedSlots[i] = false;
             pSavegameList->pSavegameHeader[i].name = localization->str(LSTR_EMPTY_SAVE);
         } else {
             SaveGameLite save;
-            if (Result<void> loaded = deserialize(ufs->read(str), &save, tags::via<SaveGameLite_MM7>); !loaded) {
+            Result<void> loaded = [&]() -> Result<void> {
+                co_await deserialize(co_await ufs->read(str), &save, tags::via<SaveGameLite_MM7>);
+            }();
+            if (!loaded) {
                 logger->warning("Couldn't read the header of savegame '{}': {}", file_name, loaded.error());
                 pSavegameList->pSavegameUsedSlots[i] = false;
                 pSavegameList->pSavegameHeader[i].name = localization->str(LSTR_EMPTY_SAVE);
@@ -175,7 +178,7 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
 
     for (int i = 0; i < pSavegameList->numSavegameFiles; ++i) {
         std::string str = fmt::format("saves/{}", pSavegameList->pFileList[i]);
-        if (!ufs->exists(str)) {
+        if (!ufs->exists(str).valueOr(false)) {
             pSavegameList->pSavegameUsedSlots[i] = false;
             pSavegameList->pSavegameHeader[i].name = localization->str(LSTR_EMPTY_SAVE);
             continue;
@@ -190,7 +193,10 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
         }
 
         SaveGameLite save;
-        if (Result<void> loaded = deserialize(ufs->read(str), &save, tags::via<SaveGameLite_MM7>); !loaded) {
+        Result<void> loaded = [&]() -> Result<void> {
+            co_await deserialize(co_await ufs->read(str), &save, tags::via<SaveGameLite_MM7>);
+        }();
+        if (!loaded) {
             logger->warning("Couldn't read the header of savegame '{}': {}", pSavegameList->pFileList[i], loaded.error());
             pSavegameList->pSavegameUsedSlots[i] = false;
             continue;

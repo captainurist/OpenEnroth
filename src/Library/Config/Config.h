@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Utility/Error/Result.h"
 #include <map>
 #include <string>
 #include <vector>
 
+#include "Utility/Error/Result.h"
 #include "Utility/String/TransparentFunctors.h"
-
 #include "ConfigFwd.h"
 #include "ConfigSection.h"
 #include "ConfigEntry.h"

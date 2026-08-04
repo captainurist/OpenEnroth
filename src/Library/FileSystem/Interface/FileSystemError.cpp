@@ -1,4 +1,4 @@
-#include "FileSystemException.h"
+#include "FileSystemError.h"
 
 #include <cassert>
 #include <string>
@@ -6,11 +6,7 @@
 #include "FileSystemPath.h"
 #include "FileSystem.h"
 
-FileSystemException::FileSystemException(FileSystemError error, std::string_view arg0, std::string_view arg1) :
-    Exception("{}", formatMessage(error, arg0, arg1))
-{}
-
-std::string FileSystemException::formatMessage(FileSystemError error, std::string_view arg0, std::string_view arg1) {
+static std::string formatMessage(FileSystemError error, std::string_view arg0, std::string_view arg1) {
     switch (error) {
     default: assert(false); [[fallthrough]];
 
@@ -63,10 +59,10 @@ std::string FileSystemException::formatMessage(FileSystemError error, std::strin
     }
 }
 
-[[noreturn]] void FileSystemException::raise(const FileSystem *fs, FileSystemError error, FileSystemPathView arg0) {
-    throw FileSystemException(error, fs->displayPath(arg0));
+Error fileSystemError(const FileSystem *fs, FileSystemError error, FileSystemPathView arg0) {
+    return Error("{}", formatMessage(error, fs->displayPath(arg0), {}));
 }
 
-[[noreturn]] void FileSystemException::raise(const FileSystem *fs, FileSystemError error, FileSystemPathView arg0, FileSystemPathView arg1) {
-    throw FileSystemException(error, fs->displayPath(arg0), fs->displayPath(arg1));
+Error fileSystemError(const FileSystem *fs, FileSystemError error, FileSystemPathView arg0, FileSystemPathView arg1) {
+    return Error("{}", formatMessage(error, fs->displayPath(arg0), fs->displayPath(arg1)));
 }

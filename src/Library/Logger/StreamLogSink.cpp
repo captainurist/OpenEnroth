@@ -24,8 +24,8 @@ void StreamLogSink::write(const LogCategory &category, LogLevel level, std::stri
     spdlog::memory_buf_t formatted;
     _formatter->format(spdlog::details::log_msg(category.name(), translateLogLevel(level), message), formatted);
     // A log sink can't reasonably report its own write errors anywhere, so they're deliberately dropped.
-    discard(_stream->write(formatted.data(), formatted.size()));
-    discard(_stream->flush());
+    _stream->write(formatted.data(), formatted.size()).discard();
+    _stream->flush().discard();
 }
 
 void StreamLogSink::initFormatter() {

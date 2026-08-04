@@ -39,7 +39,7 @@ ScriptingSystem::~ScriptingSystem() {
 
 void ScriptingSystem::executeEntryPoint() {
     // This will throw if we have script errors.
-    _solState->script(dfs->read(fmt::format("{}/{}", _scriptFolder, _entryPointFile)).str());
+    _solState->script(dfs->read(fmt::format("{}/{}", _scriptFolder, _entryPointFile)).orThrow().str());
 }
 
 void ScriptingSystem::_initBaseLibraries() {
@@ -78,8 +78,8 @@ void ScriptingSystem::_initPackageTable() {
     // Other scripts are loaded from our virtual FS.
     _solState->add_package_loader(sol::as_function([this](const std::string &module) {
         std::string path = fmt::format("{}/{}.lua", _scriptFolder, replaceAll(module, '.', '/'));
-        if (dfs->exists(path)) {
-            return _solState->load(dfs->read(path).str(), module).get<sol::object>();
+        if (Result<Blob> script = dfs->read(path)) {
+            return _solState->load(script->str(), module).get<sol::object>();
         } else {
             return sol::make_object(*_solState, fmt::format("\n\tno file '{}'", dfs->displayPath(path)));
         }

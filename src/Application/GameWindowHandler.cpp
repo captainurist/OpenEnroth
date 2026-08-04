@@ -163,7 +163,8 @@ void GameWindowHandler::OnScreenshot() {
             return;
         }
 
-        ufs->write(path, *screenshot);
+        if (Result<void> written = ufs->write(path, *screenshot); !written)
+            logger->error("Couldn't save a screenshot: {}", written.error());
     }
 }
 

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string_view>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Streams/BlobOutputStream.h"
 
 namespace detail {

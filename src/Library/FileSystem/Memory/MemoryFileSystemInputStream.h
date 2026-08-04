@@ -2,8 +2,8 @@
 
 #include <memory>
 
+#include "Utility/Error/Result.h"
 #include "Library/FileSystem/Trie/FileSystemTrie.h"
-
 #include "Utility/Streams/BlobInputStream.h"
 
 namespace detail {

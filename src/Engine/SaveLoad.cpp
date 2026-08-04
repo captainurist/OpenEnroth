@@ -62,7 +62,7 @@ void loadGame(int uSlot) {
     SaveGame state;
     // TODO(captainurist): #exceptions A corrupt save should take the player back to the save selection screen with
     //                     an error message, not blow up the game.
-    deserialize(Blob::copy(ufs->read(filename)), &state, tags::via<SaveGame_MM7>).orThrow();
+    deserialize(Blob::copy(ufs->read(filename).orThrow()), &state, tags::via<SaveGame_MM7>).orThrow();
 
     // Move loaded state to global variables.
     *pParty = std::move(state.party);
@@ -215,14 +215,12 @@ SaveGameHeader saveGame(bool isAutoSave, bool resetWorld, std::string_view path,
 
     auto [header, blob] = createSaveData(resetWorld, title);
 
-    try {
-        ufs->write(path, blob);
-    } catch (const std::exception &e) {
+    if (Result<void> written = ufs->write(path, blob); !written) {
         if (isAutoSave) {
-            logger->warning("saveGame: failed to write autosave: {}", e.what());
+            logger->warning("saveGame: failed to write autosave: {}", written.error());
             return {};
         }
-        throw;
+        std::move(written).orThrow(); // TODO(captainurist): #exceptions should end up in an error message box instead.
     }
 
     return header;
@@ -258,8 +256,8 @@ void doSavegame(int uSlot) {
 void SavegameList::Initialize() {
     pSavegameList->Reset();
 
-    if (ufs->exists("saves")) {
-        for (const auto &entry : ufs->ls("saves")) {
+    if (ufs->exists("saves").valueOr(false)) {
+        for (const auto &entry : ufs->ls("saves").valueOr({})) {
             if (entry.type == FILE_REGULAR && entry.name.ends_with(".mm7")) {
                 pSavegameList->pFileList[pSavegameList->numSavegameFiles++] = entry.name;
                 if (pSavegameList->numSavegameFiles == MAX_SAVE_SLOTS) {

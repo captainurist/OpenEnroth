@@ -4,38 +4,38 @@
 #include <vector>
 #include <string>
 
-#include "Library/FileSystem/Interface/FileSystemException.h"
+#include "Library/FileSystem/Interface/FileSystemError.h"
 
 #include "Utility/String/Join.h"
 
-bool NullFileSystem::_exists(FileSystemPathView path) const {
+Result<bool> NullFileSystem::_exists(FileSystemPathView path) const {
     return false;
 }
 
-FileStat NullFileSystem::_stat(FileSystemPathView path) const {
-    return {};
+Result<FileStat> NullFileSystem::_stat(FileSystemPathView path) const {
+    return FileStat();
 }
 
-void NullFileSystem::_ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const {
+Result<void> NullFileSystem::_ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const {
     if (path.isEmpty()) {
         entries->clear();
-        return;
+        return {};
     }
-    FileSystemException::raise(this, FS_LS_FAILED_PATH_DOESNT_EXIST, path);
+    return fileSystemError(this, FS_LS_FAILED_PATH_DOESNT_EXIST, path);
 }
 
-Blob NullFileSystem::_read(FileSystemPathView path) const {
-    reportReadError(path);
+Result<Blob> NullFileSystem::_read(FileSystemPathView path) const {
+    return readError(path);
 }
 
-std::unique_ptr<InputStream> NullFileSystem::_openForReading(FileSystemPathView path) const {
-    reportReadError(path);
+Result<std::unique_ptr<InputStream>> NullFileSystem::_openForReading(FileSystemPathView path) const {
+    return readError(path);
 }
 
 std::string NullFileSystem::_displayPath(FileSystemPathView path) const {
     return join("null://", path.string());
 }
 
-[[noreturn]] void NullFileSystem::reportReadError(FileSystemPathView path) const {
-    FileSystemException::raise(this, FS_READ_FAILED_PATH_DOESNT_EXIST, path);
+Error NullFileSystem::readError(FileSystemPathView path) const {
+    return fileSystemError(this, FS_READ_FAILED_PATH_DOESNT_EXIST, path);
 }

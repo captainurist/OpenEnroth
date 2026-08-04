@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Utility/Error/Result.h"
-
 #include <string>
-#include <vector>
 #include <tuple>
 #include <unordered_map>
+#include <vector>
 
+#include "Utility/Error/Result.h"
 #include "EntitySnapshots.h"
-
 #include "Utility/Memory/Blob.h"
 #include "Utility/Hash.h"
 

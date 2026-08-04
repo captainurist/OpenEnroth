@@ -27,9 +27,16 @@ bool GameTraceHandler::keyPressEvent(const PlatformKeyEvent *event) {
                 EngineTraceRecording recording = tracer->finishRecording(game);
 
                 // TODO(captainurist): do this properly, trace00001.json, etc.
-                ufs->write("trace.json", recording.trace);
-                ufs->write("trace.mm7", recording.save);
-                logger->info("Trace saved to {} and {}", ufs->displayPath("trace.json"), ufs->displayPath("trace.mm7"));
+                Result<void> written = [&] () -> Result<void> {
+                    co_await ufs->write("trace.json", recording.trace);
+                    co_await ufs->write("trace.mm7", recording.save);
+                    co_return;
+                }();
+                if (written) {
+                    logger->info("Trace saved to {} and {}", ufs->displayPath("trace.json"), ufs->displayPath("trace.mm7"));
+                } else {
+                    logger->error("Couldn't save the trace: {}", written.error());
+                }
             } else {
                 tracer->startRecording(game);
             }

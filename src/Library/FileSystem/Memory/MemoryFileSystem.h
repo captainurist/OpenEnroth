@@ -1,10 +1,11 @@
 #pragma once
 
-#include <utility>
-#include <vector>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "Utility/Error/Result.h"
 #include "Library/FileSystem/Interface/FileSystem.h"
 #include "Library/FileSystem/Trie/FileSystemTrie.h"
 
@@ -37,23 +38,23 @@ class MemoryFileSystem : public FileSystem {
     void clear();
 
  private:
-    virtual bool _exists(FileSystemPathView path) const override;
-    virtual FileStat _stat(FileSystemPathView path) const override;
-    virtual void _ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const override;
-    virtual Blob _read(FileSystemPathView path) const override;
-    virtual void _write(FileSystemPathView path, const Blob &data) override;
-    virtual std::unique_ptr<InputStream> _openForReading(FileSystemPathView path) const override;
-    virtual std::unique_ptr<OutputStream> _openForWriting(FileSystemPathView path) override;
-    virtual void _rename(FileSystemPathView srcPath, FileSystemPathView dstPath) override;
-    virtual bool _remove(FileSystemPathView path) override;
+    virtual Result<bool> _exists(FileSystemPathView path) const override;
+    virtual Result<FileStat> _stat(FileSystemPathView path) const override;
+    virtual Result<void> _ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const override;
+    virtual Result<Blob> _read(FileSystemPathView path) const override;
+    virtual Result<void> _write(FileSystemPathView path, const Blob &data) override;
+    virtual Result<std::unique_ptr<InputStream>> _openForReading(FileSystemPathView path) const override;
+    virtual Result<std::unique_ptr<OutputStream>> _openForWriting(FileSystemPathView path) override;
+    virtual Result<void> _rename(FileSystemPathView srcPath, FileSystemPathView dstPath) override;
+    virtual Result<bool> _remove(FileSystemPathView path) override;
     virtual std::string _displayPath(FileSystemPathView path) const override;
 
  private:
     using MemoryFileData = detail::MemoryFileData;
     using Node = FileSystemTrieNode<std::shared_ptr<MemoryFileData>>;
 
-    const Node *nodeForReading(FileSystemPathView path) const;
-    Node *nodeForWriting(FileSystemPathView path);
+    Result<const Node *> nodeForReading(FileSystemPathView path) const;
+    Result<Node *> nodeForWriting(FileSystemPathView path);
 
  private:
     std::string _displayName;

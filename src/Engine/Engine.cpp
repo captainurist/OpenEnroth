@@ -608,13 +608,13 @@ void MM7_LoadLods() {
     engine->resources()->open().mustSucceed();
 
     pIcons_LOD = new LodTextureCache;
-    pIcons_LOD->open(dfs->read("data/icons.lod")).mustSucceed();
+    pIcons_LOD->open(dfs->read("data/icons.lod").mustSucceed()).mustSucceed();
 
     pBitmaps_LOD = new LodTextureCache;
-    pBitmaps_LOD->open(dfs->read("data/bitmaps.lod")).mustSucceed();
+    pBitmaps_LOD->open(dfs->read("data/bitmaps.lod").mustSucceed()).mustSucceed();
 
     pSprites_LOD = new LodSpriteCache;
-    pSprites_LOD->open(dfs->read("data/sprites.lod")).mustSucceed();
+    pSprites_LOD->open(dfs->read("data/sprites.lod").mustSucceed()).mustSucceed();
 
     pPaletteManager->load(pBitmaps_LOD);
 }

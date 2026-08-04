@@ -22,15 +22,15 @@ static Result<LodHeader> parseHeader(InputStream &stream, LodVersion *version) {
     co_await deserialize(stream, &header, tags::via<LodHeader_MM6>);
 
     if (header.signature != "LOD")
-        co_return fail("File '{}' is not a valid LOD: expected signature '{}', got '{}'", stream.displayPath(), "LOD", ascii::toPrintable(header.signature));
+        co_await fail("File '{}' is not a valid LOD: expected signature '{}', got '{}'", stream.displayPath(), "LOD", ascii::toPrintable(header.signature));
 
     if (!tryDeserialize(header.version, version))
-        co_return fail("File '{}' is not a valid LOD: version '{}' is not recognized", stream.displayPath(), ascii::toPrintable(header.version));
+        co_await fail("File '{}' is not a valid LOD: version '{}' is not recognized", stream.displayPath(), ascii::toPrintable(header.version));
 
     // While LOD structure itself support multiple directories, all LOD files associated with
     // vanilla MM6/7/8 games use a single directory.
     if (header.numDirectories != 1)
-        co_return fail("File '{}' is not a valid LOD: expected a single directory, got '{}' directories", stream.displayPath(), header.numDirectories);
+        co_await fail("File '{}' is not a valid LOD: expected a single directory, got '{}' directories", stream.displayPath(), header.numDirectories);
 
     co_return header;
 }
@@ -41,10 +41,10 @@ static Result<LodEntry> parseDirectoryEntry(InputStream &stream, LodVersion vers
 
     size_t expectedDataSize = result.numItems * fileEntrySize(version);
     if (result.dataSize < expectedDataSize)
-        co_return fail("File '{}' is not a valid LOD: invalid root directory index size, expected at least {} bytes, got {} bytes", stream.displayPath(), expectedDataSize, result.dataSize);
+        co_await fail("File '{}' is not a valid LOD: invalid root directory index size, expected at least {} bytes, got {} bytes", stream.displayPath(), expectedDataSize, result.dataSize);
 
     if (result.dataOffset + result.dataSize > lodSize)
-        co_return fail("File '{}' is not a valid LOD: root directory index points outside the LOD file", stream.displayPath());
+        co_await fail("File '{}' is not a valid LOD: root directory index points outside the LOD file", stream.displayPath());
 
     co_return result;
 }
@@ -59,9 +59,9 @@ static Result<std::vector<LodEntry>> parseFileEntries(InputStream &stream, const
 
     for (const LodEntry &entry : result) {
         if (entry.numItems != 0)
-            co_return fail("File '{}' is not a valid LOD: subdirectories are not supported, but '{}' is a subdirectory", stream.displayPath(), entry.name);
+            co_await fail("File '{}' is not a valid LOD: subdirectories are not supported, but '{}' is a subdirectory", stream.displayPath(), entry.name);
         if (entry.dataOffset + entry.dataSize > directoryEntry.dataSize)
-            co_return fail("File '{}' is not a valid LOD: entry '{}' points outside the LOD file", stream.displayPath(), entry.name);
+            co_await fail("File '{}' is not a valid LOD: entry '{}' points outside the LOD file", stream.displayPath(), entry.name);
     }
 
     co_return result;
@@ -75,9 +75,8 @@ LodReader::~LodReader() {
 }
 
 Result<void> LodReader::open(std::string_view path, LodOpenFlags openFlags) {
-    // TODO(captainurist): #exceptions Blob::fromFile still throws, drop the tryCatch once it's ported.
-    Blob blob = co_await tryCatch([&] { return Blob::fromFile(path); });
-    co_return open(std::move(blob), openFlags);
+    Blob blob = co_await Blob::fromFile(path);
+    co_await open(std::move(blob), openFlags);
 }
 
 Result<void> LodReader::open(Blob blob, LodOpenFlags openFlags) {
@@ -85,7 +84,7 @@ Result<void> LodReader::open(Blob blob, LodOpenFlags openFlags) {
 
     size_t expectedSize = sizeof(LodHeader_MM6) + sizeof(LodEntry_MM6); // Header + directory entry.
     if (blob.size() < expectedSize)
-        co_return fail("File '{}' is not a valid LOD: expected file size at least {} bytes, got {} bytes", blob.displayPath(), expectedSize, blob.size());
+        co_await fail("File '{}' is not a valid LOD: expected file size at least {} bytes, got {} bytes", blob.displayPath(), expectedSize, blob.size());
 
     BlobInputStream lodStream(blob);
     LodVersion version = LOD_VERSION_MM6;
@@ -105,7 +104,7 @@ Result<void> LodReader::open(Blob blob, LodOpenFlags openFlags) {
             if (openFlags & LOD_ALLOW_DUPLICATES) {
                 continue; // Only the first entry is kept in this case.
             } else {
-                co_return fail("File '{}' is not a valid LOD: contains duplicate entries for '{}'", blob.displayPath(), name);
+                co_await fail("File '{}' is not a valid LOD: contains duplicate entries for '{}'", blob.displayPath(), name);
             }
         }
 
@@ -121,7 +120,6 @@ Result<void> LodReader::open(Blob blob, LodOpenFlags openFlags) {
     _info.description = std::move(header.description);
     _info.rootName = std::move(rootEntry.name);
     _files = std::move(files);
-    co_return {};
 }
 
 void LodReader::close() {

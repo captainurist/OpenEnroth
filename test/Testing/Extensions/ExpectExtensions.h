@@ -17,6 +17,15 @@
         }                                                                                                               \
     } while (0)
 
+#define EXPECT_ERROR_MESSAGE(EXPRESSION, MESSAGE)                                                                       \
+    do {                                                                                                                \
+        if (const auto &__result = (EXPRESSION); __result.ok()) {                                                       \
+            EXPECT_TRUE(false) << #EXPRESSION << " didn't fail.";                                                       \
+        } else {                                                                                                        \
+            EXPECT_CONTAINS(__result.error().message(), std::string_view(MESSAGE));                                     \
+        }                                                                                                               \
+    } while (0)
+
 #define EXPECT_CONTAINS(HAYSTACK, NEEDLE)                                                                               \
     do {                                                                                                                \
         const auto &__haystack = (HAYSTACK);                                                                            \

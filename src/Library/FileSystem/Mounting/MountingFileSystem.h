@@ -1,11 +1,12 @@
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
-#include <string>
+#include <vector>
 
+#include "Utility/Error/Result.h"
 #include "Library/FileSystem/Interface/FileSystem.h"
 #include "Library/FileSystem/Trie/FileSystemTrie.h"
 
@@ -41,15 +42,15 @@ class MountingFileSystem : public FileSystem {
     void clearMounts();
 
  private:
-    virtual bool _exists(FileSystemPathView path) const override;
-    virtual FileStat _stat(FileSystemPathView path) const override;
-    virtual void _ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const override;
-    virtual Blob _read(FileSystemPathView path) const override;
-    virtual void _write(FileSystemPathView path, const Blob &data) override;
-    virtual std::unique_ptr<InputStream> _openForReading(FileSystemPathView path) const override;
-    virtual std::unique_ptr<OutputStream> _openForWriting(FileSystemPathView path) override;
-    virtual void _rename(FileSystemPathView srcPath, FileSystemPathView dstPath) override;
-    virtual bool _remove(FileSystemPathView path) override;
+    virtual Result<bool> _exists(FileSystemPathView path) const override;
+    virtual Result<FileStat> _stat(FileSystemPathView path) const override;
+    virtual Result<void> _ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const override;
+    virtual Result<Blob> _read(FileSystemPathView path) const override;
+    virtual Result<void> _write(FileSystemPathView path, const Blob &data) override;
+    virtual Result<std::unique_ptr<InputStream>> _openForReading(FileSystemPathView path) const override;
+    virtual Result<std::unique_ptr<OutputStream>> _openForWriting(FileSystemPathView path) override;
+    virtual Result<void> _rename(FileSystemPathView srcPath, FileSystemPathView dstPath) override;
+    virtual Result<bool> _remove(FileSystemPathView path) override;
     virtual std::string _displayPath(FileSystemPathView path) const override;
 
  private:
@@ -60,8 +61,8 @@ class MountingFileSystem : public FileSystem {
     WalkResult walk(FileSystemPathView path);
     ConstWalkResult walk(FileSystemPathView path) const;
 
-    std::pair<const FileSystem *, FileSystemPathView> walkForReading(FileSystemPathView path) const;
-    std::pair<FileSystem *, FileSystemPathView> walkForWriting(FileSystemPathView path);
+    Result<std::pair<const FileSystem *, FileSystemPathView>> walkForReading(FileSystemPathView path) const;
+    Result<std::pair<FileSystem *, FileSystemPathView>> walkForWriting(FileSystemPathView path);
 
  private:
     std::string _displayName;

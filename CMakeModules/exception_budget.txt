@@ -17,19 +17,16 @@ src/Utility/Error/Tests/                 5  # Tests for the exception <-> Result
 src/Engine/Components/Control/          11  # Test instrumentation, not shipped in the game loop.
 src/Engine/Components/Trace/            10  # Test instrumentation, not shipped in the game loop.
 
-# The remnants of the exception island. The (de)serialization layer itself is exception-free now (option D,
-# see ExceptionFreeErrorHandling.md §3) - what still throws is the streams underneath it, and those throws are
-# absorbed into an `Error` by the innermost enclosing coroutine.
+# The exception <-> Result bridge itself.
 src/Utility/                             4  # Exception.cpp helpers and Result::orThrow - the sanctioned bridge. Everything else is at 0.
 
 # Not yet ported. Every one of these is a TODO – see the migration plan in ExceptionFreeErrorHandling.md.
-src/Engine/Evt/                          8  # Event script decoding, incl. the EvtInstruction::parse bridge.
+src/Engine/Evt/                          1  # A single throw in EvtInstruction that needs an EvtProgram::load-level fix.
 src/Engine/Snapshots/                    5  # Savegame (de)serialization.
 src/Engine/Objects/                      3  # Monster table parsing.
 src/Library/Serialization/               4  # Enum & number parsing.
-src/Library/Config/                      3  # Config entry lookup.
+src/Library/Config/                      2  # Config entry lookup.
 src/Library/Fsm/                         3  # State machine setup.
-src/Library/FileSystem/                  2  # FileSystemException.
 src/Library/Json/                        1  # nlohmann::json is exception-based.
 src/Library/Preprocessor/                1  # GLSL preprocessor.
 src/Application/Startup/                 2  # Startup, before there's a UI to show errors in.

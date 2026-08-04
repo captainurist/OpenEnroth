@@ -34,11 +34,12 @@ Blob preprocess(const Blob &source, const FileSystem *pwd, std::string_view prea
     };
 
     config.mOnIncludeCallback = [&](const std::string &path, bool /*isSystemInclude*/) -> tcpp::TInputStreamUniquePtr {
-        if (!pwd->exists(path)) {
+        Result<Blob> data = pwd->read(path);
+        if (!data) {
             errorMessage = fmt::format("Include file '{}' not found", source.displayPath(), path);
             return std::make_unique<tcpp::StringInputStream>(""); // Return empty stream, tcpp asserts on nullptr.
         }
-        return std::make_unique<tcpp::StringInputStream>(std::string(pwd->read(path).str()));
+        return std::make_unique<tcpp::StringInputStream>(std::string(data->str()));
     };
 
     tcpp::Preprocessor preprocessor(lexer, config);

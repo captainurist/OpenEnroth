@@ -34,15 +34,15 @@ UNIT_TEST(DirectoryFileSystem, LsRoot) {
     ScopedTestFile tmp("1.txt", "");
 
     DirectoryFileSystem fs1(""); // Current dir.
-    std::vector<DirectoryEntry> entries = fs1.ls("");
+    std::vector<DirectoryEntry> entries = fs1.ls("").orThrow();
     EXPECT_TRUE(std::ranges::find(entries, "1.txt", &DirectoryEntry::name) != std::ranges::end(entries))
         << "size = " << entries.size() << ", [0] = " << (entries.empty() ? "<nothing>" : entries[0].name);
 
     DirectoryFileSystem fs2("this_dir_doesnt_exist"); // Non-existent dir.
-    EXPECT_TRUE(fs2.ls("").empty());
+    EXPECT_TRUE(fs2.ls("").orThrow().empty());
 
     DirectoryFileSystem fs3("1.txt"); // Not-a-dir.
-    EXPECT_TRUE(fs3.ls("").empty());
+    EXPECT_TRUE(fs3.ls("").orThrow().empty());
 }
 
 UNIT_TEST(DirectoryFileSystem, LsFile) {
@@ -50,39 +50,39 @@ UNIT_TEST(DirectoryFileSystem, LsFile) {
     ScopedTestFile tmp("1.txt", "");
 
     DirectoryFileSystem fs(""); // Current dir.
-    EXPECT_ANY_THROW((void) fs.ls("1.txt"));
+    EXPECT_FALSE(fs.ls("1.txt").ok());
 }
 
 UNIT_TEST(DirectoryFileSystem, LsNonExistent) {
     // Make sure ls() throws when called on a folder that doesn't exist.
     DirectoryFileSystem fs(""); // Current dir.
-    EXPECT_ANY_THROW((void) fs.ls("this_dir_doesnt_exist"));
+    EXPECT_FALSE(fs.ls("this_dir_doesnt_exist").ok());
 }
 
 UNIT_TEST(DirectoryFileSystem, ExistsRoot) {
     // Make sure exists("") works as intented.
     DirectoryFileSystem fs1(""); // Current dir.
-    EXPECT_TRUE(fs1.exists(""));
+    EXPECT_TRUE(fs1.exists("").orThrow());
 
     DirectoryFileSystem fs2("this_dir_doesnt_exist");
-    EXPECT_TRUE(fs2.exists(""));
+    EXPECT_TRUE(fs2.exists("").orThrow());
 
     ScopedTestFile tmp("1.txt", "");
     DirectoryFileSystem fs3("1.txt");
-    EXPECT_TRUE(fs3.exists(""));
+    EXPECT_TRUE(fs3.exists("").orThrow());
 }
 
 UNIT_TEST(DirectoryFileSystem, StatRoot) {
     // Make sure stat("") works as intented.
     DirectoryFileSystem fs1(""); // Current dir.
-    EXPECT_EQ(fs1.stat("").type, FILE_DIRECTORY);
+    EXPECT_EQ(fs1.stat("").orThrow().type, FILE_DIRECTORY);
 
     DirectoryFileSystem fs2("this_dir_doesnt_exist"); // Non-existent dir.
-    EXPECT_EQ(fs2.stat("").type, FILE_DIRECTORY);
+    EXPECT_EQ(fs2.stat("").orThrow().type, FILE_DIRECTORY);
 
     ScopedTestFile tmp("1.txt", "");
     DirectoryFileSystem fs3("1.txt"); // Not-a-dir.
-    EXPECT_EQ(fs3.stat("").type, FILE_DIRECTORY);
+    EXPECT_EQ(fs3.stat("").orThrow().type, FILE_DIRECTORY);
 }
 
 UNIT_TEST(DirectoryFileSystem, ReadRootAsFile) {
@@ -90,21 +90,21 @@ UNIT_TEST(DirectoryFileSystem, ReadRootAsFile) {
     ScopedTestFile tmp("1.txt", "");
 
     DirectoryFileSystem fs("1.txt");
-    EXPECT_ANY_THROW((void) fs.read(""));
+    EXPECT_FALSE(fs.read("").ok());
 }
 
 UNIT_TEST(DirectoryFileSystem, WriteRootAsFile) {
     // Root is always assumed to be a dir, we can't write it as a file if it doesn't exist.
     DirectoryFileSystem fs("1.txt");
-    EXPECT_ANY_THROW(fs.write("", Blob()));
+    EXPECT_FALSE(fs.write("", Blob()).ok());
 }
 
 UNIT_TEST(DirectoryFileSystem, DisplayPathSymmetry) {
     ScopedTestFile tmp("1.txt", "");
 
     DirectoryFileSystem fs("");
-    Blob blob = fs.read("1.txt");
-    std::unique_ptr<InputStream> stream = fs.openForReading("1.txt");
+    Blob blob = fs.read("1.txt").orThrow();
+    std::unique_ptr<InputStream> stream = fs.openForReading("1.txt").orThrow();
 
     EXPECT_TRUE(blob.displayPath().ends_with("1.txt"));
     EXPECT_TRUE(std::filesystem::path(blob.displayPath()).is_absolute());
@@ -118,16 +118,16 @@ UNIT_TEST(DirectoryFileSystem, EscapingPaths) {
 
     DirectoryFileSystem fs("a");
 
-    EXPECT_FALSE(fs.exists(".."));
-    EXPECT_FALSE(fs.stat(".."));
-    EXPECT_ANY_THROW((void) fs.ls(".."));
-    EXPECT_ANY_THROW((void) fs.read("../1.txt"));
-    EXPECT_ANY_THROW((void) fs.openForReading("../1.txt"));
-    EXPECT_ANY_THROW(fs.write("../1.txt", Blob()));
-    EXPECT_ANY_THROW((void) fs.openForWriting("../1.txt"));
-    EXPECT_ANY_THROW(fs.remove("../1.txt"));
-    EXPECT_ANY_THROW(fs.rename("../1.txt", "2.txt"));
-    EXPECT_ANY_THROW(fs.rename("1.txt", "../2.txt"));
+    EXPECT_FALSE(fs.exists("..").orThrow());
+    EXPECT_FALSE(fs.stat("..").orThrow());
+    EXPECT_FALSE(fs.ls("..").ok());
+    EXPECT_FALSE(fs.read("../1.txt").ok());
+    EXPECT_FALSE(fs.openForReading("../1.txt").ok());
+    EXPECT_FALSE(fs.write("../1.txt", Blob()).ok());
+    EXPECT_FALSE(fs.openForWriting("../1.txt").ok());
+    EXPECT_FALSE(fs.remove("../1.txt").ok());
+    EXPECT_FALSE(fs.rename("../1.txt", "2.txt").ok());
+    EXPECT_FALSE(fs.rename("1.txt", "../2.txt").ok());
 }
 
 UNIT_TEST(DirectoryFileSystem, EscapingDisplayPath) {

@@ -166,7 +166,7 @@ int runExtract(const LodToolOptions &options) {
 
     for (const std::string &entryName : reader->ls())
         for (const auto &[data, name] : decodeLodEntry(reader->read(entryName), entryName, options.raw, paletteReader.get()))
-            output.write(name, data);
+            output.write(name, data).orThrow();
 
     return 0;
 }

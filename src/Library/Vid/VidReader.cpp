@@ -22,9 +22,8 @@ VidReader::~VidReader() = default;
 
 Result<void> VidReader::open(std::string_view path) {
     close();
-    // TODO(captainurist): #exceptions Blob::fromFile still throws, drop the tryCatch once it's ported.
-    Blob blob = co_await tryCatch([&] { return Blob::fromFile(path); });
-    co_return open(std::move(blob));
+    Blob blob = co_await Blob::fromFile(path);
+    co_await open(std::move(blob));
 }
 
 Result<void> VidReader::open(Blob blob) {
@@ -41,10 +40,10 @@ Result<void> VidReader::open(Blob blob) {
 
         std::string name = ascii::toLower(entry.name);
         if (files.contains(name))
-            co_return fail("File '{}' is not a valid VID: contains duplicate entries for '{}'", blob.displayPath(), name);
+            co_await fail("File '{}' is not a valid VID: contains duplicate entries for '{}'", blob.displayPath(), name);
 
         if (entry.offset > blob.size())
-            co_return fail("File '{}' is not a valid VID: entry '{}' points outside the VID file", blob.displayPath(), entry.name);
+            co_await fail("File '{}' is not a valid VID: entry '{}' points outside the VID file", blob.displayPath(), entry.name);
 
         size_t nextOffset = (i + 1 == entries.size()) ? blob.size() : entries[i + 1].offset;
         assert(nextOffset >= entry.offset); // Follows from the fact that array is sorted.
@@ -58,7 +57,6 @@ Result<void> VidReader::open(Blob blob) {
     // All good, this is a valid VID, can update `this`.
     _vid = std::move(blob);
     _files = std::move(files);
-    co_return {};
 }
 
 void VidReader::close() {

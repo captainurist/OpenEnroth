@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Utility/Error/Result.h"
 #include <array>
 #include <string>
+
+#include "Utility/Error/Result.h"
 
 #include "Engine/Data/HouseEnums.h"
 #include "Engine/Evt/EvtEnums.h"

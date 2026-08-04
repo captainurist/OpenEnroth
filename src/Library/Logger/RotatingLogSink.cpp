@@ -18,9 +18,8 @@ std::unique_ptr<OutputStream> RotatingLogSink::openRotatingStream(const FileSyst
     auto components = path.components();
 
     // Find existing log files.
-    std::vector<DirectoryEntry> entries;
-    if (fs->exists(components.prefix())) {
-        entries = fs->ls(components.prefix());
+    std::vector<DirectoryEntry> entries = fs->ls(components.prefix()).valueOr({});
+    {
         std::erase_if(entries, [&](const DirectoryEntry &entry) {
             // We're being lazy here and just checking stem & extension. Can do a regex, but that would be an overkill.
             return !(entry.name.starts_with(components.stem()) && entry.name.ends_with(components.extension()));
@@ -35,7 +34,7 @@ std::unique_ptr<OutputStream> RotatingLogSink::openRotatingStream(const FileSyst
     // not keen on bringing it back.
     std::ranges::sort(entries, std::ranges::greater());
     while (!entries.empty() && entries.size() >= count) {
-        fs->remove(components.prefix() / entries.back().name);
+        fs->remove(components.prefix() / entries.back().name).discard();
         entries.pop_back();
     }
 
@@ -45,7 +44,7 @@ std::unique_ptr<OutputStream> RotatingLogSink::openRotatingStream(const FileSyst
                                    components.stem().ends_with('_') ? "" : "_",
                                    std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()),
                                    components.extension());
-    return fs->openForWriting(components.prefix() / name);
+    return fs->openForWriting(components.prefix() / name).orThrow(); // TODO(captainurist): #exceptions revisit.
 }
 
 RotatingLogSink::~RotatingLogSink() = default;

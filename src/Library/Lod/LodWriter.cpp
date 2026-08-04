@@ -19,7 +19,7 @@ LodWriter::LodWriter(OutputStream *stream, LodInfo info) {
 }
 
 LodWriter::~LodWriter() {
-    discard(close()); // Nothing a destructor can do about a failed write - use close() explicitly to handle errors.
+    close().discard(); // Nothing a destructor can do about a failed write - use close() explicitly to handle errors.
 }
 
 Result<void> LodWriter::open(std::string_view path, LodInfo info) {
@@ -27,13 +27,12 @@ Result<void> LodWriter::open(std::string_view path, LodInfo info) {
     co_await ownedStream->open(path); // If this fails, no field is overwritten.
     open(ownedStream.get(), std::move(info));
     _ownedStream = std::move(ownedStream);
-    co_return {};
 }
 
 void LodWriter::open(OutputStream *stream, LodInfo info) {
     assert(stream);
 
-    discard(close()); // Opening over an unclosed writer drops any pending write errors - close explicitly to handle them.
+    close().discard(); // Opening over an unclosed writer drops any pending write errors - close explicitly to handle them.
 
     _stream = stream;
     _info = std::move(info);
@@ -41,7 +40,7 @@ void LodWriter::open(OutputStream *stream, LodInfo info) {
 
 Result<void> LodWriter::close() {
     if (!isOpen())
-        co_return {}; // Double-closing is OK.
+        co_return; // Double-closing is OK.
 
     // Write out LOD header.
     LodHeader header;
@@ -91,7 +90,6 @@ Result<void> LodWriter::close() {
     _ownedStream = {}; // ...here.
     _stream = {};
     _info = {};
-    co_return {};
 }
 
 void LodWriter::write(std::string_view filename, const Blob &data) {

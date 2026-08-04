@@ -329,7 +329,6 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
         dlv.lastRespawnDay = num_days_played;
     if (respawnTimed)
         dlv.respawnCount++;
-    co_return {};
 }
 
 //----- (0049AC17) --------------------------------------------------------

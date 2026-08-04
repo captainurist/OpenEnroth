@@ -79,8 +79,8 @@ void GameStarter::initialize() {
 
     // Init config.
     _config = std::make_shared<GameConfig>();
-    if (ufs->exists(configName)) {
-        if (Result<void> loaded = _config->load(ufs->openForReading(configName).get()); !loaded) {
+    if (ufs->exists(configName).valueOr(false)) {
+        if (Result<void> loaded = _config->load(ufs->openForReading(configName).orThrow().get()); !loaded) {
             logger->error("Couldn't load configuration file '{}', using defaults: {}",
                           ufs->displayPath(configName), loaded.error());
             _config->reset();
@@ -140,7 +140,7 @@ void GameStarter::initialize() {
     // On linux the only way to set window icon is through an API call. On other OSes this is handled by external
     // mechanisms.
 #if defined(__linux__) && !defined(__ANDROID__)
-    if (Result<RgbaImage> icon = png::decode(dfs->read("images/OpenEnroth.png"))) {
+    if (Result<RgbaImage> icon = png::decode(dfs->read("images/OpenEnroth.png").valueOr(Blob()))) {
         window->setIcon(*icon);
     } else {
         logger->error("Couldn't load the window icon: {}", icon.error()); // Not a reason to refuse to start.
@@ -278,16 +278,23 @@ void GameStarter::failOnInvalidPath(std::string_view dataPath, Platform *platfor
 void GameStarter::migrateSaves() {
     logger->info("Migrating save files from '{}' to '{}'...", dfs->displayPath("saves"), ufs->displayPath("saves"));
 
-    if (ufs->exists("saves") && !ufs->ls("saves").empty()) {
+    if (ufs->exists("saves").valueOr(false) && !ufs->ls("saves").valueOr({}).empty()) {
         logger->info("    Target saves directory is not empty, skipping saves migration.");
-    } else if (!dfs->exists("saves")) {
+    } else if (!dfs->exists("saves").valueOr(false)) {
         logger->info("    No save files to migrate.");
     } else {
-        for (const DirectoryEntry &entry : dfs->ls("saves")) {
+        for (const DirectoryEntry &entry : dfs->ls("saves").valueOr({})) {
             if (entry.type == FILE_REGULAR) {
                 std::string path = fmt::format("saves/{}", entry.name);
-                ufs->write(path, dfs->read(path));
-                logger->info("    Copied '{}'.", entry.name);
+                Result<void> copied = [&] () -> Result<void> {
+                    co_await ufs->write(path, co_await dfs->read(path));
+                    co_return;
+                }();
+                if (copied) {
+                    logger->info("    Copied '{}'.", entry.name);
+                } else {
+                    logger->error("    Couldn't copy '{}': {}", entry.name, copied.error());
+                }
             }
         }
     }
@@ -298,7 +305,7 @@ void GameStarter::run() {
         _game->run();
 
         _application->component<GameWindowHandler>()->UpdateConfigFromWindow(_config.get());
-        if (Result<void> saved = _config->save(ufs->openForWriting(configName).get()); !saved) {
+        if (Result<void> saved = _config->save(ufs->openForWriting(configName).orThrow().get()); !saved) {
             logger->error("Couldn't save configuration file '{}': {}", ufs->displayPath(configName), saved.error());
         } else {
             logger->info("Configuration file '{}' saved!", ufs->displayPath(configName));

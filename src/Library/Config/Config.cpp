@@ -19,14 +19,13 @@ Result<void> Config::load(std::string_view path) {
     FileInputStream stream;
     co_await stream.open(path); // Fails if the file doesn't exist.
     co_await load(&stream);
-    co_return {};
 }
 
 Result<void> Config::save(std::string_view path) const {
     FileOutputStream stream;
     co_await stream.open(path);
     co_await save(&stream);
-    co_return stream.close();
+    co_await stream.close();
 }
 
 Result<void> Config::load(InputStream *stream) {
@@ -50,7 +49,6 @@ Result<void> Config::load(InputStream *stream) {
             }
         }
     }
-    co_return {};
 }
 
 Result<void> Config::save(OutputStream *stream) const {
@@ -69,7 +67,6 @@ Result<void> Config::save(OutputStream *stream) const {
 
         co_await stream->write("\n");
     }
-    co_return {};
 }
 
 void Config::reset() {

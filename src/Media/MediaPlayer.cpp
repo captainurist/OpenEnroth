@@ -725,9 +725,13 @@ class Movie : public IMovie {
 };
 
 void MPlayer::Initialize() {
-    for (auto [reader, path] : {std::pair(&might_list, "anims/might7.vid"), std::pair(&magic_list, "anims/magic7.vid")})
-        if (Result<void> opened = reader->open(dfs->read(path)); !opened)
+    for (auto [reader, path] : {std::pair(&might_list, "anims/might7.vid"), std::pair(&magic_list, "anims/magic7.vid")}) {
+        Result<void> opened = [&, reader = reader, path = path]() -> Result<void> {
+            co_await reader->open(co_await dfs->read(path));
+        }();
+        if (!opened)
             logger->error("MPlayer: couldn't open '{}', videos from it won't play: {}", path, opened.error());
+    }
 }
 
 void MPlayer::OpenHouseMovie(std::string_view pMovieName, bool bLoop) {

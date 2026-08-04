@@ -28,7 +28,6 @@ Result<void> deserialize(const Blob &src, PortraitFrameTable *dst) {
     co_await deserialize(src, &dst->pFrames, tags::append, tags::each, tags::via<PortraitFrameData_MM7>);
 
     assert(!dst->pFrames.empty());
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, DecorationList *dst) {
@@ -36,7 +35,6 @@ Result<void> deserialize(const Blob &src, DecorationList *dst) {
     co_await deserialize(src, &dst->pDecorations, tags::append, tags::each, tags::via<DecorationDesc_MM7>);
 
     assert(!dst->pDecorations.empty());
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, IconFrameTable *dst) {
@@ -45,7 +43,6 @@ Result<void> deserialize(const Blob &src, IconFrameTable *dst) {
     dst->_textures.resize(dst->_frames.size());
 
     assert(!dst->_frames.empty());
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, MonsterList *dst) {
@@ -61,7 +58,6 @@ Result<void> deserialize(const Blob &src, MonsterList *dst) {
     dst->monsters.fill(MonsterDesc());
     for (size_t i = 0; MonsterId index : dst->monsters.indices())
         dst->monsters[index] = monsters[i++];
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, ObjectList *dst) {
@@ -69,7 +65,6 @@ Result<void> deserialize(const Blob &src, ObjectList *dst) {
     co_await deserialize(src, &dst->pObjects, tags::append, tags::each, tags::via<ObjectDesc_MM7>);
 
     assert(!dst->pObjects.empty());
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, OverlayList *dst) {
@@ -77,12 +72,10 @@ Result<void> deserialize(const Blob &src, OverlayList *dst) {
     co_await deserialize(src, &dst->pOverlays, tags::append, tags::each, tags::via<OverlayDesc_MM7>);
 
     assert(!dst->pOverlays.empty());
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, SpriteFrameTable *dst) {
     co_await deserialize(src, dst, tags::via<SpriteFrameTable_MM7>);
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, TextureFrameTable *dst) {
@@ -90,7 +83,6 @@ Result<void> deserialize(const Blob &src, TextureFrameTable *dst) {
     dst->_textures.resize(dst->_frames.size());
 
     assert(!dst->_frames.empty());
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, SoundList *dst) {
@@ -102,7 +94,6 @@ Result<void> deserialize(const Blob &src, SoundList *dst) {
     // TODO(captainurist): there are duplicate ids in the sounds array, look into it.
     for (const SoundInfo &sound : sounds)
         dst->_mapSounds[sound.soundId] = sound;
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, TileTable *dst) {
@@ -123,5 +114,4 @@ Result<void> deserialize(const Blob &src, TileTable *dst) {
     }
 
     assert(!dst->_tiles.empty());
-    co_return {};
 }

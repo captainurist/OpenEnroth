@@ -5,6 +5,7 @@
 #include <span>
 #include <array>
 #include <typeinfo>
+#include <utility>
 #include <string>
 
 #include "BinaryFwd.h"

@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 
+#include "Utility/Error/Result.h"
 #include "MemoryFileSystem.h"
 
 namespace detail {

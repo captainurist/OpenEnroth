@@ -64,8 +64,8 @@ class [[nodiscard]] Result { ... };   // Wraps an std::expected<T, Error>.
 ```cpp
 Blob data = reader.read(filename).orThrow();                                  // CLI tools & tests.
 Blob table = engine->resources()->eventsData("dsft.bin").mustSucceed();       // Startup invariants.
-MM_TRY(Font font, oef::decode(data).withContext("while loading '{}'", name)); // Propagation with context.
-discard(ufs->remove(path));                                                   // Explicit "don't care".
+Font font = co_await oef::decode(data).withContext("while loading '{}'", name); // Propagation with context.
+ufs->remove(path).discard();                                                   // Explicit "don't care".
 ```
 
 `Error` (`Utility/Error/Error.h`) is constructed exactly like `Exception` was — a format string and its arguments:
@@ -91,7 +91,9 @@ and the whole cost (formatting, allocating) is paid only on the error path. Ther
 
 The class carries `[[nodiscard]]`, which means *every* function returning a `Result` is nodiscard automatically —
 no per-declaration attribute to forget. Ignoring a return doesn't compile; dropping an error on purpose takes an
-explicit, greppable `discard(...)` call.
+explicit, greppable `.discard()` call. The one deliberate exception: `Result<bool>` has no `operator bool` —
+`if (ufs->exists(path))` compiling silently while testing call success rather than the value is exactly the kind
+of bug this design exists to prevent. Spell it `.valueOr(false)` (or `.ok()` if you really mean call success).
 
 ### Propagation
 
@@ -122,8 +124,12 @@ The point of the change isn't that errors stop happening — it's that *deciding
 implicit*. Every policy is a named method:
 
 ```cpp
-// 1. Propagate. Your caller knows better than you do.
-MM_TRY(LodImage image, lod::decodeImage(blob));
+// 1. Propagate. Your caller knows better than you do. In a coroutine:
+LodImage image = co_await lod::decodeImage(blob);
+// ...and in a plain function:
+Result<LodImage> image = lod::decodeImage(blob);
+if (!image)
+    return image.error();
 
 // 2. Degrade. The game keeps running. This is the right answer inside the game loop.
 Result<RgbaImage> image = pcx::decode(save.thumbnail);
@@ -140,7 +146,7 @@ Blob blob = engine->resources()->eventsData("dsft.bin").mustSucceed();
 LodImage lodImage = lod::decodeImage(entry).orThrow();
 
 // 5. Drop, explicitly and greppably.
-discard(ufs->remove(path));
+ufs->remove(path).discard();
 ```
 
 `mustSucceed` routes through an installable `FatalErrorHandler`, so once there's a UI, "the game data is broken"
@@ -150,7 +156,7 @@ game is still allowed to die.
 `tryCatch(callable)` is the bridge in the other direction — it runs code that throws and returns a `Result`. It's
 for third-party libraries we can't change (nlohmann/json, sol2, CLI11, the standard library) and for our own
 internals that still throw (see §3). A callable that itself returns a `Result` is passed through without
-double-wrapping, so `fail()` / `MM_TRY` and throwing calls can be mixed inside one `tryCatch` block.
+double-wrapping, so `fail()` and throwing calls can be mixed inside one `tryCatch` block.
 
 
 ## 3. The open question: how to chain `deserialize` calls
@@ -212,18 +218,19 @@ Result<Palette> lod::decodePalette(const Blob &blob) {
 
 ```cpp
 Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
-    MM_TRY_VOID(deserialize(src, &dst->header));
-    MM_TRY_VOID(deserialize(src, &dst->visibleOutlines));
-    MM_TRY_VOID(deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size())));
-    MM_TRY_VOID(deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size())));
-    MM_TRY_VOID(deserialize(src, &dst->actors));
+    if (Result<void> result = deserialize(src, &dst->header); !result) return result;
+    if (Result<void> result = deserialize(src, &dst->visibleOutlines); !result) return result;
+    if (Result<void> result = deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size())); !result) return result;
+    if (Result<void> result = deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size())); !result) return result;
+    if (Result<void> result = deserialize(src, &dst->actors); !result) return result;
     // ...
 }
 ```
 
 * **Diff**: ~200 mechanical call-site edits, ~50 deserializer signatures, a rewrite of the templated combinator
   layer. The largest of the three by far.
-* **Bodies**: every line grows an `MM_TRY_VOID(...)` wrapper, forever. For pure data-shuffling code this is real
+* **Bodies**: every line grows an if-check wrapper, forever (a `MM_TRY`-style macro could hide it, but we don't
+  want macros). For pure data-shuffling code this is real
   visual tax, but nothing is hidden.
 * **How errors short-circuit**: an early return per line, in plain sight.
 * **Costs**: churn and permanent verbosity. **Benefits**: exactly one error mechanism everywhere; the serialization
@@ -240,7 +247,8 @@ Result<IndoorDelta_MM7> loadDelta(const Blob &blob) {
     BinaryReader src(&stream);       // Wraps the stream + holds the first Error.
     IndoorDelta_MM7 result;
     deserialize(src, &result);       // Bodies identical to today; src no-ops after the first failure.
-    MM_TRY_VOID(src.check());        // The one check.
+    if (Result<void> result = src.check(); !result)  // The one check.
+        return result.error();
     return result;
 }
 ```
@@ -307,7 +315,7 @@ Deserializer-shaped microbenchmark, ten fallible calls per function:
 
 | | ns/call | heap allocations/call |
 | --- | ---: | ---: |
-| `MM_TRY` version | 12.5 | 0 |
+| explicit-if version | 12.5 | 0 |
 | `co_await`, naive | 25 | 1 (112-byte frame) |
 | `co_await`, pooled frames | 20 | 0 |
 
@@ -326,10 +334,11 @@ never write a per-element or per-byte coroutine; bulk paths stay plain.
 
 #### Footguns, documented in `Result.h` and pinned by tests
 
-* A `Result<void>` coroutine must end with `co_return {};`. Flowing off the end is formally UB, and
-  `-Werror=return-type` does **not** catch it. In practice our machinery surfaces it as an
-  `"internal: coroutine ended without co_return"` error rather than garbage — a unit test pins that behavior.
-* A coroutine body can't use plain `return` or `MM_TRY` — `co_await` / `co_return` replace both. `co_return`
+* A `Result<void>` coroutine needs no trailing `co_return` — its promise has `return_void`, so flowing off the
+  end is well-defined success. To end one with an error, `co_await` the error: `co_await fail(...)`. Only
+  *non-void* coroutines can flow off the end (that's UB, `-Werror=return-type` does **not** catch it; our
+  machinery surfaces it as an `"internal: coroutine ended without co_return"` error, but don't rely on that).
+* A coroutine body can't use plain `return` — `co_await` / `co_return` replace propagation and return. `co_return`
   accepts a value, `fail(...)`, or another `Result`, and always moves (no NRVO).
 * Never introduce a real suspension point — the frame arena relies on LIFO order and asserts on violations.
 * Debuggability is still coroutine debuggability: locals live in frames, backtraces grow resume thunks, and ASAN
@@ -351,10 +360,9 @@ Rollout order for the serialization layer:
 1. ~~Machinery in `Result` + tests.~~ Done.
 2. ~~`Library/Binary` + `Library/Snapshots`: `deserialize` returns `Result<void>`; leaf memcopy / bulk span paths
    are plain functions (split at the overload level — a `co_await` in a *discarded* `if constexpr` branch still
-   makes a coroutine); looping combinators are plain functions with `MM_TRY_VOID`, so per-element code never pays
+   makes a coroutine); looping combinators are plain functions with explicit if-checks, so per-element code never pays
    for a frame.~~ Done.
-3. ~~The ~50 struct-level deserializers in `Engine/Snapshots` become coroutines: one `co_await` per read, one
-   `co_return {};` at the end.~~ Done.
+3. ~~The ~50 struct-level deserializers in `Engine/Snapshots` become coroutines: one `co_await` per read.~~ Done.
 4. ~~Boundary functions drop their `tryCatch` wrappers (`lod::decode*` are now coroutines themselves), and
    `tryDeserialize` is gone — `deserialize` is the only spelling.~~ Done. Measured on LoadBench: identical to the
    exception-island implementation within noise, exactly as the microbenchmarks predicted.
@@ -427,8 +435,8 @@ auto tryDecode = [&] (auto atlasTag) -> Result<LodFont> {
         deserialize(stream, &result._header, tags::via<LodFontHeader_MM7>);
         deserialize(stream, &result._atlas, atlasTag);
         result._pixels = stream.readAllAsBlob();
-        MM_TRY_VOID(fixAndValidateFont(blob, result));
-        return result;
+        co_await fixAndValidateFont(blob, result);
+        co_return result;
     });
 };
 
@@ -589,8 +597,8 @@ arena costs two indirect calls per coroutine frame lifecycle on macOS, regardles
 
 ### Tests
 
-* `OpenEnroth_UnitTest` — 419 tests, all passing (up from 408; the new ones cover `Error`, `Result`, the `MM_TRY`
-  macros, `tryCatch`, `discard`, and `tryDeserialize`).
+* `OpenEnroth_UnitTest` — 419 tests, all passing (up from 408; the new ones cover `Error`, `Result`, the coroutine
+  machinery, `tryCatch`, `discard`, and `tryDeserialize`).
 * `Run_GameTest_Headless_Parallel` — 332/332 passing against MM7 game data. No trace desynchronization, so game
   logic is bit-for-bit unchanged.
 * `check_style` — clean.

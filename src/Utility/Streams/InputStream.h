@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "Utility/Error/Result.h"
 #include "Utility/Streams/StreamBuffer.h"
@@ -222,7 +223,7 @@ class InputStream {
      */
     void destroy() noexcept {
         if (isOpen())
-            discard(_close());
+            _close().discard();
     }
 
     [[nodiscard]] Error readError(size_t requested, size_t actual) const;

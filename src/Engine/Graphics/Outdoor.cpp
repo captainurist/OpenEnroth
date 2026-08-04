@@ -545,7 +545,6 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
 
     if (engine->config->graphics.SeasonsChange.value())
         pOutdoor->pTerrain.changeSeason(pParty->uCurrentMonth);
-    co_return {};
 }
 
 //----- (0047EF60) --------------------------------------------------------

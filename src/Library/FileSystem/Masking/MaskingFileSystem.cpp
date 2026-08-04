@@ -1,11 +1,11 @@
 #include "MaskingFileSystem.h"
 
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include "Library/FileSystem/Interface/FileSystemException.h"
-
+#include "Utility/Error/Result.h"
+#include "Library/FileSystem/Interface/FileSystemError.h"
 #include "Utility/String/Join.h"
 
 MaskingFileSystem::MaskingFileSystem(FileSystem *base) : ProxyFileSystem(base) {}
@@ -51,28 +51,29 @@ bool MaskingFileSystem::isMasked(FileSystemPathView path) const {
     return node->hasValue() && node->value();
 }
 
-bool MaskingFileSystem::_exists(FileSystemPathView path) const {
+Result<bool> MaskingFileSystem::_exists(FileSystemPathView path) const {
     if (isMasked(path))
         return false;
     return ProxyFileSystem::_exists(path);
 }
 
-FileStat MaskingFileSystem::_stat(FileSystemPathView path) const {
+Result<FileStat> MaskingFileSystem::_stat(FileSystemPathView path) const {
     if (isMasked(path))
-        return {};
+        return FileStat();
     return ProxyFileSystem::_stat(path);
 }
 
-void MaskingFileSystem::_ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const {
+Result<void> MaskingFileSystem::_ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const {
     if (isMasked(path)) {
         if (path.isEmpty()) {
-            return; // Pretend root exists even if it was masked.
+            return {}; // Pretend root exists even if it was masked.
         } else {
-            FileSystemException::raise(this, FS_LS_FAILED_PATH_DOESNT_EXIST, path);
+            return fileSystemError(this, FS_LS_FAILED_PATH_DOESNT_EXIST, path);
         }
     }
 
-    ProxyFileSystem::_ls(path, entries);
+    if (Result<void> status = ProxyFileSystem::_ls(path, entries); !status)
+        return status;
 
     if (const FileSystemTrieNode<bool> *node = _masks.find(path)) {
         std::erase_if(*entries, [node] (const DirectoryEntry &entry) {
@@ -83,41 +84,42 @@ void MaskingFileSystem::_ls(FileSystemPathView path, std::vector<DirectoryEntry>
             }
         });
     }
+    return {};
 }
 
-Blob MaskingFileSystem::_read(FileSystemPathView path) const {
+Result<Blob> MaskingFileSystem::_read(FileSystemPathView path) const {
     if (isMasked(path))
-        FileSystemException::raise(this, FS_READ_FAILED_PATH_DOESNT_EXIST, path);
+        return fileSystemError(this, FS_READ_FAILED_PATH_DOESNT_EXIST, path);
     return ProxyFileSystem::_read(path);
 }
 
-void MaskingFileSystem::_write(FileSystemPathView path, const Blob &data) {
+Result<void> MaskingFileSystem::_write(FileSystemPathView path, const Blob &data) {
     if (isMasked(path))
-        FileSystemException::raise(this, FS_WRITE_FAILED_PATH_NOT_WRITEABLE, path);
-    ProxyFileSystem::_write(path, data);
+        return fileSystemError(this, FS_WRITE_FAILED_PATH_NOT_WRITEABLE, path);
+    return ProxyFileSystem::_write(path, data);
 }
 
-std::unique_ptr<InputStream> MaskingFileSystem::_openForReading(FileSystemPathView path) const {
+Result<std::unique_ptr<InputStream>> MaskingFileSystem::_openForReading(FileSystemPathView path) const {
     if (isMasked(path))
-        FileSystemException::raise(this, FS_READ_FAILED_PATH_DOESNT_EXIST, path);
+        return fileSystemError(this, FS_READ_FAILED_PATH_DOESNT_EXIST, path);
     return ProxyFileSystem::_openForReading(path);
 }
 
-std::unique_ptr<OutputStream> MaskingFileSystem::_openForWriting(FileSystemPathView path) {
+Result<std::unique_ptr<OutputStream>> MaskingFileSystem::_openForWriting(FileSystemPathView path) {
     if (isMasked(path))
-        FileSystemException::raise(this, FS_WRITE_FAILED_PATH_NOT_WRITEABLE, path);
+        return fileSystemError(this, FS_WRITE_FAILED_PATH_NOT_WRITEABLE, path);
     return ProxyFileSystem::_openForWriting(path);
 }
 
-void MaskingFileSystem::_rename(FileSystemPathView srcPath, FileSystemPathView dstPath) {
+Result<void> MaskingFileSystem::_rename(FileSystemPathView srcPath, FileSystemPathView dstPath) {
     if (isMasked(srcPath))
-        FileSystemException::raise(this, FS_RENAME_FAILED_SRC_DOESNT_EXIST, srcPath, dstPath);
+        return fileSystemError(this, FS_RENAME_FAILED_SRC_DOESNT_EXIST, srcPath, dstPath);
     if (isMasked(dstPath))
-        FileSystemException::raise(this, FS_RENAME_FAILED_DST_NOT_WRITEABLE, srcPath, dstPath);
+        return fileSystemError(this, FS_RENAME_FAILED_DST_NOT_WRITEABLE, srcPath, dstPath);
     return ProxyFileSystem::_rename(srcPath, dstPath);
 }
 
-bool MaskingFileSystem::_remove(FileSystemPathView path) {
+Result<bool> MaskingFileSystem::_remove(FileSystemPathView path) {
     if (isMasked(path))
         return false;
     return ProxyFileSystem::_remove(path);

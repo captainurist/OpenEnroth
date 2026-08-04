@@ -1,14 +1,13 @@
 #pragma once
 
-#include "Utility/Error/Result.h"
-#include <string_view>
-#include <string>
-#include <memory>
 #include <map>
+#include <memory>
+#include <string>
+#include <string_view>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Streams/OutputStream.h"
 #include "Utility/Memory/Blob.h"
-
 #include "LodInfo.h"
 
 class LodWriter {

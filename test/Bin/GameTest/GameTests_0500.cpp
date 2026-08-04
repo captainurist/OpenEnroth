@@ -298,8 +298,8 @@ GAME_TEST(Issues, Issue624) {
 
 GAME_TEST(Issues, Issue626) {
     // Last loaded save is not remembered
-    ufs->remove("saves");
-    EXPECT_FALSE(ufs->exists("saves"));
+    ufs->remove("saves").orThrow();
+    EXPECT_FALSE(ufs->exists("saves").orThrow());
 
     game.startNewGame();
 
@@ -482,8 +482,8 @@ GAME_TEST(Issues, Issue681) {
 
 GAME_TEST(Issues, Issue689) {
     // Testing that clicking on load game scroll is not crashing the game then there's small amount of saves present.
-    ufs->remove("saves");
-    EXPECT_FALSE(ufs->exists("saves"));
+    ufs->remove("saves").orThrow();
+    EXPECT_FALSE(ufs->exists("saves").orThrow());
 
     game.startNewGame();
 

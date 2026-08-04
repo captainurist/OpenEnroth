@@ -95,7 +95,10 @@ class [[nodiscard]] Result {
         return _impl.has_value();
     }
 
-    [[nodiscard]] explicit operator bool() const {
+    // Not available for `Result<bool>` - `if (fs->exists(path))` checking whether the *call* succeeded rather
+    // than whether the file exists is exactly the kind of silent bug we don't want to compile. Use `ok()` or
+    // `valueOr(false)` there instead.
+    [[nodiscard]] explicit operator bool() const requires (!std::is_same_v<T, bool>) {
         return ok();
     }
 
@@ -176,6 +179,17 @@ class [[nodiscard]] Result {
      * @param fallback                  Value to return if this `Result` holds an error.
      * @return                          The value held by this `Result`, or `fallback`.
      */
+    /**
+     * Explicitly discards this `Result`, error and all.
+     *
+     * `Result` is `[[nodiscard]]`, so simply ignoring a return value doesn't compile – we don't want errors to be
+     * dropped by accident. This method is the way to drop one *on purpose*, and it's greppable:
+     * ```
+     * ufs->remove(path).discard(); // We don't care whether it existed.
+     * ```
+     */
+    void discard() && {}
+
     [[nodiscard]] T valueOr(T fallback) && {
         if (!ok())
             return fallback;
@@ -205,7 +219,7 @@ class [[nodiscard]] Result {
 template<>
 class [[nodiscard]] Result<void> {
  public:
-    struct promise_type; // Makes `Result<> f() { co_return {}; }` a coroutine. See the coroutine docs below.
+    struct promise_type; // Makes `Result<> f() { co_return; }` a coroutine. See the coroutine docs below.
 
     Result() = default;
     Result(Error error) : _impl(std::unexpect, std::move(error)) {} // NOLINT(runtime/explicit): implicit is intended.
@@ -227,6 +241,17 @@ class [[nodiscard]] Result<void> {
         assert(!ok());
         return std::move(_impl).error();
     }
+
+    /**
+     * Explicitly discards this `Result`, error and all.
+     *
+     * `Result` is `[[nodiscard]]`, so simply ignoring a return value doesn't compile – we don't want errors to be
+     * dropped by accident. This method is the way to drop one *on purpose*, and it's greppable:
+     * ```
+     * ufs->remove(path).discard(); // We don't care whether it existed.
+     * ```
+     */
+    void discard() && {}
 
     void orThrow() && {
         if (!ok())
@@ -270,32 +295,6 @@ template<class... Args>
     return Error(fmt, std::forward<Args>(args)...);
 }
 
-/**
- * Same as the above, but for an error that carries an `std::error_code`.
- *
- * @param code                          Error code to attach.
- * @param fmt                           Format string.
- * @param args                          Format arguments.
- * @return                              `Error` with the formatted message and the error code.
- */
-template<class... Args>
-[[nodiscard]] Error fail(std::error_code code, fmt::format_string<Args...> fmt, Args &&... args) {
-    return Error(code, fmt, std::forward<Args>(args)...);
-}
-
-/**
- * Explicitly discards a `Result`, error and all.
- *
- * `Result` is `[[nodiscard]]`, so simply ignoring a return value doesn't compile – we don't want errors to be
- * dropped by accident. This function is the way to drop one *on purpose*, and it's greppable:
- * ```
- * discard(ufs->remove(path)); // We don't care whether it existed.
- * ```
- *
- * @param result                        Result to discard.
- */
-template<class T>
-void discard(Result<T> &&result) {} // NOLINT(misc-unused-parameters)
 
 /**
  * Runs a callable, converting any exception it throws into an `Error`.
@@ -338,14 +337,13 @@ template<class Callable>
 // Coroutine support: `co_await` as the `?` operator.
 //
 // A function returning `Result<T>` can be written as a coroutine. Inside such a function, `co_await someResult`
-// either produces the value, or ends the function right there with the error - the exact equivalent of `MM_TRY`,
+// either produces the value, or ends the function right there with the error - the exact equivalent of Rust's `?`,
 // as a language construct instead of a macro:
 //
 // ```
 // Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst) {
 //     co_await deserialize(src, &dst->header);
 //     co_await deserialize(src, &dst->visibleOutlines);
-//     co_return {};
 // }
 // ```
 //
@@ -355,12 +353,16 @@ template<class Callable>
 // the heap.
 //
 // Rules of the road:
-// - `co_return` accepts anything a `Result` accepts: a value, `fail(...)`, or another `Result`. Void coroutines
-//   end with `co_return {};`.
-// - Don't forget that final `co_return {};` - flowing off the end of a `Result` coroutine is formally UB. In
-//   practice (and pinned by a unit test) the caller gets the "coroutine ended without co_return" internal error,
-//   but don't rely on it. Note that `-Werror=return-type` does NOT catch this.
-// - A coroutine body can't use plain `return` or `MM_TRY` - propagation is what `co_await` is for.
+// - In a `Result<T>` coroutine, `co_return` accepts anything a `Result<T>` accepts: a value, `fail(...)`, or
+//   another `Result<T>`.
+// - A `Result<void>` coroutine doesn't need a `co_return` at all - flowing off the end is success, and a bare
+//   `co_return;` works for returning early. It can't `co_return` an error though (the language doesn't allow
+//   both `return_void` and `return_value` in one promise) - to end with an error, `co_await` it:
+//   `co_await fail("...")`, or `co_await someFailedResult`.
+// - Flowing off the end of a *non-void* `Result<T>` coroutine is formally UB, same as forgetting `return` in a
+//   regular function - except `-Werror=return-type` does NOT catch it. In practice (pinned by a unit test) the
+//   caller gets the "internal: coroutine ended without co_return" error, but don't rely on it.
+// - A coroutine body can't use plain `return` - propagation is what `co_await` is for.
 // - Exceptions thrown inside the body are converted to an `Error` automatically, so a coroutine gets `tryCatch`
 //   semantics for free.
 // - An actual suspension point must never be introduced (no awaiting real async things) - the frame arena relies
@@ -433,6 +435,25 @@ struct ResultAwaiter {
     }
 };
 
+/**
+ * The awaiter behind `co_await someError` - the "raise" idiom: unconditionally ends the coroutine with the
+ * awaited `Error`. This is also the only way to end a `Result<void>` coroutine with an error, as its promise has
+ * `return_void`, and the language doesn't allow `return_value` alongside it.
+ */
+template<class Out>
+struct ErrorAwaiter {
+    Error &error;
+    Out *out;
+
+    bool await_ready() const noexcept { return false; }
+    void await_resume() noexcept {} // Unreachable.
+
+    void await_suspend(std::coroutine_handle<> handle) noexcept {
+        *out = Out(std::move(error));
+        handle.destroy();
+    }
+};
+
 template<class Out>
 struct ResultAwaiter<void, Out> {
     Result<void> &awaited;
@@ -465,9 +486,14 @@ struct ResultPromiseBase {
     ResultAwaiter<U, Out> await_transform(Result<U> &&awaited) noexcept {
         return {awaited, out};
     }
+
+    ErrorAwaiter<Out> await_transform(Error &&error) noexcept {
+        return {error, out};
+    }
 };
 
-// This is what the caller sees if a coroutine flows off the end without `co_return` - see the rules above.
+// This is what the caller sees if a non-void coroutine flows off the end without `co_return` - see the rules
+// above.
 inline const Error resultCoroutineAbandonedError("internal: coroutine ended without co_return");
 
 } // namespace detail
@@ -485,7 +511,9 @@ struct Result<T>::promise_type : detail::ResultPromiseBase<Result<T>> {
 struct Result<void>::promise_type : detail::ResultPromiseBase<Result<void>> {
     Result get_return_object() noexcept { return Result(this); }
 
-    void return_value(Result value) noexcept { *this->out = std::move(value); }
+    // `return_void`, not `return_value`: flowing off the end of a `Result<void>` coroutine is well-defined
+    // success, and no trailing `co_return` is needed. See the rules above for how to end one with an error.
+    void return_void() noexcept { *this->out = Result(); }
 };
 
 template<class T>

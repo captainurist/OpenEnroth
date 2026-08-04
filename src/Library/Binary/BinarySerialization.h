@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "CommonSerialization.h"
 #include "BlobSerialization.h"
 #include "BinaryConcepts.h"

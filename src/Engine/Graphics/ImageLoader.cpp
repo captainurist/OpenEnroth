@@ -274,7 +274,9 @@ bool Bitmaps_LOD_Loader::Load(RgbaImage *rgbaImage) {
 bool Bitmaps_GEN_Loader::Load(RgbaImage *rgbaImage) {
     pTileGenerator->ensureTile(this->resource_name);
 
-    Result<RgbaImage> image = png::decode(ufs->read(this->resource_name));
+    Result<RgbaImage> image = [&]() -> Result<RgbaImage> {
+        co_return png::decode(co_await ufs->read(this->resource_name));
+    }();
     if (!image) {
         logger->warning("Unable to load {}: {}", this->resource_name, image.error());
         return false;

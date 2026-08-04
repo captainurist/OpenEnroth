@@ -283,7 +283,6 @@ Result<void> deserialize(InputStream &src, IndoorLocation_MM7 *dst) {
     co_await deserialize(src, &dst->bspNodes);
     co_await deserialize(src, &dst->spawnPoints);
     co_await deserialize(src, &dst->mapOutlines);
-    co_return {};
 }
 
 void snapshot(const IndoorLocation &src, IndoorDelta_MM7 *dst) {
@@ -412,7 +411,6 @@ Result<void> serialize(const IndoorDelta_MM7 &src, OutputStream *dst) {
     co_await serialize(src.doorsData, dst, tags::unsized);
     co_await serialize(src.eventVariables, dst);
     co_await serialize(src.locationTime, dst);
-    co_return {};
 }
 
 Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
@@ -427,7 +425,6 @@ Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<Indo
     co_await deserialize(src, &dst->doorsData, tags::presized(ctx->header.doorsDataSizeBytes / sizeof(int16_t)));
     co_await deserialize(src, &dst->eventVariables);
     co_await deserialize(src, &dst->locationTime);
-    co_return {};
 }
 
 void reconstruct(std::tuple<const BSPModelData_MM7 &, const BSPModelExtras_MM7 &> src, BSPModel *dst) {
@@ -573,7 +570,6 @@ Result<void> deserialize(InputStream &src, OutdoorLocation_MM7 *dst) {
     co_await deserialize(src, &dst->decorationPidList);
     co_await deserialize(src, &dst->decorationMap);
     co_await deserialize(src, &dst->spawnPoints);
-    co_return {};
 }
 
 void snapshot(const OutdoorLocation &src, OutdoorDelta_MM7 *dst) {
@@ -649,7 +645,6 @@ Result<void> serialize(const OutdoorDelta_MM7 &src, OutputStream *dst) {
     co_await serialize(src.chests, dst);
     co_await serialize(src.eventVariables, dst);
     co_await serialize(src.locationTime, dst);
-    co_return {};
 }
 
 Result<void> deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<OutdoorLocation_MM7> ctx) {
@@ -667,7 +662,6 @@ Result<void> deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<Out
     co_await deserialize(src, &dst->chests);
     co_await deserialize(src, &dst->eventVariables);
     co_await deserialize(src, &dst->locationTime);
-    co_return {};
 }
 
 void snapshot(const SaveGame &src, SaveGame_MM7 *dst) {
@@ -762,7 +756,6 @@ Result<void> serialize(const SaveGame_MM7 &src, Blob *dst) {
 
     co_await lodWriter.close();
     co_await stream.close();
-    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, SaveGame_MM7 *dst) {
@@ -791,7 +784,6 @@ Result<void> deserialize(const Blob &src, SaveGame_MM7 *dst) {
     }
 
     dst->thumbnail = co_await lodReader.read("image.pcx");
-    co_return {};
 }
 
 void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
@@ -804,7 +796,6 @@ Result<void> deserialize(const Blob &src, SaveGameLite_MM7 *dst) {
     co_await lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES);
     co_await deserialize(co_await lodReader.read("header.bin"), &dst->header);
     dst->thumbnail = co_await lodReader.read("image.pcx");
-    co_return {};
 }
 
 void reconstruct(const SpriteFrameTable_MM7 &src, SpriteFrameTable *dst) {
@@ -817,5 +808,4 @@ Result<void> deserialize(InputStream &src, SpriteFrameTable_MM7 *dst) {
     co_await deserialize(src, &dst->eframeCount);
     co_await deserialize(src, &dst->frames, tags::presized(dst->frameCount));
     co_await deserialize(src, &dst->eframes, tags::presized(dst->eframeCount));
-    co_return {};
 }

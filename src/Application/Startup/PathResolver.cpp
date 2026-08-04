@@ -126,7 +126,7 @@ bool validateMm7Path(std::string_view dataPath, std::string *missingFile) {
     LowercaseFileSystem lowerFs(&dirFs);
 
     for (std::string_view entry : globalValidateList) {
-        if (!lowerFs.exists(entry)) {
+        if (!lowerFs.exists(entry).valueOr(false)) {
             *missingFile = entry;
             return false;
         }

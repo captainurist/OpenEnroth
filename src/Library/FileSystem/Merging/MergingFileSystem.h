@@ -1,9 +1,10 @@
 #pragma once
 
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
+#include "Utility/Error/Result.h"
 #include "Library/FileSystem/Interface/ReadOnlyFileSystem.h"
 
 /**
@@ -56,14 +57,14 @@ class MergingFileSystem : public ReadOnlyFileSystem {
     //                     forward displayPath calls to if there are conflicts (no files exist / multiple files exist).
 
  private:
-    virtual bool _exists(FileSystemPathView path) const override;
-    virtual FileStat _stat(FileSystemPathView path) const override;
-    virtual void _ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const override;
-    virtual Blob _read(FileSystemPathView path) const override;
-    virtual std::unique_ptr<InputStream> _openForReading(FileSystemPathView path) const override;
+    virtual Result<bool> _exists(FileSystemPathView path) const override;
+    virtual Result<FileStat> _stat(FileSystemPathView path) const override;
+    virtual Result<void> _ls(FileSystemPathView path, std::vector<DirectoryEntry> *entries) const override;
+    virtual Result<Blob> _read(FileSystemPathView path) const override;
+    virtual Result<std::unique_ptr<InputStream>> _openForReading(FileSystemPathView path) const override;
     virtual std::string _displayPath(FileSystemPathView path) const override;
 
-    const FileSystem *locateForReading(FileSystemPathView path) const;
+    Result<const FileSystem *> locateForReading(FileSystemPathView path) const;
     const FileSystem *locateForReadingOrNull(FileSystemPathView path) const;
 
  private:

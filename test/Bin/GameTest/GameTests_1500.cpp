@@ -423,7 +423,7 @@ GAME_TEST(Issues, Issue1721) {
 
 GAME_TEST(Prs, Pr1694) {
     // Having a dir ending with .mm7 in /saves shouldn't trip the engine.
-    ufs->write("saves/dir.mm7/1.txt", Blob());
+    ufs->write("saves/dir.mm7/1.txt", Blob()).orThrow();
 
     game.pressGuiButton("MainMenu_LoadGame");
     game.tick(5);

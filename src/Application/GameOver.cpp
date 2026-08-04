@@ -20,6 +20,7 @@
 #include "Media/Audio/AudioPlayer.h"
 
 #include "Library/Image/Pcx.h"
+#include "Library/Logger/Logger.h"
 
 
 //----- (004BF91E) --------------------------------------------------------
@@ -106,7 +107,8 @@ GraphicsImage *CreateWinnerCertificate() {
     render->EndTextNew();
 
     RgbaImage pixels = render->MakeFullScreenshot();
-    ufs->write("MM7_Win.Pcx", pcx::encode(pixels));
+    if (Result<void> written = ufs->write("MM7_Win.Pcx", pcx::encode(pixels)); !written)
+        logger->error("Couldn't save the winner certificate: {}", written.error());
     GraphicsImage *result = GraphicsImage::Create(std::move(pixels));
 
     background->release();

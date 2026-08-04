@@ -302,7 +302,7 @@ void ItemTable::LoadItemSizes() {
     // (think about all these random reads from your HDD) but is totally fine today. Another option would've been to
     // precalculate these and place in a json file, but why precalculate what's cheap to recalculate?
     LodReader reader;
-    reader.open(dfs->read("data/icons.lod")).mustSucceed();
+    reader.open(dfs->read("data/icons.lod").mustSucceed()).mustSucceed();
 
     for (ItemId itemId : items.indices()) {
         std::string iconName = items[itemId].iconName;

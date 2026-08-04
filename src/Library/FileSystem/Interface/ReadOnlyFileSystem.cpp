@@ -2,27 +2,27 @@
 
 #include <memory> // NOLINT: Linter going insane here for some reason.
 
-#include "FileSystemException.h"
+#include "FileSystemError.h"
 
-void ReadOnlyFileSystem::_write(FileSystemPathView path, const Blob &data) {
-    reportWriteError(path);
+Result<void> ReadOnlyFileSystem::_write(FileSystemPathView path, const Blob &data) {
+    return writeError(path);
 }
 
-std::unique_ptr<OutputStream> ReadOnlyFileSystem::_openForWriting(FileSystemPathView path) {
-    reportWriteError(path);
+Result<std::unique_ptr<OutputStream>> ReadOnlyFileSystem::_openForWriting(FileSystemPathView path) {
+    return writeError(path);
 }
 
-void ReadOnlyFileSystem::_rename(FileSystemPathView srcPath, FileSystemPathView dstPath) {
-    FileSystemException::raise(this, FS_RENAME_FAILED_DST_NOT_WRITEABLE, srcPath, dstPath);
+Result<void> ReadOnlyFileSystem::_rename(FileSystemPathView srcPath, FileSystemPathView dstPath) {
+    return fileSystemError(this, FS_RENAME_FAILED_DST_NOT_WRITEABLE, srcPath, dstPath);
 }
 
-bool ReadOnlyFileSystem::_remove(FileSystemPathView path) {
-    if (!_exists(path))
-        return false;
+Result<bool> ReadOnlyFileSystem::_remove(FileSystemPathView path) {
+    if (!co_await _exists(path))
+        co_return false;
 
-    FileSystemException::raise(this, FS_REMOVE_FAILED_PATH_NOT_WRITEABLE, path);
+    co_return fileSystemError(this, FS_REMOVE_FAILED_PATH_NOT_WRITEABLE, path);
 }
 
-void ReadOnlyFileSystem::reportWriteError(FileSystemPathView path) const {
-    FileSystemException::raise(this, FS_WRITE_FAILED_PATH_NOT_WRITEABLE, path);
+Error ReadOnlyFileSystem::writeError(FileSystemPathView path) const {
+    return fileSystemError(this, FS_WRITE_FAILED_PATH_NOT_WRITEABLE, path);
 }

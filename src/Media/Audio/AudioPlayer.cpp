@@ -56,12 +56,13 @@ void AudioPlayer::MusicPlayTrack(MusicId eTrack) {
         currentMusicTrack = MUSIC_INVALID;
 
         std::string file_path = fmt::format("music/{}.mp3", std::to_underlying(eTrack));
-        if (!dfs->exists(file_path)) {
-            logger->warning("AudioPlayer: {} not found", file_path);
+        Result<Blob> data = dfs->read(file_path);
+        if (!data) {
+            logger->warning("AudioPlayer: couldn't read {}: {}", file_path, data.error());
             return;
         }
 
-        pCurrentMusicTrack = CreateAudioTrack(dfs->read(file_path));
+        pCurrentMusicTrack = CreateAudioTrack(std::move(*data));
         if (pCurrentMusicTrack) {
             currentMusicTrack = eTrack;
 
@@ -448,7 +449,10 @@ void AudioPlayer::Initialize() {
     uMasterVolume = 127;
 
     UpdateVolumeFromConfig();
-    if (Result<void> opened = _sndReader.open(dfs->read("sounds/audio.snd")); !opened)
+    Result<void> opened = [&]() -> Result<void> {
+        co_await _sndReader.open(co_await dfs->read("sounds/audio.snd"));
+    }();
+    if (!opened)
         logger->error("AudioPlayer: couldn't open the sound archive, the game will be silent: {}", opened.error());
 
     bPlayerReady = true;
