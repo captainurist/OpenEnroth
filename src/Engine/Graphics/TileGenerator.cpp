@@ -53,7 +53,13 @@ void TileGenerator::ensureTile(std::string_view name) {
         return;
 
     auto [tileset, variant] = *valuePtr(_tilesetVariantByName, name);
-    ufs->write(name, png::encode(generateTile(tileset, variant)));
+    Result<Blob> encoded = png::encode(generateTile(tileset, variant));
+    if (!encoded) {
+        logger->error("Couldn't generate tile '{}': {}", name, encoded.error());
+        return;
+    }
+
+    ufs->write(name, *encoded);
 }
 
 RgbaImage TileGenerator::generateTile(Tileset tileset, TileVariant variant) {
@@ -90,7 +96,8 @@ RgbaImageView TileGenerator::loadTile(Tileset tileset, TileVariant variant) {
         return *result;
 
     // Need to load directly from LOD, caching layer contains desaturated images.
-    LodImage image = lod::decodeImage(pBitmaps_LOD->read(pTileTable->tile(pTileTable->tileId(tileset, variant)).textureName));
+    std::string_view name = pTileTable->tile(pTileTable->tileId(tileset, variant)).textureName;
+    LodImage image = mustSucceed(pBitmaps_LOD->read(name).and_then(lod::decodeImage)); // Tile table is data we ship.
     return _tileByTilesetVariant.emplace(key, makeRgbaImage(image.image, image.palette)).first->second;
 }
 

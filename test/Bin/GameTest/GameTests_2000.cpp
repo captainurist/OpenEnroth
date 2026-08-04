@@ -898,26 +898,26 @@ GAME_TEST(Prs, Pr2354) {
         if (isMapIndoor(mapId)) {
             // Deserialize and reconstruct the base indoor location (.blv).
             IndoorLocation_MM7 rawLocation;
-            deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(fileName)), &rawLocation);
+            deserialize(orThrow(pGames_LOD->read(fileName).and_then(lod::decodeMaybeCompressed)), &rawLocation);
             IndoorLocation location;
             reconstruct(rawLocation, &location);
 
             // Deserialize and reconstruct the default delta (.dlv).
             std::string dlvFilename = fmt::format("{}.dlv", baseName);
             IndoorDelta_MM7 rawDelta;
-            deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(dlvFilename)), &rawDelta, tags::context(rawLocation));
+            deserialize(orThrow(pGames_LOD->read(dlvFilename).and_then(lod::decodeMaybeCompressed)), &rawDelta, tags::context(rawLocation));
             reconstruct(rawDelta, &location);
         } else if (isMapOutdoor(mapId)) {
             // Deserialize and reconstruct the base outdoor location (.odm).
             OutdoorLocation_MM7 rawLocation;
-            deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(fileName)), &rawLocation);
+            deserialize(orThrow(pGames_LOD->read(fileName).and_then(lod::decodeMaybeCompressed)), &rawLocation);
             OutdoorLocation location;
             reconstruct(rawLocation, &location);
 
             // Deserialize and reconstruct the default delta (.ddm).
             std::string ddmFilename = fmt::format("{}.ddm", baseName);
             OutdoorDelta_MM7 rawDelta;
-            deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(ddmFilename)), &rawDelta, tags::context(rawLocation));
+            deserialize(orThrow(pGames_LOD->read(ddmFilename).and_then(lod::decodeMaybeCompressed)), &rawDelta, tags::context(rawLocation));
             reconstruct(rawDelta, &location);
         }
     }

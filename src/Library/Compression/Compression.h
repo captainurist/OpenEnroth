@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 
 namespace zlib {
@@ -12,10 +13,9 @@ Blob compress(const Blob &source);
 /**
  * @param source                       Blob to decompress.
  * @param sizeHint                     Expected decompressed size. If zero, a default heuristic is used.
- * @return                             Decompressed blob.
- * @throws Exception                   On decompression error.
+ * @return                             Decompressed blob, or an error if `source` is not a valid zlib stream.
  */
-Blob uncompress(const Blob &source, size_t sizeHint = 0);
+[[nodiscard]] Result<Blob> uncompress(const Blob &source, size_t sizeHint = 0);
 
 /**
  * Best-effort decompression that recovers whatever bytes the deflate stream produces, even if the

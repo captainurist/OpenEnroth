@@ -136,10 +136,12 @@ UNIT_TEST(SndReader, CorruptChecksumReturnsPartialData) {
     std::string original(1000, 'B');
     Blob snd = makeSndBlobWithCorruptCompressedEntry(original);
 
-    SndReader reader(std::move(snd));
-    Blob result = reader.read("corrupt.wav");
-    ASSERT_EQ(result.size(), original.size());
-    EXPECT_EQ(std::string_view(static_cast<const char *>(result.data()), result.size()), original);
+    SndReader reader;
+    ASSERT_TRUE(reader.open(std::move(snd)));
+    Result<Blob> result = reader.read("corrupt.wav");
+    ASSERT_TRUE(result);
+    ASSERT_EQ(result->size(), original.size());
+    EXPECT_EQ(std::string_view(static_cast<const char *>(result->data()), result->size()), original);
 }
 
 UNIT_TEST(SndDetect, OffsetPastEnd) {

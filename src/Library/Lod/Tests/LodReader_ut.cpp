@@ -29,9 +29,14 @@ const char brokenLod[] =
     "\x20\0\0\0"    "\x10\0\0\0"    "\0\0\0\0"      "\0\0\0\0"      // dataOffset = 32, dataSize = 16, unk_0 = 0, numItems = 0, priority = 0
     "data"          "data"          "data"          "data";
 
+static void openBrokenLod(LodReader *reader) {
+    EXPECT_TRUE(reader->open(Blob::view(brokenLod, sizeof(brokenLod)).withDisplayPath("russian.lod"), LOD_ALLOW_DUPLICATES));
+}
+
 UNIT_TEST(LodReader, RussianLod) {
     // Opening a LOD with invalid directory dataSize should just work.
-    LodReader reader(Blob::view(brokenLod, sizeof(brokenLod)).withDisplayPath("russian.lod"), LOD_ALLOW_DUPLICATES);
+    LodReader reader;
+    openBrokenLod(&reader);
     EXPECT_TRUE(reader.isOpen());
     EXPECT_EQ(reader.ls(), std::vector<std::string>{"lolkek"});
     EXPECT_EQ(reader.info().rootName, "maps");
@@ -40,27 +45,33 @@ UNIT_TEST(LodReader, RussianLod) {
     EXPECT_TRUE(reader.exists("lolkek"));
     EXPECT_FALSE(reader.exists("lolkek1"));
     EXPECT_FALSE(reader.exists("lolke"));
-    EXPECT_EQ(reader.read("lolkek").str(), "datadatadatadata");
+    EXPECT_EQ(reader.read("lolkek")->str(), "datadatadatadata");
 
     // LODs are case-insensitive.
     EXPECT_TRUE(reader.exists("lolKEK"));
-    EXPECT_EQ(reader.read("LOLkek").str(), "datadatadatadata");
+    EXPECT_EQ(reader.read("LOLkek")->str(), "datadatadatadata");
 
-    // Check that we throw when accessing non-existent files.
-    EXPECT_THROW((void) reader.read("lolke"), std::exception);
+    // Check that we report an error when accessing non-existent files.
+    Result<Blob> missing = reader.read("lolke");
+    ASSERT_FALSE(missing);
+    EXPECT_THAT(missing.error().message(), testing::HasSubstr("doesn't exist"));
 }
 
 UNIT_TEST(LodReader, ErrorMessage) {
     std::string_view name = "XXXXXXXXXXX";
     Blob blob = Blob().withDisplayPath(name);
 
-    EXPECT_THROW_MESSAGE(LodReader(Blob::share(blob)), name);
+    LodReader reader;
+    Result<void> opened = reader.open(Blob::share(blob));
+    ASSERT_FALSE(opened);
+    EXPECT_THAT(opened.error().message(), testing::HasSubstr(name));
 }
 
 UNIT_TEST(LodReader, DisplayPath) {
-    LodReader reader(Blob::view(brokenLod, sizeof(brokenLod)).withDisplayPath("russian.lod"), LOD_ALLOW_DUPLICATES);
-    EXPECT_EQ(reader.read("lolkek").displayPath(), "russian.lod/lolkek");
-    EXPECT_EQ(reader.read("LOLKEK").displayPath(), "russian.lod/LOLKEK");
+    LodReader reader;
+    openBrokenLod(&reader);
+    EXPECT_EQ(reader.read("lolkek")->displayPath(), "russian.lod/lolkek");
+    EXPECT_EQ(reader.read("LOLKEK")->displayPath(), "russian.lod/LOLKEK");
 }
 
 UNIT_TEST(LodReader, Detect) {

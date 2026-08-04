@@ -3,6 +3,8 @@
 #include <string>
 #include <functional>
 
+#include "Utility/Error/Result.h"
+
 #include "Library/Color/Color.h"
 #include "Library/Image/Image.h"
 
@@ -121,7 +123,7 @@ class PCX_LOD_Compressed_Loader : public PCX_Loader {
     virtual bool Load(RgbaImage *rgbaImage) override;
 
  protected:
-    std::function<Blob()> blob_func;
+    std::function<Result<Blob>()> blob_func;
     Color colorkey;
 };
 

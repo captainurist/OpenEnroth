@@ -153,7 +153,7 @@ std::pair<SaveGameHeader, Blob> createSaveData(bool resetWorld, std::string_view
         // New game - copy ddm & dlv files from games.lod.
         for (const std::string &name : pGames_LOD->ls())
             if (name.ends_with(".ddm") || name.ends_with(".dlv"))
-                state.mapDeltas[name] = pGames_LOD->read(name);
+                state.mapDeltas[name] = mustSucceed(pGames_LOD->read(name)); // We've just ls'ed it, it's there.
     } else {
         // Location change - copy from current save & serialize current location delta.
         // Blob is move-only, so we need explicit copies.

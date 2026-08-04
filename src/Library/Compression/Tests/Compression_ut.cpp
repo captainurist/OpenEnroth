@@ -4,7 +4,7 @@
 
 #include "Library/Compression/Compression.h"
 
-#include "Utility/Exception.h"
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 
 static Blob makeCorruptZlibBlob(const Blob &source) {
@@ -24,12 +24,15 @@ UNIT_TEST(Compression, UncompressBestEffort_CorruptChecksum) {
 
     // Normal uncompress works.
     Blob compressed = zlib::compress(source);
-    Blob decompressed = zlib::uncompress(compressed, source.size());
-    EXPECT_EQ(decompressed.size(), source.size());
+    Result<Blob> decompressed = zlib::uncompress(compressed, source.size());
+    ASSERT_TRUE(decompressed);
+    EXPECT_EQ(decompressed->size(), source.size());
 
-    // Corrupt the checksum — strict uncompress throws, best-effort recovers.
+    // Corrupt the checksum — strict uncompress fails, best-effort recovers.
     Blob corrupted = makeCorruptZlibBlob(source);
-    EXPECT_THROW(zlib::uncompress(corrupted, source.size()), Exception);
+    Result<Blob> failed = zlib::uncompress(corrupted, source.size());
+    ASSERT_FALSE(failed);
+    EXPECT_THAT(failed.error().message(), testing::HasSubstr("Decompression error"));
 
     Blob recovered = zlib::uncompressBestEffort(corrupted, source.size());
     ASSERT_EQ(recovered.size(), source.size());

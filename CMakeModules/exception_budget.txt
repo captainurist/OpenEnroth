@@ -1,0 +1,32 @@
+# Exception budget.
+#
+# OpenEnroth is exception-free by default – errors are reported with `Result<T>` from `Utility/Error/Result.h`, see
+# the "Error handling" section in HACKING.md. This file lists the places that are still allowed to throw, along with
+# the number of `throw` statements each of them currently has.
+#
+# The numbers are a ratchet: they may go down (just update this file), but a PR that makes one go up will fail
+# `check_exceptions`. If you have a genuine reason to add a `throw`, say so in the PR and bump the number here.
+#
+# Format is `<path prefix> <count> # <why>`.
+
+# Exceptions are the interface here, and they're supposed to stay.
+src/Scripting/                          14  # sol2 turns C++ exceptions into Lua errors. That's the sanctioned bridge.
+src/Bin/                                 9  # Command-line tools. Top-level catch prints the message and exits.
+test/                                    2  # Test harness. GTest is built around exceptions.
+src/Utility/Error/Tests/                 3  # Tests for the exception <-> Result bridges have to throw something.
+src/Engine/Components/Control/          11  # Test instrumentation, not shipped in the game loop.
+src/Engine/Components/Trace/            10  # Test instrumentation, not shipped in the game loop.
+
+# Not yet ported. Every one of these is a TODO – see the migration plan in ExceptionFreeErrorHandling.md.
+src/Engine/Evt/                          7  # Event script decoding.
+src/Engine/Snapshots/                    5  # Savegame (de)serialization.
+src/Engine/Objects/                      3  # Monster table parsing.
+src/Library/Serialization/               4  # Enum & number parsing.
+src/Library/Config/                      3  # Config entry lookup.
+src/Library/Fsm/                         3  # State machine setup.
+src/Library/FileSystem/                  2  # FileSystemException.
+src/Library/Json/                        1  # nlohmann::json is exception-based.
+src/Library/Binary/                      1  # The `deserialize(const Blob &, ...)` migration bridge.
+src/Library/Preprocessor/                1  # GLSL preprocessor.
+src/Utility/                             9  # Exception.cpp, Blob::fromFile, UnicodeCrt, and the `orThrow` bridge.
+src/Application/Startup/                 2  # Startup, before there's a UI to show errors in.

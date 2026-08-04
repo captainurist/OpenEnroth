@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#include "Utility/Error/Result.h"
+
 #include "Engine/SpawnPoint.h"
 #include "Engine/MapEnums.h"
 
@@ -34,7 +36,7 @@ struct OutdoorLocation {
     void PrepareActorsDrawList();
     void CreateDebugLocation();
     void Release();
-    void Load(std::string_view filename, int days_played, int respawn_interval_days, bool *outdoors_was_respawned);
+    Result<void> Load(std::string_view filename, int days_played, int respawn_interval_days, bool *outdoors_was_respawned);
 
     int UpdateDiscoveredArea(Vec2i gridPos);
     bool IsMapCellFullyRevealed(signed int a2, signed int a3);

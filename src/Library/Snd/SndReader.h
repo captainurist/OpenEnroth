@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 
 #include "SndSnapshots.h"
@@ -19,22 +20,20 @@
 class SndReader {
  public:
     SndReader();
-    explicit SndReader(std::string_view path);
-    explicit SndReader(Blob blob);
     ~SndReader();
 
     /**
      * @param path                      Path to the SND file to open for reading.
-     * @throw Exception                 If the SND couldn't be opened - e.g., if the file doesn't exist,
-     *                                  or if it's not in SND format.
+     * @return                          Success, or an error if the SND couldn't be opened - e.g., if the file
+     *                                  doesn't exist, or if it's not in SND format.
      */
-    void open(std::string_view path);
+    Result<void> open(std::string_view path);
 
     /**
      * @param blob                      SND data.
-     * @throw Exception                 If there are errors in the provided SND file.
+     * @return                          Success, or an error if there are errors in the provided SND file.
      */
-    void open(Blob blob);
+    Result<void> open(Blob blob);
 
     /**
      * Closes this SND reader & frees all associated resources.
@@ -53,10 +52,10 @@ class SndReader {
 
     /**
      * @param filename                  Name of the SND file entry.
-     * @return                          Contents of the file inside the SND as a `Blob`.
-     * @throws Exception                If file doesn't exist inside the SND.
+     * @return                          Contents of the file inside the SND as a `Blob`, or an error if the file
+     *                                  doesn't exist inside the SND or couldn't be decompressed.
      */
-    [[nodiscard]] Blob read(std::string_view filename) const;
+    [[nodiscard]] Result<Blob> read(std::string_view filename) const;
 
     /**
      * @return                          List of all files in the SND.

@@ -6,6 +6,8 @@
 #include <vector>
 #include <span>
 
+#include "Utility/Error/Result.h"
+
 #include "Engine/mm7_data.h"
 #include "Engine/EngineIocContainer.h"
 #include "Engine/SpawnPoint.h"
@@ -220,7 +222,7 @@ struct IndoorLocation {
     }
 
     void Release();
-    void Load(std::string_view filename, int num_days_played, int respawn_interval_days, bool *indoor_was_respawned);
+    Result<void> Load(std::string_view filename, int num_days_played, int respawn_interval_days, bool *indoor_was_respawned);
     void Draw();
 
     /**

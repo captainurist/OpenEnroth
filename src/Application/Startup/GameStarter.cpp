@@ -135,7 +135,11 @@ void GameStarter::initialize() {
     // On linux the only way to set window icon is through an API call. On other OSes this is handled by external
     // mechanisms.
 #if defined(__linux__) && !defined(__ANDROID__)
-    window->setIcon(png::decode(dfs->read("images/OpenEnroth.png")));
+    if (Result<RgbaImage> icon = png::decode(dfs->read("images/OpenEnroth.png"))) {
+        window->setIcon(*icon);
+    } else {
+        logger->error("Couldn't load the window icon: {}", icon.error()); // Not a reason to refuse to start.
+    }
 #endif
 
     // Install & set up components.

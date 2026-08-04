@@ -33,7 +33,8 @@ GUIFont::~GUIFont() {
 std::unique_ptr<GUIFont> GUIFont::LoadFont(std::string_view pFontFile) {
     std::unique_ptr<GUIFont> result = std::make_unique<GUIFont>();
 
-    result->_font = lod::decodeFont(pIcons_LOD->LoadCompressedTexture(pFontFile));
+    // TODO(captainurist): #exceptions Should return a `Result` once the UI code can deal with a missing font.
+    result->_font = mustSucceed(pIcons_LOD->LoadCompressedTexture(pFontFile).and_then(lod::decodeFont));
     result->CreateFontTex();
 
     return result;

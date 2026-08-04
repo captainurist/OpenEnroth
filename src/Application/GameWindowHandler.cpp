@@ -157,7 +157,13 @@ void GameWindowHandler::OnScreenshot() {
         engine->config->settings.ScreenshotNumber.increment();
         std::string path = fmt::format("screenshots/screenshot_{:05}.png", engine->config->settings.ScreenshotNumber.value());
 
-        ufs->write(path, png::encode(render->MakeFullScreenshot()));
+        Result<Blob> screenshot = png::encode(render->MakeFullScreenshot());
+        if (!screenshot) {
+            logger->error("Couldn't take a screenshot: {}", screenshot.error());
+            return;
+        }
+
+        ufs->write(path, *screenshot);
     }
 }
 

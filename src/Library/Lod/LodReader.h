@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 
 #include "LodEnums.h"
@@ -21,24 +22,22 @@ class InputStream;
 class LodReader final {
  public:
     LodReader();
-    LodReader(std::string_view path, LodOpenFlags openFlags = 0);
-    LodReader(Blob blob, LodOpenFlags openFlags = 0);
     ~LodReader();
 
     /**
      * @param path                      Path to the LOD file to open for reading.
      * @param openFlags                 Open flags.
-     * @throw Exception                 If the LOD couldn't be opened - e.g., if the file doesn't exist,
-     *                                  or if it's not a LOD.
+     * @return                          Success, or an error if the LOD couldn't be opened - e.g., if the file
+     *                                  doesn't exist, or if it's not a LOD.
      */
-    void open(std::string_view path, LodOpenFlags openFlags = 0);
+    Result<void> open(std::string_view path, LodOpenFlags openFlags = 0);
 
     /**
      * @param blob                      LOD data.
      * @param openFlags                 Open flags.
-     * @throw Exception                 If there are errors in the provided LOD file.
+     * @return                          Success, or an error if there are errors in the provided LOD file.
      */
-    void open(Blob blob, LodOpenFlags openFlags = 0);
+    Result<void> open(Blob blob, LodOpenFlags openFlags = 0);
 
     /**
      * Closes this LOD reader & frees all associated resources.
@@ -57,10 +56,10 @@ class LodReader final {
 
     /**
      * @param filename                  Name of the LOD file entry.
-     * @return                          Contents of the file inside the LOD as a `Blob`.
-     * @throws Exception                If file doesn't exist inside the LOD.
+     * @return                          Contents of the file inside the LOD as a `Blob`, or an error if the file
+     *                                  doesn't exist inside the LOD.
      */
-    [[nodiscard]] Blob read(std::string_view filename) const;
+    [[nodiscard]] Result<Blob> read(std::string_view filename) const;
 
     /**
      * @param filename                  Name of the LOD file entry.

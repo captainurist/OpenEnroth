@@ -115,9 +115,26 @@ Language features:
 
 Error handling:
 * Use `assert`s to check for coding errors and conditions that must never be false, no matter how the program is run.
-* Use exceptions for non-recoverable errors. It's usually OK to just throw an instance of `class Exception`.
+* **Don't throw.** This is a game – an exception escaping into `main` means the player loses their progress. Errors that depend on the outside world (game data, savegames, config files, the file system) are expected to happen, and the game is expected to survive them.
+* Return `Result<T>` from `Utility/Error/Result.h` instead. It's an `std::expected<T, Error>`, and `Error` carries the same rich formatted message an `Exception` would have:
+  ```cpp
+  Result<RgbaImage> pcx::decode(const Blob &data) {
+      if (data.size() < sizeof(PCXHeader))
+          return fail("PCX image '{}' too small, expected at least {} bytes, got {}",
+                      data.displayPath(), sizeof(PCXHeader), data.size());
+      ...
+  }
+  ```
+* Propagate errors with `MM_TRY` / `MM_TRY_VOID`, and add context on the way up with `withContext`. Context frames are joined with `": "`, so the message the player eventually sees reads top-down, e.g. `"Couldn't load texture 'lava': Cannot decode LOD entry 'bitmaps.lod/lava' as LOD image"`.
+* When you get a `Result` back, pick one of three policies, explicitly:
+  * **Propagate** it with `MM_TRY`, if your caller is in a better position to decide.
+  * **Degrade** – log it with `Logger` and carry on with a fallback. This is the right answer for anything that runs while the game is running: a missing sound effect, an unreadable savegame thumbnail, a texture that fails to decode.
+  * **Die** with `mustSucceed`, but only for things that genuinely make the game unusable, and preferably only during startup. `mustSucceed` goes through the fatal error handler, so it can show the message to the player before exiting.
+* `orThrow` is the bridge in the other direction – it turns a `Result` back into an exception. It's fine in command-line tools and tests, where the top-level `catch` *is* the error handling. In engine code, every use of it is a `TODO`.
+* Input streams don't throw either – they have a sticky error state, like `std::ios` does. Long chains of `deserialize` calls don't need to check anything; the code that created the stream calls `stream.check()` once at the end. See the docs on `InputStream`.
+* `Utility/Exception.h` still exists, and the parts of the codebase listed in `CMakeModules/exception_budget.txt` still use it. Those are being migrated – see `ExceptionFreeErrorHandling.md`. The `check_exceptions` target (part of `check_style`) fails the build if a new `throw` shows up outside that budget.
 * Use `Logger` for warnings and recoverable errors.
-* We don't yet have a mechanism for displaying errors to the user through the UI. This document will be updated once this is implemented.
+* We don't yet have a mechanism for displaying errors to the user through the UI. Once we do, `setFatalErrorHandler` is where it plugs in.
 
 There is a lot of code in the project that doesn't follow these conventions. Please feel free to fix it, preferably not mixing up style and logical changes in the same PR.
 

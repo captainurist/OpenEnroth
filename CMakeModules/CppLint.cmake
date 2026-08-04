@@ -3,6 +3,16 @@ function(init_check_style)
         find_package(Python COMPONENTS Interpreter GLOBAL)
         set(OE_CPPLINT_COMMAND "${PROJECT_SOURCE_DIR}/thirdparty/cpplint/cpplint.py" CACHE FILEPATH "CppLint command")
         add_custom_target(check_style)
+
+        # Keeps the codebase exception-free, see the "Error handling" section in HACKING.md.
+        add_custom_target(check_exceptions
+                COMMAND Python::Interpreter
+                        "${PROJECT_SOURCE_DIR}/CMakeModules/check_exceptions.py"
+                        "${PROJECT_SOURCE_DIR}/CMakeModules/exception_budget.txt"
+                        "${PROJECT_SOURCE_DIR}/src" "${PROJECT_SOURCE_DIR}/test"
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+        add_dependencies(check_style check_exceptions)
+        set_property(TARGET check_exceptions PROPERTY FOLDER "check_style")
     endif()
 endfunction()
 

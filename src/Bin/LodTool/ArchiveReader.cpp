@@ -17,9 +17,9 @@ class UniversalReader : public ArchiveReader {
  public:
     explicit UniversalReader(Blob data) {
         if constexpr (std::is_same_v<Base, LodReader>) {
-            _base.open(std::move(data), LOD_ALLOW_DUPLICATES);
+            orThrow(_base.open(std::move(data), LOD_ALLOW_DUPLICATES));
         } else {
-            _base.open(std::move(data));
+            orThrow(_base.open(std::move(data)));
         }
     }
 
@@ -36,7 +36,7 @@ class UniversalReader : public ArchiveReader {
     }
 
     virtual Blob read(std::string_view filename) const override {
-        return _base.read(filename);
+        return orThrow(_base.read(filename));
     }
 
     virtual std::vector<std::string> ls() const override {

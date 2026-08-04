@@ -448,7 +448,8 @@ void AudioPlayer::Initialize() {
     uMasterVolume = 127;
 
     UpdateVolumeFromConfig();
-    _sndReader.open(dfs->read("sounds/audio.snd"));
+    if (Result<void> opened = _sndReader.open(dfs->read("sounds/audio.snd")); !opened)
+        logger->error("AudioPlayer: couldn't open the sound archive, the game will be silent: {}", opened.error());
 
     bPlayerReady = true;
 }
@@ -466,12 +467,18 @@ void PlayLevelMusic() {
 }
 
 Blob AudioPlayer::LoadSound(std::string_view pSoundName) {
-    if (!_sndReader.exists(pSoundName)) {
+    if (!_sndReader.isOpen() || !_sndReader.exists(pSoundName)) {
         logger->warning("AudioPlayer: {} can't load sound header!", pSoundName);
         return Blob();
     }
 
-    return _sndReader.read(pSoundName);
+    Result<Blob> result = _sndReader.read(pSoundName);
+    if (!result) {
+        logger->warning("AudioPlayer: {}", result.error()); // A missing sound effect is not worth dying over.
+        return Blob();
+    }
+
+    return *std::move(result);
 }
 
 void AudioPlayer::playSpellSound(SpellId spell, bool is_impact, SoundPlaybackMode mode, Pid pid) {

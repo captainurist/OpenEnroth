@@ -5,6 +5,8 @@
 
 #include "Library/LodFormats/LodFormats.h"
 
+#include "Library/Logger/Logger.h"
+
 #include "Utility/String/Ascii.h"
 #include "Utility/MapAccess.h"
 
@@ -19,8 +21,8 @@ LodTextureCache *pBitmaps_LOD_mm8 = nullptr;
 LodTextureCache::LodTextureCache() = default;
 LodTextureCache::~LodTextureCache() = default;
 
-void LodTextureCache::open(Blob blob) {
-    _reader.open(std::move(blob));
+Result<void> LodTextureCache::open(Blob blob) {
+    return _reader.open(std::move(blob));
 }
 
 void LodTextureCache::reserveLoadedTextures() {
@@ -56,11 +58,11 @@ LodImage *LodTextureCache::loadTexture(std::string_view pContainer, bool useDumm
     }
 }
 
-Blob LodTextureCache::LoadCompressedTexture(std::string_view pContainer) {
-    return lod::decodeMaybeCompressed(_reader.read(pContainer));
+Result<Blob> LodTextureCache::LoadCompressedTexture(std::string_view pContainer) {
+    return _reader.read(pContainer).and_then(lod::decodeMaybeCompressed);
 }
 
-Blob LodTextureCache::read(std::string_view pContainer) {
+Result<Blob> LodTextureCache::read(std::string_view pContainer) {
     return _reader.read(pContainer);
 }
 
@@ -68,6 +70,12 @@ bool LodTextureCache::LoadTextureFromLOD(LodImage *pOutTex, std::string_view pCo
     if (!_reader.exists(pContainer))
         return false;
 
-    *pOutTex = lod::decodeImage(_reader.read(pContainer));
+    Result<LodImage> image = _reader.read(pContainer).and_then(lod::decodeImage);
+    if (!image) {
+        logger->warning("Couldn't load texture '{}': {}", pContainer, image.error());
+        return false; // Caller falls back to the dummy texture.
+    }
+
+    *pOutTex = *std::move(image);
     return true;
 }

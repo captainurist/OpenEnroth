@@ -12,32 +12,27 @@
 
 #include "Utility/Streams/BlobInputStream.h"
 #include "Utility/String/Ascii.h"
-#include "Utility/Exception.h"
+#include "Utility/Error/Result.h"
 
 #include "VidSnapshots.h"
 
 VidReader::VidReader() = default;
 
-VidReader::VidReader(std::string_view path) {
-    open(path);
-}
-
-VidReader::VidReader(Blob blob) {
-    open(std::move(blob));
-}
-
 VidReader::~VidReader() = default;
 
-void VidReader::open(std::string_view path) {
+Result<void> VidReader::open(std::string_view path) {
     close();
-    open(Blob::fromFile(path));
+    // TODO(captainurist): #exceptions Blob::fromFile still throws, drop the tryCatch once it's ported.
+    MM_TRY(Blob blob, tryCatch([&] { return Blob::fromFile(path); }));
+    return open(std::move(blob));
 }
 
-void VidReader::open(Blob blob) {
+Result<void> VidReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<VidEntry> entries;
     deserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>);
+    MM_TRY_VOID(withContext(stream.check(), "File '{}' is not a valid VID", blob.displayPath()));
     std::ranges::sort(entries, std::ranges::less(), &VidEntry::offset);
 
     std::unordered_map<std::string, VidRegion> files;
@@ -46,10 +41,10 @@ void VidReader::open(Blob blob) {
 
         std::string name = ascii::toLower(entry.name);
         if (files.contains(name))
-            throw Exception("File '{}' is not a valid VID: contains duplicate entries for '{}'", blob.displayPath(), name);
+            return fail("File '{}' is not a valid VID: contains duplicate entries for '{}'", blob.displayPath(), name);
 
         if (entry.offset > blob.size())
-            throw Exception("File '{}' is not a valid VID: entry '{}' points outside the VID file", blob.displayPath(), entry.name);
+            return fail("File '{}' is not a valid VID: entry '{}' points outside the VID file", blob.displayPath(), entry.name);
 
         size_t nextOffset = (i + 1 == entries.size()) ? blob.size() : entries[i + 1].offset;
         assert(nextOffset >= entry.offset); // Follows from the fact that array is sorted.
@@ -63,6 +58,7 @@ void VidReader::open(Blob blob) {
     // All good, this is a valid VID, can update `this`.
     _vid = std::move(blob);
     _files = std::move(files);
+    return {};
 }
 
 void VidReader::close() {
@@ -77,12 +73,12 @@ bool VidReader::exists(std::string_view filename) const {
     return _files.contains(ascii::toLower(filename));
 }
 
-Blob VidReader::read(std::string_view filename) const {
+Result<Blob> VidReader::read(std::string_view filename) const {
     assert(isOpen());
 
     const auto pos = _files.find(ascii::toLower(filename));
     if (pos == _files.cend())
-        throw Exception("Entry '{}' doesn't exist in VID file '{}'", filename, _vid.displayPath());
+        return fail("Entry '{}' doesn't exist in VID file '{}'", filename, _vid.displayPath());
     const VidRegion &region = pos->second;
 
     return _vid.subBlob(region.offset, region.size).withDisplayPath(fmt::format("{}/{}", _vid.displayPath(), filename));

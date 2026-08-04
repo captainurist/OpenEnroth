@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 
 /**
@@ -13,22 +14,20 @@
 class VidReader {
  public:
     VidReader();
-    explicit VidReader(std::string_view path);
-    explicit VidReader(Blob blob);
     ~VidReader();
 
     /**
      * @param path                      Path to the VID file to open for reading.
-     * @throw Exception                 If the VID couldn't be opened - e.g., if the file doesn't exist,
-     *                                  or if it's not in VID format.
+     * @return                          Success, or an error if the VID couldn't be opened - e.g., if the file
+     *                                  doesn't exist, or if it's not in VID format.
      */
-    void open(std::string_view path);
+    Result<void> open(std::string_view path);
 
     /**
      * @param blob                      VID data.
-     * @throw Exception                 If there are errors in the provided VID file.
+     * @return                          Success, or an error if there are errors in the provided VID file.
      */
-    void open(Blob blob);
+    Result<void> open(Blob blob);
 
     /**
      * Closes this VID reader & frees all associated resources.
@@ -47,10 +46,10 @@ class VidReader {
 
     /**
      * @param filename                  Name of the VID file entry.
-     * @return                          Contents of the file inside the VID as a `Blob`.
-     * @throws Exception                If file doesn't exist inside the VID.
+     * @return                          Contents of the file inside the VID as a `Blob`, or an error if the file
+     *                                  doesn't exist inside the VID.
      */
-    [[nodiscard]] Blob read(std::string_view filename) const;
+    [[nodiscard]] Result<Blob> read(std::string_view filename) const;
 
     /**
      * @return                          List of all files in the VID.

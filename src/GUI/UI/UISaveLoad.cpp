@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 #include "Engine/Engine.h"
 #include "Engine/Resources/EngineFileSystem.h"
@@ -38,6 +39,24 @@
 using Io::TextInputType;
 
 static void UI_DrawSaveLoad(bool save);
+
+/**
+ * @param thumbnail                     Raw PCX data of a savegame thumbnail.
+ * @return                              Decoded thumbnail image, or `nullptr` if it couldn't be decoded. A broken
+ *                                      thumbnail is not a reason to hide the save slot.
+ */
+static GraphicsImage *makeThumbnail(const Blob &thumbnail) {
+    Result<RgbaImage> image = pcx::decode(thumbnail); // TODO(captainurist): lazy-load.
+    if (!image) {
+        logger->debug("Couldn't decode a savegame thumbnail: {}", image.error());
+        return nullptr;
+    }
+
+    if (image->width() == 0)
+        return nullptr;
+
+    return GraphicsImage::Create(*std::move(image));
+}
 
 std::array<int, 2> saveload_dlg_xs = {{82, 0}};
 std::array<int, 2> saveload_dlg_ys = {{60, 0}};
@@ -81,18 +100,7 @@ GUIWindow_Save::GUIWindow_Save() : GUIWindow(WINDOW_Save, {0, 0}, render->GetRen
                 pSavegameList->pSavegameHeader[i].name = test;
             }
 
-            try {
-                pSavegameList->pSavegameThumbnails[i] = GraphicsImage::Create(pcx::decode(save.thumbnail)); // TODO(captainurist): lazy-load.
-
-                if (pSavegameList->pSavegameThumbnails[i]->width() == 0) {
-                    pSavegameList->pSavegameThumbnails[i]->release();
-                    pSavegameList->pSavegameThumbnails[i] = nullptr;
-                }
-            }
-            catch (const Exception& e) {
-                logger->debug("pSavegameList thumbnail exception: {}", e.what()); // swallow it - bad pcx thumbnail is fine
-                pSavegameList->pSavegameThumbnails[i] = nullptr;
-            }
+            pSavegameList->pSavegameThumbnails[i] = makeThumbnail(save.thumbnail);
 
             pSavegameList->pSavegameUsedSlots[i] = (pSavegameList->pSavegameThumbnails[i] != nullptr);
         }
@@ -191,17 +199,7 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
             pSavegameList->pSavegameHeader[i].name = test;
         }
 
-        try {
-            pSavegameList->pSavegameThumbnails[i] = GraphicsImage::Create(pcx::decode(save.thumbnail)); // TODO(captainurist): lazy-load.
-
-            if (pSavegameList->pSavegameThumbnails[i]->width() == 0) {
-                pSavegameList->pSavegameThumbnails[i]->release();
-                pSavegameList->pSavegameThumbnails[i] = nullptr;
-            }
-        } catch (const Exception &e) {
-            logger->debug("pSavegameList thumbnail exception: {}", e.what()); // swallow it - bad pcx thumbnail is fine
-            pSavegameList->pSavegameThumbnails[i] = nullptr;
-        }
+        pSavegameList->pSavegameThumbnails[i] = makeThumbnail(save.thumbnail);
 
         pSavegameList->pSavegameUsedSlots[i] = true;
         //if (pSavegameList->pSavegameThumbnails[i] != nullptr) {

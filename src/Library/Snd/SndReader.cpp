@@ -12,41 +12,36 @@
 
 #include "Utility/Streams/BlobInputStream.h"
 #include "Utility/String/Ascii.h"
-#include "Utility/Exception.h"
+#include "Utility/Error/Result.h"
 
 #include "SndSnapshots.h"
 
 SndReader::SndReader() = default;
 
-SndReader::SndReader(std::string_view path) {
-    open(path);
-}
-
-SndReader::SndReader(Blob blob) {
-    open(std::move(blob));
-}
-
 SndReader::~SndReader() = default;
 
-void SndReader::open(std::string_view path) {
+Result<void> SndReader::open(std::string_view path) {
     close();
-    open(Blob::fromFile(path));
+    // TODO(captainurist): #exceptions Blob::fromFile still throws, drop the tryCatch once it's ported.
+    MM_TRY(Blob blob, tryCatch([&] { return Blob::fromFile(path); }));
+    return open(std::move(blob));
 }
 
-void SndReader::open(Blob blob) {
+Result<void> SndReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<SndEntry> entries;
     deserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>);
+    MM_TRY_VOID(withContext(stream.check(), "File '{}' is not a valid SND", blob.displayPath()));
 
     std::unordered_map<std::string, SndEntry> files;
     for (SndEntry &entry : entries) {
         std::string name = ascii::toLower(entry.name);
         if (files.contains(name))
-            throw Exception("File '{}' is not a valid SND: contains duplicate entries for '{}'", blob.displayPath(), name);
+            return fail("File '{}' is not a valid SND: contains duplicate entries for '{}'", blob.displayPath(), name);
 
         if (entry.offset + entry.size > blob.size())
-            throw Exception("File '{}' is not a valid SND: entry '{}' points outside the SND file", blob.displayPath(), entry.name);
+            return fail("File '{}' is not a valid SND: entry '{}' points outside the SND file", blob.displayPath(), entry.name);
 
         files.emplace(std::move(name), std::move(entry));
     }
@@ -54,6 +49,7 @@ void SndReader::open(Blob blob) {
     // All good, this is a valid SND, can update `this`.
     _snd = std::move(blob);
     _files = std::move(files);
+    return {};
 }
 
 void SndReader::close() {
@@ -68,28 +64,28 @@ bool SndReader::exists(std::string_view filename) const {
     return _files.contains(ascii::toLower(filename));
 }
 
-Blob SndReader::read(std::string_view filename) const {
+Result<Blob> SndReader::read(std::string_view filename) const {
     assert(isOpen());
 
     const auto pos = _files.find(ascii::toLower(filename));
     if (pos == _files.cend())
-        throw Exception("Entry '{}' doesn't exist in SND file '{}'", filename, _snd.displayPath());
+        return fail("Entry '{}' doesn't exist in SND file '{}'", filename, _snd.displayPath());
     const SndEntry &entry = pos->second;
 
     Blob result = _snd.subBlob(entry.offset, entry.size);
     std::string path = fmt::format("{}/{}", _snd.displayPath(), filename);
     if (entry.decompressedSize && entry.decompressedSize != entry.size) {
         Blob compressed = result.withDisplayPath(path);
-        try {
-            result = zlib::uncompress(compressed, entry.decompressedSize);
-        } catch (const Exception &e) {
+        Result<Blob> uncompressed = zlib::uncompress(compressed, entry.decompressedSize);
+        if (!uncompressed) {
+            // Some of the SNDs shipped with the vanilla games have corrupt checksums, try to recover what we can.
             result = zlib::uncompressBestEffort(compressed, entry.decompressedSize);
-            if (!result) {
-                logger->warning("SndReader: failed to decompress '{}', skipping: {}", path, e.what());
-                return Blob();
-            }
+            if (!result)
+                return withContext(std::move(uncompressed), "SndReader: failed to decompress '{}'", path);
             logger->warning("SndReader: '{}' has corrupt checksum, recovered {} of {} expected bytes",
                             path, result.size(), entry.decompressedSize);
+        } else {
+            result = *std::move(uncompressed);
         }
     }
     return result.withDisplayPath(path);

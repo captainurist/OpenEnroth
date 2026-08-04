@@ -255,7 +255,7 @@ void IndoorLocation::toggleLight(signed int sLightID, unsigned int bToggle) {
 }
 
 //----- (00498E0A) --------------------------------------------------------
-void IndoorLocation::Load(std::string_view filename, int num_days_played, int respawn_interval_days, bool *indoor_was_respawned) {
+Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played, int respawn_interval_days, bool *indoor_was_respawned) {
     decal_builder->Reset(0);
 
     assert(!bLoaded); // BLV is already loaded!
@@ -270,7 +270,8 @@ void IndoorLocation::Load(std::string_view filename, int num_days_played, int re
     bLoaded = true;
 
     IndoorLocation_MM7 location;
-    deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(blv_filename)), &location); // read throws if file doesn't exist.
+    MM_TRY(Blob locationBlob, pGames_LOD->read(blv_filename).and_then(lod::decodeMaybeCompressed));
+    MM_TRY_VOID(tryDeserialize(locationBlob, &location));
     reconstruct(location, this);
 
     std::string dlv_filename = fmt::format("{}.dlv", filename.substr(0, filename.size() - 4));
@@ -278,10 +279,9 @@ void IndoorLocation::Load(std::string_view filename, int num_days_played, int re
     bool respawnInitial = false; // Perform initial location respawn?
     bool respawnTimed = false; // Perform timed location respawn?
     IndoorDelta_MM7 delta;
-    if (Blob blob = lod::decodeMaybeCompressed(pMapDeltas.at(dlv_filename))) {
-        try {
-            deserialize(blob, &delta, tags::context(location));
-
+    MM_TRY(Blob deltaBlob, lod::decodeMaybeCompressed(pMapDeltas.at(dlv_filename)));
+    if (deltaBlob) {
+        if (Result<void> deserialized = tryDeserialize(deltaBlob, &delta, tags::context(location))) {
             // Level was changed externally and we have a save there? Don't crash, just respawn.
             if (delta.header.totalFacesCount > 0 && delta.header.decorationCount > 0 &&
                 (delta.header.totalFacesCount != faces.size() || delta.header.decorationCount != pLevelDecorations.size()))
@@ -296,8 +296,8 @@ void IndoorLocation::Load(std::string_view filename, int num_days_played, int re
 
             if (!respawnInitial && num_days_played - delta.header.info.lastRespawnDay >= respawn_interval_days && pMapStats->GetMapInfo(filename) != MAP_CASTLE_HARMONDALE)
                 respawnTimed = true;
-        } catch (const Exception &e) {
-            logger->error("Failed to load '{}', respawning location: {}", dlv_filename, e.what());
+        } else {
+            logger->error("Failed to load '{}', respawning location: {}", dlv_filename, deserialized.error());
             respawnInitial = true;
         }
     }
@@ -305,12 +305,14 @@ void IndoorLocation::Load(std::string_view filename, int num_days_played, int re
     assert(respawnInitial + respawnTimed <= 1);
 
     if (respawnInitial) {
-        deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(dlv_filename)), &delta, tags::context(location));
+        MM_TRY(Blob pristine, pGames_LOD->read(dlv_filename).and_then(lod::decodeMaybeCompressed));
+        MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
         *indoor_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
         auto visibleOutlines = delta.visibleOutlines;
-        deserialize(lod::decodeMaybeCompressed(pGames_LOD->read(dlv_filename)), &delta, tags::context(location));
+        MM_TRY(Blob pristine, pGames_LOD->read(dlv_filename).and_then(lod::decodeMaybeCompressed));
+        MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
         delta.header = header;
         delta.visibleOutlines = visibleOutlines;
         *indoor_was_respawned = true;
@@ -324,6 +326,7 @@ void IndoorLocation::Load(std::string_view filename, int num_days_played, int re
         dlv.lastRespawnDay = num_days_played;
     if (respawnTimed)
         dlv.respawnCount++;
+    return {};
 }
 
 //----- (0049AC17) --------------------------------------------------------
@@ -944,7 +947,9 @@ void loadAndPrepareBLV(MapId mapid, bool bLoading) {
     }
 
     pStationaryLightsStack->uNumLightsActive = 0;
-    pIndoor->Load(mapFilename, pParty->GetPlayingTime().toDays() + 1, respawn_interval, &indoor_was_respawned);
+    // TODO(captainurist): #exceptions This is where the migration should continue - a broken map should take the
+    //                     player back to the main menu with an error message, not kill the process.
+    mustSucceed(pIndoor->Load(mapFilename, pParty->GetPlayingTime().toDays() + 1, respawn_interval, &indoor_was_respawned));
     if (!(dword_6BE364_game_settings_1 & GAME_SETTINGS_LOADING_SAVEGAME_SKIP_RESPAWN)) {
         Actor::InitializeActors();
         SpriteObject::InitializeSpriteObjects();

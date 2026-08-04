@@ -14,9 +14,9 @@ class ResourceManager {
     ResourceManager();
     ~ResourceManager();
 
-    void open();
+    Result<void> open();
 
-    Blob eventsData(std::string_view filename);
+    [[nodiscard]] Result<Blob> eventsData(std::string_view filename);
 
  private:
     LodReader _eventsLodReader;

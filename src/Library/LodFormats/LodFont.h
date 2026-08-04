@@ -4,12 +4,13 @@
 #include <array>
 
 #include "Library/Image/Image.h"
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 
 class LodFont;
 
 namespace lod {
-LodFont decodeFont(const Blob &blob);
+[[nodiscard]] Result<LodFont> decodeFont(const Blob &blob);
 } // namespace lod
 
 struct LodFontHeader {
@@ -60,7 +61,7 @@ class LodFont {
             _header.fontHeight);
     }
 
-    friend LodFont lod::decodeFont(const Blob &blob);
+    friend Result<LodFont> lod::decodeFont(const Blob &blob);
 
  private:
     LodFontHeader _header;

@@ -28,6 +28,7 @@
 #include "Library/Snapshots/CommonSnapshots.h"
 #include "Library/Lod/LodWriter.h"
 #include "Library/Lod/LodReader.h"
+#include "Library/Logger/Logger.h"
 #include "Library/Lod/LodEnums.h"
 #include "Library/Image/Pcx.h"
 
@@ -710,7 +711,13 @@ void reconstruct(const SaveGame_MM7 &src, SaveGame *dst) {
             if (!dst->party.pCharacters[i].vBeacons[j])
                 continue;
             LloydBeacon &beacon = *dst->party.pCharacters[i].vBeacons[j];
-            beacon.image = GraphicsImage::Create(pcx::decode(src.lloydImages.at({i, j})));
+            Result<RgbaImage> image = pcx::decode(src.lloydImages.at({i, j}));
+            if (!image) {
+                logger->warning("Couldn't decode a Lloyd's Beacon image: {}", image.error());
+                continue; // A broken beacon image is not a reason to refuse to load the save.
+            }
+
+            beacon.image = GraphicsImage::Create(*std::move(image));
         }
     }
 
@@ -751,31 +758,35 @@ void serialize(const SaveGame_MM7 &src, Blob *dst) {
     stream.close();
 }
 
+// TODO(captainurist): #exceptions Savegame loading is the next thing to port - a corrupt save should show an error
+//                     in the UI instead of taking the game down with it. Until then, `orThrow` keeps the old
+//                     behavior.
 void deserialize(const Blob &src, SaveGame_MM7 *dst) {
-    LodReader lodReader(Blob::share(src), LOD_ALLOW_DUPLICATES);
+    LodReader lodReader;
+    orThrow(lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES));
 
-    deserialize(lodReader.read("header.bin"), &dst->header);
-    deserialize(lodReader.read("party.bin"), &dst->party);
-    deserialize(lodReader.read("clock.bin"), &dst->eventTimer);
-    deserialize(lodReader.read("overlay.bin"), &dst->overlays);
-    deserialize(lodReader.read("npcdata.bin"), &dst->npcData);
-    deserialize(lodReader.read("npcgroup.bin"), &dst->npcGroups);
+    deserialize(orThrow(lodReader.read("header.bin")), &dst->header);
+    deserialize(orThrow(lodReader.read("party.bin")), &dst->party);
+    deserialize(orThrow(lodReader.read("clock.bin")), &dst->eventTimer);
+    deserialize(orThrow(lodReader.read("overlay.bin")), &dst->overlays);
+    deserialize(orThrow(lodReader.read("npcdata.bin")), &dst->npcData);
+    deserialize(orThrow(lodReader.read("npcgroup.bin")), &dst->npcGroups);
 
     dst->mapDeltas.clear();
     for (const std::string &name : lodReader.ls())
         if (name.ends_with(".ddm") || name.ends_with(".dlv"))
-            dst->mapDeltas[name] = lodReader.read(name);
+            dst->mapDeltas[name] = orThrow(lodReader.read(name));
 
     dst->lloydImages.clear();
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 5; j++) {
             std::string name = fmt::format("lloyd{}{}.pcx", i + 1, j + 1);
             if (lodReader.exists(name))
-                dst->lloydImages[{i, j}] = lodReader.read(name);
+                dst->lloydImages[{i, j}] = orThrow(lodReader.read(name));
         }
     }
 
-    dst->thumbnail = lodReader.read("image.pcx");
+    dst->thumbnail = orThrow(lodReader.read("image.pcx"));
 }
 
 void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
@@ -784,9 +795,10 @@ void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
 }
 
 void deserialize(const Blob &src, SaveGameLite_MM7 *dst) {
-    LodReader lodReader(Blob::share(src), LOD_ALLOW_DUPLICATES);
-    deserialize(lodReader.read("header.bin"), &dst->header);
-    dst->thumbnail = lodReader.read("image.pcx");
+    LodReader lodReader;
+    orThrow(lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES));
+    deserialize(orThrow(lodReader.read("header.bin")), &dst->header);
+    dst->thumbnail = orThrow(lodReader.read("image.pcx"));
 }
 
 void reconstruct(const SpriteFrameTable_MM7 &src, SpriteFrameTable *dst) {

@@ -160,28 +160,34 @@ bool Buff_LOD_Loader::Load(RgbaImage *rgbaImage) {
 }
 
 bool PCX_Loader::InternalLoad(const Blob &data, RgbaImage *rgbaImage) {
-    *rgbaImage = pcx::decode(data);
+    Result<RgbaImage> image = pcx::decode(data);
+    if (!image) {
+        logger->warning("Unable to load {}: {}", this->resource_name, image.error());
+        return false;
+    }
+
+    *rgbaImage = *std::move(image);
     return true;
 }
 
 bool PCX_LOD_Raw_Loader::Load(RgbaImage *rgbaImage) {
-    Blob data = lod->read(resource_name);
-    if (!data) {
+    Result<Blob> data = lod->read(resource_name);
+    if (!data || !*data) {
         logger->warning("Unable to load {}", this->resource_name);
         return false;
     }
 
-    return InternalLoad(data, rgbaImage);
+    return InternalLoad(*data, rgbaImage);
 }
 
 bool PCX_LOD_Compressed_Loader::Load(RgbaImage *rgbaImage) {
-    Blob pcx_data = blob_func();
-    if (!pcx_data) {
+    Result<Blob> pcx_data = blob_func();
+    if (!pcx_data || !*pcx_data) {
         logger->warning("Unable to load {}", resource_name);
         return false;
     }
 
-    bool result = InternalLoad(pcx_data, rgbaImage);
+    bool result = InternalLoad(*pcx_data, rgbaImage);
 
     for (Color &pixel : rgbaImage->pixels())
         if (pixel == colorkey)
@@ -267,7 +273,14 @@ bool Bitmaps_LOD_Loader::Load(RgbaImage *rgbaImage) {
 
 bool Bitmaps_GEN_Loader::Load(RgbaImage *rgbaImage) {
     pTileGenerator->ensureTile(this->resource_name);
-    *rgbaImage = png::decode(ufs->read(this->resource_name));
+
+    Result<RgbaImage> image = png::decode(ufs->read(this->resource_name));
+    if (!image) {
+        logger->warning("Unable to load {}: {}", this->resource_name, image.error());
+        return false;
+    }
+
+    *rgbaImage = *std::move(image);
 
     // Desaturate.
     float xs = engine->config->graphics.Saturation.value();

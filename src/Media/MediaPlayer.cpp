@@ -725,8 +725,9 @@ class Movie : public IMovie {
 };
 
 void MPlayer::Initialize() {
-    might_list.open(dfs->read("anims/might7.vid"));
-    magic_list.open(dfs->read("anims/magic7.vid"));
+    for (auto [reader, path] : {std::pair(&might_list, "anims/might7.vid"), std::pair(&magic_list, "anims/magic7.vid")})
+        if (Result<void> opened = reader->open(dfs->read(path)); !opened)
+            logger->error("MPlayer: couldn't open '{}', videos from it won't play: {}", path, opened.error());
 }
 
 void MPlayer::OpenHouseMovie(std::string_view pMovieName, bool bLoop) {
@@ -900,21 +901,21 @@ Blob MPlayer::LoadMovie(std::string_view video_name) {
     std::string pVideoNameBik = fmt::format("{}.bik", video_name);
     std::string pVideoNameSmk = fmt::format("{}.smk", video_name);
 
-    if (might_list.isOpen()) {
-        if (might_list.exists(pVideoNameBik)) {
-            return might_list.read(pVideoNameBik);
-        }
-        if (might_list.exists(pVideoNameSmk)) {
-            return might_list.read(pVideoNameSmk);
-        }
-    }
+    for (VidReader *reader : {&might_list, &magic_list}) {
+        if (!reader->isOpen())
+            continue;
 
-    if (magic_list.isOpen()) {
-        if (magic_list.exists(pVideoNameBik)) {
-            return magic_list.read(pVideoNameBik);
-        }
-        if (magic_list.exists(pVideoNameSmk)) {
-            return magic_list.read(pVideoNameSmk);
+        for (const std::string &name : {pVideoNameBik, pVideoNameSmk}) {
+            if (!reader->exists(name))
+                continue;
+
+            Result<Blob> result = reader->read(name);
+            if (!result) {
+                logger->error("MPlayer: couldn't read '{}': {}", name, result.error()); // Just don't play it.
+                return {};
+            }
+
+            return *std::move(result);
         }
     }
 

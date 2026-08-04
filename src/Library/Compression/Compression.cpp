@@ -8,7 +8,6 @@
 #include <memory>
 #include <utility>
 
-#include "Utility/Exception.h"
 #include "Utility/Memory/FreeDeleter.h"
 
 namespace zlib {
@@ -34,7 +33,7 @@ Blob compress(const Blob &source) {
     return Blob::fromMalloc(std::move(dest), destLen);
 }
 
-Blob uncompress(const Blob &source, size_t sizeHint) {
+Result<Blob> uncompress(const Blob &source, size_t sizeHint) {
     size_t allocatedSize = sizeHint ? sizeHint : source.size() * 4;
     uLongf destLen;
     std::unique_ptr<void, FreeDeleter> dest;
@@ -50,7 +49,7 @@ Blob uncompress(const Blob &source, size_t sizeHint) {
     }
 
     if (res != Z_OK)
-        throw Exception("Decompression error for '{}': {}", source.displayPath(), zError(res));
+        return fail("Decompression error for '{}': {}", source.displayPath(), zError(res));
 
     if (destLen < allocatedSize)
         dest.reset(realloc(dest.release(), destLen));

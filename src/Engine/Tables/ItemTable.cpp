@@ -234,12 +234,12 @@ void ItemTable::LoadRandomItems(const Blob &rnditems) {
 
 //----- (00456D84) --------------------------------------------------------
 void ItemTable::Initialize(ResourceManager *resourceManager) {
-    LoadPotions(resourceManager->eventsData("potion.txt"));
-    LoadPotionNotes(resourceManager->eventsData("potnotes.txt"));
-    LoadStandardEnchantments(resourceManager->eventsData("stditems.txt"));
-    LoadSpecialEnchantments(resourceManager->eventsData("spcitems.txt"));
-    LoadItems(resourceManager->eventsData("items.txt"));
-    LoadRandomItems(resourceManager->eventsData("rnditems.txt"));
+    LoadPotions(mustSucceed(resourceManager->eventsData("potion.txt")));
+    LoadPotionNotes(mustSucceed(resourceManager->eventsData("potnotes.txt")));
+    LoadStandardEnchantments(mustSucceed(resourceManager->eventsData("stditems.txt")));
+    LoadSpecialEnchantments(mustSucceed(resourceManager->eventsData("spcitems.txt")));
+    LoadItems(mustSucceed(resourceManager->eventsData("items.txt")));
+    LoadRandomItems(mustSucceed(resourceManager->eventsData("rnditems.txt")));
 
     Item::PopulateSpecialBonusMap();
     Item::PopulateArtifactBonusMap();
@@ -301,14 +301,15 @@ void ItemTable::LoadItemSizes() {
     // Item sizes are loaded at startup directly from LOD image headers. This would have been an overkill back in 1999
     // (think about all these random reads from your HDD) but is totally fine today. Another option would've been to
     // precalculate these and place in a json file, but why precalculate what's cheap to recalculate?
-    LodReader reader(dfs->read("data/icons.lod"));
+    LodReader reader;
+    mustSucceed(reader.open(dfs->read("data/icons.lod")));
 
     for (ItemId itemId : items.indices()) {
         std::string iconName = items[itemId].iconName;
 
         Sizei iconSize(1, 1); // Actual icon name that will be used in this case is "pending", see LodTextureCache.
         if (reader.exists(iconName))
-            iconSize = lod::decodeImageSize(reader.read(iconName));
+            iconSize = mustSucceed(reader.read(iconName).and_then(lod::decodeImageSize));
 
         itemSizes[itemId] = Sizei(GetSizeInInventorySlots(iconSize.w), GetSizeInInventorySlots(iconSize.h));
     }

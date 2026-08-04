@@ -126,15 +126,15 @@ void NPCStats::InitializeNPCNews(const Blob &npcNews) {
 //----- (0047702F) --------------------------------------------------------
 void NPCStats::Initialize(ResourceManager *resourceManager) {
     pOriginalNPCData.fill(NPCData());
-    InitializeNPCData(resourceManager->eventsData("npcdata.txt"));
-    InitializeNPCGreets(resourceManager->eventsData("npcgreet.txt"));
-    InitializeNPCGroups(resourceManager->eventsData("npcgroup.txt"));
-    InitializeNPCNews(resourceManager->eventsData("npcnews.txt"));
-    InitializeNPCText(resourceManager->eventsData("npctext.txt"));
-    InitializeNPCTopics(resourceManager->eventsData("npctopic.txt"));
-    InitializeNPCDist(resourceManager->eventsData("npcdist.txt"));
-    InitializeNPCNames(resourceManager->eventsData("npcnames.txt"));
-    InitializeNPCProfs(resourceManager->eventsData("npcprof.txt"));
+    InitializeNPCData(mustSucceed(resourceManager->eventsData("npcdata.txt")));
+    InitializeNPCGreets(mustSucceed(resourceManager->eventsData("npcgreet.txt")));
+    InitializeNPCGroups(mustSucceed(resourceManager->eventsData("npcgroup.txt")));
+    InitializeNPCNews(mustSucceed(resourceManager->eventsData("npcnews.txt")));
+    InitializeNPCText(mustSucceed(resourceManager->eventsData("npctext.txt")));
+    InitializeNPCTopics(mustSucceed(resourceManager->eventsData("npctopic.txt")));
+    InitializeNPCDist(mustSucceed(resourceManager->eventsData("npcdist.txt")));
+    InitializeNPCNames(mustSucceed(resourceManager->eventsData("npcnames.txt")));
+    InitializeNPCProfs(mustSucceed(resourceManager->eventsData("npcprof.txt")));
 }
 
 void NPCStats::InitializeNPCNames(const Blob &npcNames) {

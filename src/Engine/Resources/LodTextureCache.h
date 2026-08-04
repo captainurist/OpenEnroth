@@ -17,15 +17,15 @@ class LodTextureCache {
     LodTextureCache();
     ~LodTextureCache();
 
-    void open(Blob blob);
+    Result<void> open(Blob blob);
 
     void reserveLoadedTextures();
     void releaseUnreserved();
 
     LodImage *loadTexture(std::string_view pContainer, bool useDummyOnError = true);
 
-    Blob LoadCompressedTexture(std::string_view pContainer); // TODO(captainurist): doesn't belong here.
-    Blob read(std::string_view pContainer); // TODO(captainurist): doesn't belong here.
+    [[nodiscard]] Result<Blob> LoadCompressedTexture(std::string_view pContainer); // TODO(captainurist): doesn't belong here.
+    [[nodiscard]] Result<Blob> read(std::string_view pContainer); // TODO(captainurist): doesn't belong here.
 
  private:
     bool LoadTextureFromLOD(LodImage *pOutTex, std::string_view pContainer);

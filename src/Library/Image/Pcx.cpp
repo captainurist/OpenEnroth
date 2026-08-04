@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <memory>
 
-#include "Utility/Exception.h"
+#include "Utility/Error/Result.h"
 
 enum {
     PCX_VERSION_2_5 = 0,
@@ -96,18 +96,18 @@ static int pcx_rle_decode(bstreamer *bs, uint8_t *dst, unsigned int bytes_per_sc
     return 0;
 }
 
-RgbaImage pcx::decode(const Blob &data) {
+Result<RgbaImage> pcx::decode(const Blob &data) {
     if (data.size() < sizeof(PCXHeader))
-        throw Exception("PCX image '{}' too small, expected at least {} bytes, got {}", data.displayPath(), sizeof(PCXHeader), data.size());
+        return fail("PCX image '{}' too small, expected at least {} bytes, got {}", data.displayPath(), sizeof(PCXHeader), data.size());
 
     const PCXHeader *header = static_cast<const PCXHeader *>(data.data());
 
     // check that's PCX and its version
     if (header->manufacturer != 0x0a)
-        throw Exception("Invalid PCX starting byte in image '{}', expected {:02x}, got {:02x}", data.displayPath(), 0x0a, header->manufacturer);
+        return fail("Invalid PCX starting byte in image '{}', expected {:02x}, got {:02x}", data.displayPath(), 0x0a, header->manufacturer);
 
     if (header->version < PCX_VERSION_2_5 || header->version == PCX_VERSION_NOT_VALID || header->version > PCX_VERSION_3_0)
-        throw Exception("Invalid PCX version '{}' in '{}'", header->version, data.displayPath());
+        return fail("Invalid PCX version '{}' in '{}'", header->version, data.displayPath());
 
     size_t width = header->xmax - header->xmin + 1;
     size_t height = header->ymax - header->ymin + 1;
@@ -117,11 +117,11 @@ RgbaImage pcx::decode(const Blob &data) {
     //corruption check
     if (bytes_per_scanline < (width * header->bpp * header->nplanes + 7) / 8 ||
         (!header->compression && bytes_per_scanline > (data.size() - sizeof(PCXHeader)) / height)) {
-        throw Exception("PCX header corrupted in '{}'", data.displayPath());
+        return fail("PCX header corrupted in '{}'", data.displayPath());
     }
 
     if ((header->nplanes != 3 && header->nplanes != 1) || header->bpp != 8)
-        throw Exception("Unsupported PCX format in '{}', only 8-bit and 24-bit PCX images are supported", data.displayPath());
+        return fail("Unsupported PCX format in '{}', only 8-bit and 24-bit PCX images are supported", data.displayPath());
 
     RgbaImage result = RgbaImage::uninitialized(width, height);
 
@@ -132,7 +132,7 @@ RgbaImage pcx::decode(const Blob &data) {
     for (unsigned int y = 0; y < height; y++) {
         int ret = pcx_rle_decode(&bs, scanline.get(), bytes_per_scanline, header->compression);
         if (ret < 0)
-            throw Exception("PCX image data is corrupted in '{}'", data.displayPath());
+            return fail("PCX image data is corrupted in '{}'", data.displayPath());
 
         auto line = result[y];
         if (header->nplanes == 1) {

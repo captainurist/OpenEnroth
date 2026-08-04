@@ -66,7 +66,7 @@ DecodedEntries decodeLodEntry(Blob entry, std::string name, bool raw, ArchiveRea
     MagicFileFormat format = magic(entry);
 
     if (format == MAGIC_PCX)
-        return result(png::encode(pcx::decode(entry)), name + ".png");
+        return result(orThrow(png::encode(orThrow(pcx::decode(entry)))), name + ".png");
 
     if (format == MAGIC_WAV)
         return result(std::move(entry), name.ends_with(".wav") ? name : name + ".wav");
@@ -75,38 +75,38 @@ DecodedEntries decodeLodEntry(Blob entry, std::string name, bool raw, ArchiveRea
         return result(std::move(entry), name.ends_with(".png") ? name : name + ".png");
 
     if (format == MAGIC_LOD_IMAGE) {
-        LodImage lodImage = lod::decodeImage(entry);
-        return result(png::encode(makeRgbaImage(lodImage.image, lodImage.palette)), name + ".png");
+        LodImage lodImage = orThrow(lod::decodeImage(entry));
+        return result(orThrow(png::encode(makeRgbaImage(lodImage.image, lodImage.palette))), name + ".png");
     }
 
     if (format == MAGIC_LOD_PALETTE) {
-        LodImage lodImage = lod::decodeImage(entry);
+        LodImage lodImage = orThrow(lod::decodeImage(entry));
         RgbaImage palImage = RgbaImage::uninitialized(256, 1);
         for (size_t i = 0; i < 256; i++)
             palImage[0][i] = lodImage.palette.colors[i];
-        return result(png::encode(palImage), name + ".png");
+        return result(orThrow(png::encode(palImage)), name + ".png");
     }
 
     if (format == MAGIC_LOD_SPRITE) {
-        LodSprite lodSprite = lod::decodeSprite(entry);
+        LodSprite lodSprite = orThrow(lod::decodeSprite(entry));
 
         if (!paletteReader) {
-            return result(png::encode(lodSprite.image), name + ".png");
+            return result(orThrow(png::encode(lodSprite.image)), name + ".png");
         } else {
-            Palette palette = lod::decodePalette(paletteReader->read(fmt::format("pal{:03}", lodSprite.paletteId)));
-            return result(png::encode(makeRgbaImage(lodSprite.image, palette)), name + ".png");
+            Palette palette = orThrow(lod::decodePalette(paletteReader->read(fmt::format("pal{:03}", lodSprite.paletteId))));
+            return result(orThrow(png::encode(makeRgbaImage(lodSprite.image, palette))), name + ".png");
         }
     }
 
     if (format == MAGIC_LOD_FONT) {
-        LodFont lodFont = lod::decodeFont(entry);
+        LodFont lodFont = orThrow(lod::decodeFont(entry));
         return result(std::move(entry), name)
-                     (png::encode(renderFont(lodFont)), name + ".png");
+                     (orThrow(png::encode(renderFont(lodFont))), name + ".png");
     }
 
     // We have pcx images inside compressed entries, so to support this we just re-run the function.
     if (format == MAGIC_LOD_COMPRESSED_DATA || format == MAGIC_LOD_COMPRESSED_PSEUDO_IMAGE)
-        return decodeLodEntry(lod::decodeMaybeCompressed(entry), std::move(name), raw, paletteReader);
+        return decodeLodEntry(orThrow(lod::decodeMaybeCompressed(entry)), std::move(name), raw, paletteReader);
 
     return result(std::move(entry), std::move(name));
 }
@@ -133,7 +133,7 @@ int runDump(const LodToolOptions &options) {
         MagicFileFormat format = magic(data);
         bool isCompressed = format == MAGIC_LOD_COMPRESSED_DATA || format == MAGIC_LOD_COMPRESSED_PSEUDO_IMAGE;
         if (isCompressed)
-            data = lod::decodeMaybeCompressed(data);
+            data = orThrow(lod::decodeMaybeCompressed(data));
 
         fmt::println("");
         fmt::println("Entry: {}", name);
