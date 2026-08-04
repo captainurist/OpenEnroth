@@ -66,7 +66,7 @@ Result<void> deserialize(InputStream &src, T *dst) {
 //
 
 // Note that the memcopy and per-element paths below are separate overloads and not an `if constexpr` on purpose.
-// The looping paths propagate errors with `MM_TRY_VOID` and stay plain functions - they run per element, and
+// The looping paths propagate errors with explicit checks and stay plain functions - they run per element, and
 // per-element code must never pay for a coroutine frame. See ExceptionFreeErrorHandling.md.
 template<StdSpan Span, class T = typename Span::value_type> requires is_memcopy_serializable_v<T>
 Result<void> deserialize(InputStream &src, Span *dst) {
@@ -80,7 +80,8 @@ Result<void> deserialize(InputStream &src, Span *dst) {
 template<StdSpan Span, class T = typename Span::value_type> requires (!is_memcopy_serializable_v<T>)
 Result<void> deserialize(InputStream &src, Span *dst) {
     for (T &element : *dst)
-        MM_TRY_VOID(deserialize(src, &element));
+        if (Result<void> result = deserialize(src, &element); !result)
+            return result;
     return {};
 }
 
@@ -102,7 +103,8 @@ void serialize(const Span &src, OutputStream *dst) {
 template<StdSpan Span, class... Tags>
 Result<void> deserialize(InputStream &src, Span *dst, EachTag, const Tags &... tags) {
     for (auto &element : *dst)
-        MM_TRY_VOID(deserialize(src, &element, tags...));
+        if (Result<void> result = deserialize(src, &element, tags...); !result)
+            return result;
     return {};
 }
 
@@ -146,7 +148,8 @@ void serialize(const Src &src, OutputStream *dst, const Tags &... tags) {
 template<ResizableContiguousContainer Dst, class... Tags>
 Result<void> deserialize(InputStream &src, Dst *dst, const Tags &... tags) {
     uint32_t size = 0;
-    MM_TRY_VOID(deserialize(src, &size));
+    if (Result<void> result = deserialize(src, &size); !result)
+        return result;
 
     // TODO(captainurist): can we do this better?
     // Best-effort check - number of records required can't be larger than the number of bytes in the stream.

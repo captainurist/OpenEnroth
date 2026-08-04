@@ -31,7 +31,8 @@ enum {
 
 static Result<void> deserialize(InputStream &src, Palette *dst) {
     std::array<std::uint8_t, 0x300> rawPalette;
-    src.readOrFail(rawPalette.data(), rawPalette.size()); // TODO(captainurist): #exceptions still throws.
+    if (Result<void> result = src.readOrFail(rawPalette.data(), rawPalette.size()); !result)
+        return result;
 
     for (size_t i = 0; i < 256; i++)
         dst->colors[i] = Color(rawPalette[i * 3], rawPalette[i * 3 + 1], rawPalette[i * 3 + 2]);
@@ -141,7 +142,7 @@ Result<Blob> lod::decodeCompressedData(const Blob &blob) {
         // instead of the size of the data that followed.
         result = stream.readAllAsBlob();
     } else {
-        result = stream.readAsBlobOrFail(header.dataSize); // TODO(captainurist): #exceptions still throws, caught by the coroutine.
+        result = co_await stream.readAsBlobOrFail(header.dataSize);
     }
     if (header.decompressedSize)
         result = co_await zlib::uncompress(result.withDisplayPath(blob.displayPath()), header.decompressedSize);
@@ -156,7 +157,7 @@ Result<Blob> lod::decodeCompressedPseudoImage(const Blob &blob) {
     LodImageHeader_MM6 header;
     co_await deserialize(stream, &header);
 
-    Blob result = stream.readAsBlobOrFail(header.dataSize); // TODO(captainurist): #exceptions still throws, caught by the coroutine.
+    Blob result = co_await stream.readAsBlobOrFail(header.dataSize);
     if (header.decompressedSize)
         result = co_await zlib::uncompress(result.withDisplayPath(blob.displayPath()), header.decompressedSize);
     co_return result.withDisplayPath(blob.displayPath());
@@ -192,7 +193,7 @@ Result<Palette> lod::decodePalette(const Blob &blob) {
     LodImageHeader_MM6 header;
     co_await deserialize(stream, &header);
 
-    stream.skipOrFail(header.dataSize); // TODO(captainurist): #exceptions still throws, caught by the coroutine.
+    co_await stream.skipOrFail(header.dataSize);
 
     Palette result;
     co_await deserialize(stream, &result);
@@ -210,7 +211,7 @@ Result<LodImage> lod::decodeImage(const Blob &blob) {
 
     Blob pixels;
     if (!isPalette) {
-        pixels = stream.readAsBlobOrFail(header.dataSize); // TODO(captainurist): #exceptions still throws, caught by the coroutine.
+        pixels = co_await stream.readAsBlobOrFail(header.dataSize);
         if (header.decompressedSize)
             pixels = co_await zlib::uncompress(pixels.withDisplayPath(blob.displayPath()), header.decompressedSize);
 
@@ -254,7 +255,7 @@ Result<LodSprite> lod::decodeSprite(const Blob &blob) {
     std::vector<LodSpriteLine_MM6> lines;
     co_await deserialize(stream, &lines, tags::presized(header.height));
 
-    Blob pixels = stream.readAsBlobOrFail(header.dataSize); // TODO(captainurist): #exceptions still throws, caught by the coroutine.
+    Blob pixels = co_await stream.readAsBlobOrFail(header.dataSize);
     if (header.decompressedSize)
         pixels = co_await zlib::uncompress(pixels.withDisplayPath(blob.displayPath()), header.decompressedSize);
 

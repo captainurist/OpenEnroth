@@ -23,16 +23,16 @@ VidReader::~VidReader() = default;
 Result<void> VidReader::open(std::string_view path) {
     close();
     // TODO(captainurist): #exceptions Blob::fromFile still throws, drop the tryCatch once it's ported.
-    MM_TRY(Blob blob, tryCatch([&] { return Blob::fromFile(path); }));
-    return open(std::move(blob));
+    Blob blob = co_await tryCatch([&] { return Blob::fromFile(path); });
+    co_return open(std::move(blob));
 }
 
 Result<void> VidReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<VidEntry> entries;
-    MM_TRY_VOID(deserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>)
-                    .withContext("File '{}' is not a valid VID", blob.displayPath()));
+    co_await deserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>)
+        .withContext("File '{}' is not a valid VID", blob.displayPath());
     std::ranges::sort(entries, std::ranges::less(), &VidEntry::offset);
 
     std::unordered_map<std::string, VidRegion> files;
@@ -41,10 +41,10 @@ Result<void> VidReader::open(Blob blob) {
 
         std::string name = ascii::toLower(entry.name);
         if (files.contains(name))
-            return fail("File '{}' is not a valid VID: contains duplicate entries for '{}'", blob.displayPath(), name);
+            co_return fail("File '{}' is not a valid VID: contains duplicate entries for '{}'", blob.displayPath(), name);
 
         if (entry.offset > blob.size())
-            return fail("File '{}' is not a valid VID: entry '{}' points outside the VID file", blob.displayPath(), entry.name);
+            co_return fail("File '{}' is not a valid VID: entry '{}' points outside the VID file", blob.displayPath(), entry.name);
 
         size_t nextOffset = (i + 1 == entries.size()) ? blob.size() : entries[i + 1].offset;
         assert(nextOffset >= entry.offset); // Follows from the fact that array is sorted.
@@ -58,7 +58,7 @@ Result<void> VidReader::open(Blob blob) {
     // All good, this is a valid VID, can update `this`.
     _vid = std::move(blob);
     _files = std::move(files);
-    return {};
+    co_return {};
 }
 
 void VidReader::close() {

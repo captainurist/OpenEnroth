@@ -127,6 +127,7 @@ jobs:
       # DATA_ACCESS_TOKEN secret; does nothing on runs that don't have access to secrets.
       - name: 'Checkout private data'
         if: steps.check_data.outputs.ok != 'true' && env.SECRETS_DATA_TOKEN != ''
+        continue-on-error: true # A stale token shouldn't kill the leg - it just skips the benchmark.
         uses: actions/checkout@v5.0.0
         with:
           repository: OpenEnroth/OpenEnroth_GameData
@@ -135,6 +136,41 @@ jobs:
           token: '${{secrets.DATA_ACCESS_TOKEN}}'
         env:
           SECRETS_DATA_TOKEN: '${{secrets.DATA_ACCESS_TOKEN}}'
+
+      # Answers "how expensive is thread_local on Apple arm64, and does AppleClang CSE repeated accesses" - see the
+      # frame arena in Result.h. Results go to the job summary.
+      - name: '[darwin] TLV codegen probe'
+        if: env.MATRIX_PLATFORM == 'darwin'
+        run: |
+          cat > /tmp/tlv_probe.cpp <<'PROBE'
+          #include <cstddef>
+          struct Arena { char buf[65536]; unsigned long top = 0; };
+          constinit thread_local Arena arena;
+
+          // Three accesses in one function - one _tlv_get_addr call, or three?
+          __attribute__((noinline)) unsigned long threeAccesses() {
+              arena.top += 1;
+              arena.buf[arena.top] = 2;
+              arena.top += 3;
+              return arena.top;
+          }
+
+          // An allocate/deallocate pair, like a coroutine frame lifecycle - one call in each function.
+          __attribute__((noinline)) void *arenaAlloc(std::size_t n) { void *r = arena.buf + arena.top; arena.top += n; return r; }
+          __attribute__((noinline)) void arenaFree(std::size_t n) { arena.top -= n; }
+
+          int main() { arenaAlloc(64); arenaFree(64); return threeAccesses() != 0; }
+          PROBE
+          clang++ -std=c++20 -O2 -c /tmp/tlv_probe.cpp -o /tmp/tlv_probe.o
+          {
+            echo "### TLV codegen probe, darwin_arm64 (_tlv_get_addr calls per function)"
+            echo '```'
+            otool -tv /tmp/tlv_probe.o | awk '/^_.*:$/ { if (fn != "") print calls, fn; fn = $1; calls = 0 } /tlv_get_addr/ { calls++ } END { if (fn != "") print calls, fn }'
+            echo ""
+            echo "=== full disassembly of threeAccesses:"
+            otool -tv /tmp/tlv_probe.o | sed -n '/threeAccesses/,/^_arenaAlloc/p'
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: 'Configure'
         run: |

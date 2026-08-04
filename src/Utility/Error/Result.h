@@ -40,19 +40,27 @@ constexpr bool is_result_v<Result<T>> = true;
  * }
  * ```
  *
- * Propagating an error – use `MM_TRY` / `MM_TRY_VOID`, they early-return from the enclosing function:
+ * Propagating an error – write the function as a coroutine and use `co_await`, which either produces the value or
+ * ends the function right there with the error:
  * ```
  * Result<Font> loadFont(std::string_view name) {
- *     MM_TRY(Blob data, fs->read(name));
- *     MM_TRY(Font font, oef::decode(data).withContext("while loading font '{}'", name));
- *     MM_TRY_VOID(validate(font));
- *     return font;
+ *     Blob data = co_await fs->read(name);
+ *     Font font = co_await oef::decode(data).withContext("while loading font '{}'", name);
+ *     co_await validate(font);
+ *     co_return font;
  * }
+ * ```
+ *
+ * In plain functions (hot per-element code where a coroutine frame isn't wanted, see the coroutine docs below),
+ * propagate with an explicit check instead:
+ * ```
+ * if (Result<void> result = deserialize(src, &element); !result)
+ *     return result;
  * ```
  *
  * Handling an error – pick one of the policies, explicitly:
  * ```
- * // 1. Propagate, adding context. See MM_TRY above.
+ * // 1. Propagate, adding context. See the coroutine example above.
  *
  * // 2. Degrade. The game keeps running with a fallback. This is the right answer inside the game loop.
  * Result<RgbaImage> image = pcx::decode(thumbnail);
@@ -296,8 +304,8 @@ void discard(Result<T> &&result) {} // NOLINT(misc-unused-parameters)
  * library), and the parts of our own code that haven't been converted to `Result` yet. Exceptions should not travel
  * any further up the stack than this.
  *
- * The callable itself may also return a `Result` – it won't get double-wrapped, so it's OK to mix `fail()` /
- * `MM_TRY` with throwing calls inside one `tryCatch` block.
+ * The callable itself may also return a `Result` – it won't get double-wrapped, so it's OK to mix `fail()` with
+ * throwing calls inside one `tryCatch` block.
  *
  * @param callable                      Callable to run.
  * @return                              Whatever `callable` returned, or the exception it threw, as an `Error`.
@@ -327,53 +335,6 @@ template<class Callable>
     }
 }
 
-#define MM_DETAIL_TRY_CONCAT_2(a, b) a##b
-#define MM_DETAIL_TRY_CONCAT(a, b) MM_DETAIL_TRY_CONCAT_2(a, b)
-#define MM_DETAIL_TRY_TMP MM_DETAIL_TRY_CONCAT(_mmTryTmp, __COUNTER__)
-
-#define MM_DETAIL_TRY(tmp, decl, ...)                                                                                  \
-    auto tmp = (__VA_ARGS__);                                                                                          \
-    if (!tmp) /* NOLINT */                                                                                             \
-        return std::move(tmp).error();                                                                                 \
-    decl = *std::move(tmp)
-
-#define MM_DETAIL_TRY_VOID(tmp, ...)                                                                                   \
-    do {                                                                                                               \
-        auto tmp = (__VA_ARGS__);                                                                                      \
-        if (!tmp) /* NOLINT */                                                                                         \
-            return std::move(tmp).error();                                                                             \
-    } while (false)
-
-/**
- * Evaluates a `Result`-returning expression, and either unpacks its value into `decl`, or early-returns the error
- * from the enclosing function. The enclosing function must itself return a `Result`.
- *
- * ```
- * MM_TRY(Blob data, fs->read(path));   // Declares `Blob data`.
- * MM_TRY(auto entries, reader.ls());   // `auto` works, too.
- * MM_TRY(_pixels, decodePixels(data)); // So does assigning into an existing variable.
- * ```
- *
- * Note that `decl` must not contain a top-level comma – use `auto` if you need to declare something like an
- * `std::pair<int, int>`.
- *
- * Also note that this macro expands into several statements, and so needs braces when used as a body of an `if` or
- * a loop. Getting this wrong is a compilation error, not a silent bug. `MM_TRY_VOID` doesn't have this problem.
- *
- * @param decl                          Declaration (or an lvalue) to unpack the value into.
- * @param ...                           Expression evaluating to a `Result`.
- */
-#define MM_TRY(decl, ...) MM_DETAIL_TRY(MM_DETAIL_TRY_TMP, decl, __VA_ARGS__)
-
-/**
- * Same as `MM_TRY`, but discards the value. Use it for `Result<void>`, or when the value isn't needed.
- *
- * @param ...                          Expression evaluating to a `Result`.
- */
-#define MM_TRY_VOID(...) MM_DETAIL_TRY_VOID(MM_DETAIL_TRY_TMP, __VA_ARGS__)
-
-
-//
 // Coroutine support: `co_await` as the `?` operator.
 //
 // A function returning `Result<T>` can be written as a coroutine. Inside such a function, `co_await someResult`

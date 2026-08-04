@@ -270,9 +270,9 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     bLoaded = true;
 
     IndoorLocation_MM7 location;
-    MM_TRY(Blob rawLocationBlob, pGames_LOD->read(blv_filename));
-    MM_TRY(Blob locationBlob, lod::decodeMaybeCompressed(rawLocationBlob));
-    MM_TRY_VOID(deserialize(locationBlob, &location));
+    Blob rawLocationBlob = co_await pGames_LOD->read(blv_filename);
+    Blob locationBlob = co_await lod::decodeMaybeCompressed(rawLocationBlob);
+    co_await deserialize(locationBlob, &location);
     reconstruct(location, this);
 
     std::string dlv_filename = fmt::format("{}.dlv", filename.substr(0, filename.size() - 4));
@@ -280,7 +280,7 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     bool respawnInitial = false; // Perform initial location respawn?
     bool respawnTimed = false; // Perform timed location respawn?
     IndoorDelta_MM7 delta;
-    MM_TRY(Blob deltaBlob, lod::decodeMaybeCompressed(pMapDeltas.at(dlv_filename)));
+    Blob deltaBlob = co_await lod::decodeMaybeCompressed(pMapDeltas.at(dlv_filename));
     if (deltaBlob) {
         if (Result<void> deserialized = deserialize(deltaBlob, &delta, tags::context(location))) {
             // Level was changed externally and we have a save there? Don't crash, just respawn.
@@ -306,16 +306,16 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     assert(respawnInitial + respawnTimed <= 1);
 
     if (respawnInitial) {
-        MM_TRY(Blob rawPristine, pGames_LOD->read(dlv_filename));
-        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
+        Blob rawPristine = co_await pGames_LOD->read(dlv_filename);
+        Blob pristine = co_await lod::decodeMaybeCompressed(rawPristine);
+        co_await deserialize(pristine, &delta, tags::context(location));
         *indoor_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
         auto visibleOutlines = delta.visibleOutlines;
-        MM_TRY(Blob rawPristine, pGames_LOD->read(dlv_filename));
-        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
+        Blob rawPristine = co_await pGames_LOD->read(dlv_filename);
+        Blob pristine = co_await lod::decodeMaybeCompressed(rawPristine);
+        co_await deserialize(pristine, &delta, tags::context(location));
         delta.header = header;
         delta.visibleOutlines = visibleOutlines;
         *indoor_was_respawned = true;
@@ -329,7 +329,7 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
         dlv.lastRespawnDay = num_days_played;
     if (respawnTimed)
         dlv.respawnCount++;
-    return {};
+    co_return {};
 }
 
 //----- (0049AC17) --------------------------------------------------------

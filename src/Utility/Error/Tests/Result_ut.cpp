@@ -16,14 +16,14 @@ static Result<int> parsePositive(int value) {
 }
 
 static Result<int> sumPositive(int l, int r) {
-    MM_TRY(int lv, parsePositive(l));
-    MM_TRY(int rv, parsePositive(r).withContext("while parsing the second argument"));
-    return lv + rv;
+    int lv = co_await parsePositive(l);
+    int rv = co_await parsePositive(r).withContext("while parsing the second argument");
+    co_return lv + rv;
 }
 
 static Result<void> checkPositive(int value) {
-    MM_TRY_VOID(parsePositive(value));
-    return {};
+    co_await parsePositive(value);
+    co_return {};
 }
 
 UNIT_TEST(Error, Message) {
@@ -89,7 +89,7 @@ UNIT_TEST(Result, Failure) {
     EXPECT_EQ(result.error().message(), "'-1' is not a positive number");
 }
 
-UNIT_TEST(Result, TryPropagates) {
+UNIT_TEST(Result, CoroutinePropagates) {
     Result<int> ok = sumPositive(1, 2);
     ASSERT_TRUE(ok);
     EXPECT_EQ(*ok, 3);
@@ -103,38 +103,12 @@ UNIT_TEST(Result, TryPropagates) {
     EXPECT_EQ(secondBad.error().message(), "while parsing the second argument: '-2' is not a positive number");
 }
 
-UNIT_TEST(Result, TryVoid) {
+UNIT_TEST(Result, CoroutineVoidPropagates) {
     EXPECT_TRUE(checkPositive(1));
 
     Result<void> bad = checkPositive(0);
     ASSERT_FALSE(bad);
     EXPECT_EQ(bad.error().message(), "'0' is not a positive number");
-}
-
-UNIT_TEST(Result, TryAssignsIntoExistingVariable) {
-    auto run = [] (int value) -> Result<int> {
-        int result = -100;
-        MM_TRY(result, parsePositive(value));
-        return result;
-    };
-
-    EXPECT_EQ(*run(7), 7);
-    EXPECT_FALSE(run(-7));
-}
-
-UNIT_TEST(Result, TryWorksWithMoveOnlyTypes) {
-    auto make = [] (bool ok) -> Result<std::unique_ptr<int>> {
-        if (!ok)
-            return fail("nope");
-        return std::make_unique<int>(42);
-    };
-    auto use = [&] (bool ok) -> Result<int> {
-        MM_TRY(std::unique_ptr<int> value, make(ok));
-        return *value;
-    };
-
-    EXPECT_EQ(*use(true), 42);
-    EXPECT_FALSE(use(false));
 }
 
 UNIT_TEST(Result, WithContext) {
@@ -179,7 +153,7 @@ UNIT_TEST(Result, TryCatch) {
 
 UNIT_TEST(Result, TryCatchDoesntDoubleWrap) {
     // A callable that returns a Result is passed through, not wrapped into a Result<Result<...>>. This is what
-    // makes it OK to mix fail() / MM_TRY with throwing calls inside one tryCatch block.
+    // makes it OK to mix fail() with throwing calls inside one tryCatch block.
     Result<int> failed = tryCatch([] () -> Result<int> { return fail("nope"); });
     ASSERT_FALSE(failed);
     EXPECT_EQ(failed.error().message(), "nope");

@@ -312,7 +312,7 @@ UNIT_TEST(FileInputStream, PositionAdvancesOnRead) {
 
     FileInputStream in(tmpfile);
     char buf[5];
-    in.readOrFail(buf, 5);
+    EXPECT_TRUE(in.readOrFail(buf, 5));
     EXPECT_EQ(in.position(), 5u);
     in.close();
 }

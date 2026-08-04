@@ -5,6 +5,7 @@
 #include <cstring>
 #include <string>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Streams/StreamBuffer.h"
 
 /**
@@ -43,16 +44,17 @@ class InputStream {
     }
 
     /**
-     * Reads the requested amount of data from the stream, or fails with an exception if unable to do so.
+     * Reads the requested amount of data from the stream, or returns an error if unable to do so.
      *
      * @param[out] data                 Output buffer to write read data into.
      * @param size                      Number of bytes to read.
-     * @throws Exception                On error.
+     * @return                          Success, or an error if the stream had less than `size` bytes in it.
      */
-    void readOrFail(void *data, size_t size) {
+    Result<void> readOrFail(void *data, size_t size) {
         size_t bytesRead = read(data, size);
-        if (bytesRead != size)
-            throwReadError(size, bytesRead);
+        if (bytesRead != size) [[unlikely]]
+            return readError(size, bytesRead);
+        return {};
     }
 
     /**
@@ -95,12 +97,13 @@ class InputStream {
      * Same as `readOrFail`, but for skipping bytes.
      *
      * @param size                      Number of bytes to skip.
-     * @throws Exception                On error.
+     * @return                          Success, or an error if the stream had less than `size` bytes in it.
      */
-    void skipOrFail(size_t size) {
+    Result<void> skipOrFail(size_t size) {
         size_t bytesSkipped = skip(size);
-        if (bytesSkipped != size)
-            throwSkipError(size, bytesSkipped);
+        if (bytesSkipped != size) [[unlikely]]
+            return skipError(size, bytesSkipped);
+        return {};
     }
 
     /**
@@ -222,8 +225,8 @@ class InputStream {
             _close(false);
     }
 
-    [[noreturn]] void throwReadError(size_t requested, size_t actual) const;
-    [[noreturn]] void throwSkipError(size_t requested, size_t actual) const;
+    [[nodiscard]] Error readError(size_t requested, size_t actual) const;
+    [[nodiscard]] Error skipError(size_t requested, size_t actual) const;
 
  private:
     size_t underflow(void *data, size_t size);

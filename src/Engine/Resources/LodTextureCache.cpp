@@ -59,8 +59,8 @@ LodImage *LodTextureCache::loadTexture(std::string_view pContainer, bool useDumm
 }
 
 Result<Blob> LodTextureCache::LoadCompressedTexture(std::string_view pContainer) {
-    MM_TRY(Blob data, _reader.read(pContainer));
-    return lod::decodeMaybeCompressed(data);
+    Blob data = co_await _reader.read(pContainer);
+    co_return lod::decodeMaybeCompressed(data);
 }
 
 Result<Blob> LodTextureCache::read(std::string_view pContainer) {

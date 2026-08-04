@@ -23,25 +23,25 @@ SndReader::~SndReader() = default;
 Result<void> SndReader::open(std::string_view path) {
     close();
     // TODO(captainurist): #exceptions Blob::fromFile still throws, drop the tryCatch once it's ported.
-    MM_TRY(Blob blob, tryCatch([&] { return Blob::fromFile(path); }));
-    return open(std::move(blob));
+    Blob blob = co_await tryCatch([&] { return Blob::fromFile(path); });
+    co_return open(std::move(blob));
 }
 
 Result<void> SndReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<SndEntry> entries;
-    MM_TRY_VOID(deserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>)
-                    .withContext("File '{}' is not a valid SND", blob.displayPath()));
+    co_await deserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>)
+        .withContext("File '{}' is not a valid SND", blob.displayPath());
 
     std::unordered_map<std::string, SndEntry> files;
     for (SndEntry &entry : entries) {
         std::string name = ascii::toLower(entry.name);
         if (files.contains(name))
-            return fail("File '{}' is not a valid SND: contains duplicate entries for '{}'", blob.displayPath(), name);
+            co_return fail("File '{}' is not a valid SND: contains duplicate entries for '{}'", blob.displayPath(), name);
 
         if (entry.offset + entry.size > blob.size())
-            return fail("File '{}' is not a valid SND: entry '{}' points outside the SND file", blob.displayPath(), entry.name);
+            co_return fail("File '{}' is not a valid SND: entry '{}' points outside the SND file", blob.displayPath(), entry.name);
 
         files.emplace(std::move(name), std::move(entry));
     }
@@ -49,7 +49,7 @@ Result<void> SndReader::open(Blob blob) {
     // All good, this is a valid SND, can update `this`.
     _snd = std::move(blob);
     _files = std::move(files);
-    return {};
+    co_return {};
 }
 
 void SndReader::close() {

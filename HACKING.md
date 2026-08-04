@@ -125,9 +125,9 @@ Error handling:
       ...
   }
   ```
-* Propagate errors with `MM_TRY` / `MM_TRY_VOID`, and add context on the way up with `.withContext(...)`. Context frames are joined with `": "`, so the message the player eventually sees reads top-down, e.g. `"Couldn't load texture 'lava': Cannot decode LOD entry 'bitmaps.lod/lava' as LOD image"`.
+* Propagate errors with `co_await`: write the function as a coroutine, and every `co_await someResult` either produces the value or ends the function right there with the error. In plain functions (hot per-element code that shouldn't pay for a coroutine frame), propagate with an explicit `if (Result<void> result = ...; !result) return result;` instead. Add context on the way up with `.withContext(...)` — context frames are joined with `": "`, so the message the player eventually sees reads top-down, e.g. `"Couldn't load texture 'lava': Cannot decode LOD entry 'bitmaps.lod/lava' as LOD image"`.
 * When you get a `Result` back, pick a policy, explicitly. All of them are methods on `Result`:
-  * **Propagate** it with `MM_TRY`, if your caller is in a better position to decide.
+  * **Propagate** it with `co_await` (or an explicit check in plain functions), if your caller is in a better position to decide.
   * **Degrade** – check it with an `if`, log the error with `Logger`, and carry on with a fallback. This is the right answer for anything that runs while the game is running: a missing sound effect, an unreadable savegame thumbnail, a texture that fails to decode.
   * **Die** with `.mustSucceed()`, but only for things that genuinely make the game unusable, and preferably only during startup. `mustSucceed` goes through the fatal error handler, so it can show the message to the player before exiting.
   * **Throw** with `.orThrow()` – but only in command-line tools and tests, where the top-level `catch` *is* the error handling. In engine code, every use of it is a `TODO`.

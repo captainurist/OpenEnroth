@@ -29,11 +29,11 @@ Blob BlobInputStream::readAsBlob(size_t size) {
     return _blob.subBlob(position() - bytes, bytes);
 }
 
-Blob BlobInputStream::readAsBlobOrFail(size_t size) {
+Result<Blob> BlobInputStream::readAsBlobOrFail(size_t size) {
     assert(isOpen());
 
-    if (size > this->size() - position())
-        throwReadError(size, this->size() - position());
+    if (size > this->size() - position()) [[unlikely]]
+        return readError(size, this->size() - position());
 
     return readAsBlob(size);
 }

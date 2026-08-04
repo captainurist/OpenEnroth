@@ -95,25 +95,26 @@ explicit, greppable `discard(...)` call.
 
 ### Propagation
 
-C++ has no `?` operator and, since MSVC is a supported compiler, no statement expressions. So propagation is two
-macros:
+There are no propagation macros — `co_await` is the propagation mechanism (§3, Option D), and it's a language
+construct:
 
 ```cpp
-MM_TRY(Blob data, fs->read(path));   // Declares `Blob data`, or early-returns the error.
-MM_TRY(_pixels, decodePixels(data)); // Also works with an existing lvalue.
-MM_TRY_VOID(reader.open(blob));      // Discards the value / for Result<void>.
+Blob raw = co_await pGames_LOD->read(blv_filename);       // Produces the value, or ends the
+Blob location = co_await lod::decodeMaybeCompressed(raw); // function right here with the error.
+co_await deserialize(location, &result);
 ```
 
-Both use `__COUNTER__` for their temporaries. `MM_TRY_VOID` is a single statement; `MM_TRY` is not, and so needs
-braces under a bodyless `if` — that's a compile error, not a silent bug, and it's documented.
+The one place `co_await` isn't wanted is hot per-element code, where a coroutine frame per call would add up —
+there, plain functions propagate with an explicit check:
+
+```cpp
+for (T &element : *dst)
+    if (Result<void> result = deserialize(src, &element); !result)
+        return result;
+```
 
 We deliberately do **not** use monadic chaining (`and_then` / `transform`): nesting logic inside lambdas passed to
-member calls reads terribly. Where two fallible calls feed each other, that's just two statements:
-
-```cpp
-MM_TRY(Blob raw, pGames_LOD->read(blv_filename));
-MM_TRY(Blob location, lod::decodeMaybeCompressed(raw));
-```
+member calls reads terribly. Where two fallible calls feed each other, that's just two statements, as above.
 
 ### Handling: the policies, all explicit
 
@@ -523,11 +524,9 @@ The budget file doubles as the migration to-do list.
 
 ## 7. Costs, honestly
 
-* **`MM_TRY` is not a statement.** It expands to a declaration plus an `if`, so it needs braces as the body of a
-  bodyless `if` or loop. This is a compile error rather than a silent bug, but it's a papercut. It's unavoidable
-  without GNU statement expressions, which MSVC doesn't have.
-* **Nested fallible calls need two lines.** You can't write `f(g(x))` when both return `Result`, and we've ruled
-  out monadic chaining on readability grounds. Two `MM_TRY` lines it is.
+* **Nested fallible calls need two lines.** You can't write `f(g(x))` when both return `Result` (unless the outer
+  call is inside a coroutine, where `f(co_await g(x))` works), and we've ruled out monadic chaining on readability
+  grounds.
 * **The exception island (§3, Option A) means two mechanisms coexist** inside the serialization layer, and a
   boundary function that forgets its `tryCatch` leaks an exception. The budget file pins the island; replacing it
   outright is Options B/C.

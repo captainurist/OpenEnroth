@@ -88,38 +88,46 @@ UNIT_TEST(InputStream, ReadAllEmpty) {
     EXPECT_EQ(result, "");
 }
 
-UNIT_TEST(InputStream, ReadOrFailThrowsOnShortRead) {
+UNIT_TEST(InputStream, ReadOrFailFailsOnShortRead) {
     MemoryInputStream input("hi", 2);
     char buf[10];
-    EXPECT_THROW_MESSAGE(input.readOrFail(buf, 10), "10");
+    Result<void> result = input.readOrFail(buf, 10);
+    ASSERT_FALSE(result);
+    EXPECT_THAT(result.error().message(), testing::HasSubstr("10"));
 }
 
 UNIT_TEST(InputStream, ReadOrFailErrorIncludesDisplayPath) {
     MemoryInputStream input("hi", 2, "test_stream.bin");
     char buf[10];
-    EXPECT_THROW_MESSAGE(input.readOrFail(buf, 10), "test_stream.bin");
+    Result<void> result = input.readOrFail(buf, 10);
+    ASSERT_FALSE(result);
+    EXPECT_THAT(result.error().message(), testing::HasSubstr("test_stream.bin"));
 }
 
 UNIT_TEST(InputStream, ReadOrFailSucceeds) {
     MemoryInputStream input("hello", 5);
     char buf[5];
-    EXPECT_NO_THROW(input.readOrFail(buf, 5));
+    EXPECT_TRUE(input.readOrFail(buf, 5));
     EXPECT_EQ(std::string_view(buf, 5), "hello");
 }
 
-UNIT_TEST(InputStream, SkipOrFailThrowsOnShortSkip) {
+UNIT_TEST(InputStream, SkipOrFailFailsOnShortSkip) {
     MemoryInputStream input("hi", 2);
-    EXPECT_THROW_MESSAGE(input.skipOrFail(10), "10");
+    Result<void> result = input.skipOrFail(10);
+    ASSERT_FALSE(result);
+    EXPECT_THAT(result.error().message(), testing::HasSubstr("10"));
 }
 
 UNIT_TEST(InputStream, SkipOrFailErrorIncludesDisplayPath) {
     MemoryInputStream input("hi", 2, "test_stream.bin");
-    EXPECT_THROW_MESSAGE(input.skipOrFail(10), "test_stream.bin");
+    Result<void> result = input.skipOrFail(10);
+    ASSERT_FALSE(result);
+    EXPECT_THAT(result.error().message(), testing::HasSubstr("test_stream.bin"));
 }
 
 UNIT_TEST(InputStream, SkipOrFailSucceeds) {
     MemoryInputStream input("hello", 5);
-    EXPECT_NO_THROW(input.skipOrFail(5));
+    EXPECT_TRUE(input.skipOrFail(5));
     char buf;
     EXPECT_EQ(input.read(&buf, 1), 0u); // Stream exhausted.
 }
@@ -230,9 +238,9 @@ UNIT_TEST(InputStream, PositionAtEnd) {
 UNIT_TEST(InputStream, PositionAfterPartialRead) {
     MemoryInputStream input("hello world", 11);
     char buf[5];
-    input.readOrFail(buf, 5);
+    EXPECT_TRUE(input.readOrFail(buf, 5));
     EXPECT_EQ(input.position(), 5u);
-    input.readOrFail(buf, 3);
+    EXPECT_TRUE(input.readOrFail(buf, 3));
     EXPECT_EQ(input.position(), 8u);
 }
 

@@ -4,7 +4,6 @@
 #include <span>
 #include <string>
 
-#include "Utility/Exception.h"
 #include "Utility/Memory/MemoryScratchpad.h"
 
 InputStream::~InputStream() = default;
@@ -110,10 +109,10 @@ size_t InputStream::readUntilSlow(char delimiter, std::string *dst) {
     return bytesRead;
 }
 
-void InputStream::throwReadError(size_t requested, size_t actual) const {
-    throw Exception("Failed to read the requested number of bytes from stream '{}', requested {}, got {}", _displayPath, requested, actual);
+Error InputStream::readError(size_t requested, size_t actual) const {
+    return Error("Failed to read the requested number of bytes from stream '{}', requested {}, got {}", _displayPath, requested, actual);
 }
 
-void InputStream::throwSkipError(size_t requested, size_t actual) const {
-    throw Exception("Failed to skip the requested number of bytes in stream '{}', requested {}, got {}", _displayPath, requested, actual);
+Error InputStream::skipError(size_t requested, size_t actual) const {
+    return Error("Failed to skip the requested number of bytes in stream '{}', requested {}, got {}", _displayPath, requested, actual);
 }

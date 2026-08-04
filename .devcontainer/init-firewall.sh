@@ -58,6 +58,7 @@ ALLOWED_DOMAINS=(
     code.visualstudio.com   # update.code.visualstudio.com
     mightandmagic.fandom.com # MM7 wiki — game data references during refactoring.
     celestialheavens.com    # Might & Magic fan site — game data references.
+    godbolt.org             # Compiler Explorer — cross-compiler codegen checks (e.g. Apple TLV, MSVC coroutines).
 )
 
 # Build the dnsmasq --ipset directive: /domain1/domain2/.../ipset_name

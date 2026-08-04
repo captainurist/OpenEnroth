@@ -457,9 +457,9 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     odm_filename.replace(odm_filename.length() - 4, 4, ".odm");
 
     OutdoorLocation_MM7 location;
-    MM_TRY(Blob rawLocationBlob, pGames_LOD->read(odm_filename));
-    MM_TRY(Blob locationBlob, lod::decodeMaybeCompressed(rawLocationBlob));
-    MM_TRY_VOID(deserialize(locationBlob, &location));
+    Blob rawLocationBlob = co_await pGames_LOD->read(odm_filename);
+    Blob locationBlob = co_await lod::decodeMaybeCompressed(rawLocationBlob);
+    co_await deserialize(locationBlob, &location);
     reconstruct(location, this);
 
     // ****************.ddm file*********************//
@@ -469,7 +469,7 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     bool respawnInitial = false; // Perform initial location respawn?
     bool respawnTimed = false; // Perform timed location respawn?
     OutdoorDelta_MM7 delta;
-    MM_TRY(Blob deltaBlob, lod::decodeMaybeCompressed(pMapDeltas.at(ddm_filename)));
+    Blob deltaBlob = co_await lod::decodeMaybeCompressed(pMapDeltas.at(ddm_filename));
     if (deltaBlob) {
         if (Result<void> deserialized = deserialize(deltaBlob, &delta, tags::context(location))) {
             size_t totalFaces = 0;
@@ -499,17 +499,17 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     assert(respawnInitial + respawnTimed <= 1);
 
     if (respawnInitial) {
-        MM_TRY(Blob rawPristine, pGames_LOD->read(ddm_filename));
-        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
+        Blob rawPristine = co_await pGames_LOD->read(ddm_filename);
+        Blob pristine = co_await lod::decodeMaybeCompressed(rawPristine);
+        co_await deserialize(pristine, &delta, tags::context(location));
         *outdoors_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
         auto fullyRevealedCells = delta.fullyRevealedCells;
         auto partiallyRevealedCells = delta.partiallyRevealedCells;
-        MM_TRY(Blob rawPristine, pGames_LOD->read(ddm_filename));
-        MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
+        Blob rawPristine = co_await pGames_LOD->read(ddm_filename);
+        Blob pristine = co_await lod::decodeMaybeCompressed(rawPristine);
+        co_await deserialize(pristine, &delta, tags::context(location));
         delta.header = header;
         delta.fullyRevealedCells = fullyRevealedCells;
         delta.partiallyRevealedCells = partiallyRevealedCells;
@@ -545,7 +545,7 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
 
     if (engine->config->graphics.SeasonsChange.value())
         pOutdoor->pTerrain.changeSeason(pParty->uCurrentMonth);
-    return {};
+    co_return {};
 }
 
 //----- (0047EF60) --------------------------------------------------------

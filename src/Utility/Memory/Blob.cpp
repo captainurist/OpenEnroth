@@ -119,7 +119,7 @@ Blob Blob::read(InputStream *stream, size_t size) {
         return Blob();
 
     std::unique_ptr<void, FreeDeleter> memory(malloc(size));
-    stream->readOrFail(memory.get(), size);
+    stream->readOrFail(memory.get(), size).orThrow(); // TODO(captainurist): #exceptions Blob file API still throws.
     return fromMalloc(std::move(memory), size).withDisplayPath(stream->displayPath());
 }
 

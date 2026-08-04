@@ -29,8 +29,9 @@ UNIT_TEST(BlobInputStream, SkipThenReadAsBlob) {
 
     EXPECT_EQ(stream.skip(6), 6u);
 
-    Blob payload = stream.readAsBlobOrFail(7);
-    EXPECT_EQ(payload.str(), "Payload");
+    Result<Blob> payload = stream.readAsBlobOrFail(7);
+    ASSERT_TRUE(payload);
+    EXPECT_EQ(payload->str(), "Payload");
 }
 
 UNIT_TEST(BlobInputStream, ReadAsBlobThenReadAll) {
@@ -61,11 +62,13 @@ UNIT_TEST(BlobInputStream, ReadAllAsBlobAfterExhausting) {
     EXPECT_EQ(result.size(), 0u);
 }
 
-UNIT_TEST(BlobInputStream, ReadAsBlobOrFailThrows) {
+UNIT_TEST(BlobInputStream, ReadAsBlobOrFailFails) {
     Blob blob = Blob::fromString("short");
     BlobInputStream stream(std::move(blob));
 
-    EXPECT_THROW_MESSAGE((void) stream.readAsBlobOrFail(100), "100");
+    Result<Blob> result = stream.readAsBlobOrFail(100);
+    ASSERT_FALSE(result);
+    EXPECT_THAT(result.error().message(), testing::HasSubstr("100"));
 }
 
 UNIT_TEST(BlobInputStream, ReadAsBlobShort) {
@@ -118,7 +121,7 @@ UNIT_TEST(BlobInputStream, PositionAdvancesOnRead) {
     EXPECT_EQ(stream.position(), 5u);
 
     char buf[3];
-    stream.readOrFail(buf, 3);
+    EXPECT_TRUE(stream.readOrFail(buf, 3));
     EXPECT_EQ(stream.position(), 8u);
 }
 

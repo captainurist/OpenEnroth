@@ -11,7 +11,8 @@ Result<void> deserialize(Src &&src, Dst *dst, ViaTag<Via>, const Tags &... tags)
     static_assert(!std::is_same_v<Via, Dst>, "Intermediate and target types must be different.");
 
     Via tmp;
-    MM_TRY_VOID(deserialize(src, &tmp));
+    if (Result<void> result = deserialize(src, &tmp); !result)
+        return result;
     reconstruct(tmp, dst, tags...);
     return {};
 }
