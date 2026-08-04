@@ -567,9 +567,25 @@ Takeaways:
   predicts far less than that.
 * **LTO is worth ~1–2% end-to-end** (mostly zlib call inlining), equally on both variants.
 
-Caveat: this container is linux-aarch64 with GCC only — no MSVC (`/GL /LTCG`), no AppleClang, no x86 hardware.
-The tool is in the tree precisely so the remaining legs of the matrix can be run on real CI machines; Windows is
-the important one, both for MSVC LTCG numbers and for coroutine codegen once the Option D port lands.
+### Cross-platform results (CI, `loadbench.yml`)
+
+Same-VM interleaved runs (LTO off/on built in one job — runner hardware varies too much between jobs for
+cross-job timing comparisons), best of 3, ms. All legs build the full coroutine-based serialization layer:
+
+| leg | compiler | decompress | locations | deltas | total | LTO/LTCG delta |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| windows x86-64 | MSVC 2022 | 222–227 | 6.5–8.2 | 0.8–1.1 | 230.8 | ~1–2% |
+| windows x86 | MSVC 2022 | 245–248 | 13.1–14.7 | 1.5–1.8 | 261.3 | ~0% |
+| macOS arm64 | AppleClang 16 | 229–253 | 4.8–6.5 | 0.9–1.1 | 236.9 | within noise |
+| linux x86-64 | GCC 15 + mold | build-validated, benchmark skipped (no game data on the runner) | | | | |
+| linux aarch64 (local) | GCC 15 | 152–160 | 2.2–2.7 | ~0.5 | 154.1 | ~1–2% |
+
+Notes: an earlier version of the workflow ran LTO on/off as separate jobs and "measured" LTCG at +20% — that was
+GitHub runner hardware variance between jobs, not LTCG. On same-VM data, LTO/LTCG buys 0–2% on this workload
+across all compilers. 32-bit x86 deserializes ~2× slower than x64 (13–14 ms vs 7 ms) and is ~13% slower overall.
+The darwin leg also carries the TLV codegen probe: AppleClang emits exactly **one** indirect `_tlv_get_addr` call
+for a function with three `thread_local` accesses (verified by disassembly in the job summary), so the frame
+arena costs two indirect calls per coroutine frame lifecycle on macOS, regardless of body size.
 
 ### Tests
 
