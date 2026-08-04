@@ -45,12 +45,12 @@ jobs:
             windows_x86_64) platform=windows; architecture=x86_64; cmake_args="";;
             darwin_arm64)   platform=darwin;  architecture=arm64;  cmake_args="-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11";;
             linux_x86_64)   platform=linux;   architecture=x86_64; cmake_args="-DCMAKE_C_COMPILER=gcc-15 -DCMAKE_CXX_COMPILER=g++-15";;
-            *) ;;
+            *) echo "Unknown target: $target" >&2; exit 1;;
           esac
           case "$target/${{matrix.lto}}" in
             # ld.lld can only do LTO on LLVM bitcode; GCC's -flto objects need the bfd/gold plugin path.
             linux_x86_64/ON) cmake_args="$cmake_args -DOE_USE_LD_LLD=OFF -DOE_USE_LD_MOLD=OFF";;
-            *) echo "Unknown target: $target" >&2; exit 1;;
+            *) ;;
           esac
           echo "MATRIX_PLATFORM=$platform" >> "$GITHUB_ENV"
           echo "MATRIX_ARCHITECTURE=$architecture" >> "$GITHUB_ENV"
