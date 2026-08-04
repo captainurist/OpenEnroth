@@ -261,13 +261,61 @@ templates.
 * **Failure semantics**: better than A/B — the reader zero-fills unread output, so a failed parse yields a
   well-defined (if meaningless) object rather than a partially-written one.
 
+### Option D — coroutines: `co_await` as the `?` operator
+
+C++20 coroutines can express Rust's `?` exactly, and it has the nicest syntax of all the options — deserializer
+bodies keep their shape, with a keyword prefix instead of a macro wrapper:
+
+```cpp
+Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
+    co_await deserialize(src, &dst->header);
+    co_await deserialize(src, &dst->visibleOutlines);
+    co_await deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size()));
+    co_await deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size()));
+    co_await deserialize(src, &dst->actors);
+}   // Implicit co_return: falling off the end reports success.
+
+Result<IndoorDelta_MM7> loadDelta(const Blob &blob) {
+    BlobInputStream stream(blob);
+    IndoorDelta_MM7 result;
+    co_await deserialize(stream, &result);
+    co_return result;   // Always a move - coroutines never get NRVO.
+}
+```
+
+`co_await someResult` either yields the value, or writes the error into the caller-side `Result` and destroys the
+coroutine on the spot (running the destructors of its locals). The machinery is ~70 lines added to `Result`: a
+nested `promise_type` with `initial_suspend`/`final_suspend` both `suspend_never` (so the body runs synchronously
+and the frame is freed on completion), an `await_transform` whose awaiter calls `handle.destroy()` on error, and
+one extra `Result` constructor that lets `get_return_object` register the caller-side address (mandatory copy
+elision guarantees it's the real one). A full compiling prototype with correctness tests exists; everything works:
+short-circuiting, mid-body destructor execution, coroutines awaiting coroutines, and — a genuinely nice touch —
+`unhandled_exception()` gives you `tryCatch` for free, so a throwing call inside a coroutine body becomes an
+`Error` with zero extra syntax.
+
+Why it's still not recommended — measured, not guessed (GCC 15, `-O2`, a deserializer-shaped function doing ten
+fallible calls in a loop):
+
+| | ns/call | heap allocations/call |
+| --- | ---: | ---: |
+| `MM_TRY` version | 12.5 | 0 |
+| `co_await` version | 25 | 1 (112-byte frame) |
+
+* **Every coroutine call heap-allocates its frame.** GCC does not do HALO frame elision in practice, MSVC rarely;
+  a level load performs tens of thousands of deserialize calls, all on the critical path. A pooling `operator new`
+  on the promise could soften this — more machinery, still overhead.
+* **Function coloring.** A body that uses `co_await` is a coroutine: plain `return` no longer compiles in it,
+  `MM_TRY` can't be used inside (it expands to `return`), and `co_return` always moves — no NRVO.
+* **Debuggability.** Stack traces grow `coroutine_handle::resume` thunks, locals live in heap frames, and the
+  destroy-in-`await_suspend` pattern is exactly the kind of cleverness that's miserable to step through. ASAN's
+  use-after-free detection around coroutine frames is also notoriously weak.
+
+It's a real option — the syntax wins are real — but it buys a one-keyword improvement over `MM_TRY_VOID` at the
+cost of an allocation per deserializer call on the hottest loading path, on the compilers we actually ship with.
+
 ### Considered and rejected
 
 * **Monadic chaining** (`and_then` pipelines) — unreadable, ruled out (see §2).
-* **Coroutines** (`co_await read<Header>(src)` as a `?`-operator) — C++23 can express this, but every deserializer
-  becomes a coroutine with a potentially-allocating frame on the hottest loading path, HALO elision is not reliable
-  across our three compilers, and debugging through coroutine frames is misery. Not worth it for what is
-  syntactically a one-character win over `MM_TRY_VOID`.
 
 ### Recommendation
 
@@ -277,9 +325,10 @@ determinism goal is met at the level where it matters.
 
 If we later decide exceptions must leave the parse layer too, **C is the cheapest way to get there** that doesn't
 tax every line of deserializer code — take it only if scoped deferred checking is acceptable. **B is the purist
-answer**; it buys "one mechanism everywhere" at the price of ~200 wrapped lines and a combinator rewrite, and we
-can still do it later — A doesn't paint us into a corner, since switching means editing the serialization layer
-and the ~30 boundary functions, not the whole engine.
+answer**; it buys "one mechanism everywhere" at the price of ~200 wrapped lines and a combinator rewrite. **D has
+the best syntax and the worst runtime** — an allocation per deserializer call rules it out for level loading unless
+compilers get reliable frame elision. None of this is urgent: A doesn't paint us into a corner, since switching
+means editing the serialization layer and the ~30 boundary functions, not the whole engine.
 
 
 ## 4. What's been ported
