@@ -58,8 +58,10 @@ size_t FileInputStream::_underflow(void *data, size_t size, Buffer *buffer) {
     if (size < _bufSize) {
         // Small read/skip/refill: fill the internal buffer.
         size_t bytesRead = fread(_buf.get(), 1, _bufSize, _file);
-        if (bytesRead == 0 && !feof(_file))
-            Exception::throwFromErrno(displayPath());
+        if (bytesRead == 0 && !feof(_file)) {
+            setFailed(Error::fromErrno(displayPath()));
+            return 0;
+        }
         buffer->reset(_buf.get(), _buf.get(), _buf.get() + bytesRead);
         if (data) {
             return buffer->read(data, std::min(size, bytesRead));
@@ -69,28 +71,31 @@ size_t FileInputStream::_underflow(void *data, size_t size, Buffer *buffer) {
     } else if (data) {
         // Large read: direct fread.
         size_t bytesRead = fread(data, 1, size, _file);
-        if (bytesRead == 0 && !feof(_file))
-            Exception::throwFromErrno(displayPath());
+        if (bytesRead == 0 && !feof(_file)) {
+            setFailed(Error::fromErrno(displayPath()));
+            return 0;
+        }
         return bytesRead;
     } else {
         // Large skip: seek.
         size_t bytesToSkip = std::min(size, this->size() - position());
-        if (bytesToSkip > 0 && fseeko(_file, bytesToSkip, SEEK_CUR) != 0)
-            Exception::throwFromErrno(displayPath());
+        if (bytesToSkip > 0 && fseeko(_file, bytesToSkip, SEEK_CUR) != 0) {
+            setFailed(Error::fromErrno(displayPath()));
+            return 0;
+        }
         return bytesToSkip;
     }
 }
 
-void FileInputStream::_close(bool canThrow) {
+void FileInputStream::_close(bool canReportErrors) {
     assert(isOpen());
 
     int status = fclose(_file);
     _file = nullptr;
     _buf.reset();
     _bufSize = 0;
-    if (status != 0 && canThrow)
-        Exception::throwFromErrno(displayPath());
-    // TODO(captainurist): !canThrow => log OR attach
+    if (status != 0 && canReportErrors)
+        setFailed(Error::fromErrno(displayPath()));
 
-    base_type::_close(canThrow);
+    base_type::_close(canReportErrors);
 }

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <span>
 #include <array>
 #include <typeinfo>
@@ -10,7 +11,7 @@
 #include "BinaryFwd.h"
 #include "BinaryTags.h"
 #include "BinaryConcepts.h"
-#include "BinaryExceptions.h"
+#include "BinaryErrors.h"
 
 #include "Utility/Streams/InputStream.h"
 #include "Utility/Streams/OutputStream.h"
@@ -54,8 +55,11 @@ void serialize(const T &src, OutputStream *dst) {
 template<class T> requires is_memcopy_serializable_v<T>
 void deserialize(InputStream &src, T *dst) {
     size_t bytes = src.read(dst, sizeof(T));
-    if (bytes != sizeof(T))
-        throwBinarySerializationNoMoreDataError(bytes, sizeof(T), typeid(T).name());
+    if (bytes != sizeof(T)) [[unlikely]] {
+        // Zero-fill the tail so that the caller never sees uninitialized memory on the error path.
+        std::memset(reinterpret_cast<char *>(dst) + bytes, 0, sizeof(T) - bytes);
+        setBinarySerializationNoMoreDataError(src, bytes, sizeof(T), typeid(T).name());
+    }
 }
 
 
@@ -68,8 +72,10 @@ void deserialize(InputStream &src, Span *dst) {
     if constexpr (is_memcopy_serializable_v<T>) {
         size_t bytesExpected = dst->size() * sizeof(T);
         size_t bytesRead = src.read(dst->data(), bytesExpected);
-        if (bytesRead != bytesExpected)
-            throwBinarySerializationNoMoreDataError(bytesRead % sizeof(T), sizeof(T), typeid(T).name());
+        if (bytesRead != bytesExpected) [[unlikely]] {
+            std::memset(reinterpret_cast<char *>(dst->data()) + bytesRead, 0, bytesExpected - bytesRead);
+            setBinarySerializationNoMoreDataError(src, bytesRead % sizeof(T), sizeof(T), typeid(T).name());
+        }
     } else {
         for (T &element : *dst)
             deserialize(src, &element);
@@ -141,8 +147,14 @@ void deserialize(InputStream &src, Dst *dst, const Tags &... tags) {
 
     // TODO(captainurist): can we do this better?
     // Best-effort check - number of records required can't be larger than the number of bytes in the stream.
-    if (size > src.size() - src.position())
-        throwBinarySerializationNoMoreDataError(src.size() - src.position(), size, typeid(typename Dst::value_type).name());
+    // Note that this is what stops a failed stream from turning a garbage size prefix into a huge allocation.
+    if (src.failed() || size > src.size() - src.position()) [[unlikely]] {
+        if (!src.failed())
+            setBinarySerializationNoMoreDataError(src, src.size() - src.position(), size,
+                                                  typeid(typename Dst::value_type).name());
+        dst->resize(0);
+        return;
+    }
 
     dst->resize(size);
     std::span span(dst->data(), dst->size());

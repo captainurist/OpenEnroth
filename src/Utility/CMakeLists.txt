@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 
 set(UTILITY_SOURCES
+        Error/Error.cpp
         Exception.cpp
         Math/TrigLut.cpp
         Memory/Blob.cpp
@@ -17,6 +18,8 @@ set(UTILITY_SOURCES
         String/Wrap.cpp)
 
 set(UTILITY_HEADERS
+        Error/Error.h
+        Error/Result.h
         Exception.h
         Flags.h
         Hash.h
@@ -71,6 +74,7 @@ target_compile_definitions(utility PRIVATE ZTD_INTERMEDIATE_BUFFER_SUGGESTED_BYT
 
 if(OE_BUILD_TESTS)
     set(TEST_UTILITY_SOURCES
+            Error/Tests/Result_ut.cpp
             Math/Tests/Float_ut.cpp
             Memory/Tests/Blob_ut.cpp
             Memory/Tests/MemoryBuffer_ut.cpp

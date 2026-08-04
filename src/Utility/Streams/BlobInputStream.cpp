@@ -32,8 +32,10 @@ Blob BlobInputStream::readAsBlob(size_t size) {
 Blob BlobInputStream::readAsBlobOrFail(size_t size) {
     assert(isOpen());
 
-    if (size > this->size() - position())
-        throwReadError(size, this->size() - position());
+    if (failed() || size > this->size() - position()) [[unlikely]] {
+        setReadError(size, failed() ? 0 : this->size() - position());
+        return Blob();
+    }
 
     return readAsBlob(size);
 }

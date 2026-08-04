@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <algorithm>
 #include <string>
+#include <string_view>
 
 #include "Testing/Unit/UnitTest.h"
 
@@ -88,40 +89,83 @@ UNIT_TEST(InputStream, ReadAllEmpty) {
     EXPECT_EQ(result, "");
 }
 
-UNIT_TEST(InputStream, ReadOrFailThrowsOnShortRead) {
+UNIT_TEST(InputStream, ReadOrFailSetsErrorOnShortRead) {
     MemoryInputStream input("hi", 2);
     char buf[10];
-    EXPECT_THROW_MESSAGE(input.readOrFail(buf, 10), "10");
+    input.readOrFail(buf, 10);
+
+    ASSERT_TRUE(input.failed());
+    EXPECT_THAT(input.error().message(), testing::HasSubstr("10"));
+    EXPECT_FALSE(input.check());
+
+    // The tail of the output buffer is zero-filled, the caller never sees uninitialized memory.
+    EXPECT_EQ(std::string_view(buf, 2), "hi");
+    EXPECT_TRUE(std::ranges::all_of(std::string_view(buf + 2, 8), [] (char c) { return c == '\0'; }));
 }
 
 UNIT_TEST(InputStream, ReadOrFailErrorIncludesDisplayPath) {
     MemoryInputStream input("hi", 2, "test_stream.bin");
     char buf[10];
-    EXPECT_THROW_MESSAGE(input.readOrFail(buf, 10), "test_stream.bin");
+    input.readOrFail(buf, 10);
+    ASSERT_TRUE(input.failed());
+    EXPECT_THAT(input.error().message(), testing::HasSubstr("test_stream.bin"));
 }
 
 UNIT_TEST(InputStream, ReadOrFailSucceeds) {
     MemoryInputStream input("hello", 5);
     char buf[5];
-    EXPECT_NO_THROW(input.readOrFail(buf, 5));
+    input.readOrFail(buf, 5);
+    EXPECT_TRUE(input.check());
     EXPECT_EQ(std::string_view(buf, 5), "hello");
 }
 
-UNIT_TEST(InputStream, SkipOrFailThrowsOnShortSkip) {
+UNIT_TEST(InputStream, SkipOrFailSetsErrorOnShortSkip) {
     MemoryInputStream input("hi", 2);
-    EXPECT_THROW_MESSAGE(input.skipOrFail(10), "10");
+    input.skipOrFail(10);
+    ASSERT_TRUE(input.failed());
+    EXPECT_THAT(input.error().message(), testing::HasSubstr("10"));
 }
 
 UNIT_TEST(InputStream, SkipOrFailErrorIncludesDisplayPath) {
     MemoryInputStream input("hi", 2, "test_stream.bin");
-    EXPECT_THROW_MESSAGE(input.skipOrFail(10), "test_stream.bin");
+    input.skipOrFail(10);
+    ASSERT_TRUE(input.failed());
+    EXPECT_THAT(input.error().message(), testing::HasSubstr("test_stream.bin"));
 }
 
 UNIT_TEST(InputStream, SkipOrFailSucceeds) {
     MemoryInputStream input("hello", 5);
-    EXPECT_NO_THROW(input.skipOrFail(5));
+    input.skipOrFail(5);
+    EXPECT_TRUE(input.check());
     char buf;
     EXPECT_EQ(input.read(&buf, 1), 0u); // Stream exhausted.
+}
+
+UNIT_TEST(InputStream, ErrorStateIsSticky) {
+    MemoryInputStream input("hello", 5, "test_stream.bin");
+
+    char buf[10];
+    input.readOrFail(buf, 10); // Fails.
+    ASSERT_TRUE(input.failed());
+    std::string firstMessage = input.error().message();
+
+    // Further reads are no-ops that zero-fill, and the first error is the one that's kept.
+    std::ranges::fill(buf, 'x');
+    input.readOrFail(buf, 3);
+    EXPECT_TRUE(std::ranges::all_of(std::string_view(buf, 3), [] (char c) { return c == '\0'; }));
+    EXPECT_EQ(input.error().message(), firstMessage);
+
+    // Reopening resets the error state.
+    input.open("hello", 5, "test_stream.bin");
+    EXPECT_FALSE(input.failed());
+    EXPECT_TRUE(input.check());
+}
+
+UNIT_TEST(InputStream, SetFailedKeepsTheFirstError) {
+    MemoryInputStream input("hello", 5);
+    input.setFailed(Error("first"));
+    input.setFailed(Error("second"));
+    EXPECT_EQ(input.error().message(), "first");
 }
 
 UNIT_TEST(InputStream, ReadZeroBytes) {
