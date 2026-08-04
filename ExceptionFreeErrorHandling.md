@@ -300,10 +300,17 @@ fallible calls in a loop):
 | --- | ---: | ---: |
 | `MM_TRY` version | 12.5 | 0 |
 | `co_await` version | 25 | 1 (112-byte frame) |
+| `co_await` + pooled frames | 19 | 0 |
 
 * **Every coroutine call heap-allocates its frame.** GCC does not do HALO frame elision in practice, MSVC rarely;
-  a level load performs tens of thousands of deserialize calls, all on the critical path. A pooling `operator new`
-  on the promise could soften this — more machinery, still overhead.
+  a level load performs tens of thousands of deserialize calls, all on the critical path.
+* **Pooling recovers most, not all, of that.** The frame allocation can be redirected without touching a single
+  line outside the machinery: the compiler looks up `operator new` in the promise type's scope, so a ~30-line
+  thread-local bump arena on the promise base class is the entire change. And because these coroutines are fully
+  synchronous (`suspend_never` on both ends), frames are allocated and freed in strict LIFO order even on the
+  error path — a bump pointer with an LIFO assert is provably sufficient. That gets allocations to zero, but the
+  remaining ~1.5× gap is frame setup/teardown and the optimizer losing visibility through the coroutine
+  transformation, and that part doesn't go away.
 * **Function coloring.** A body that uses `co_await` is a coroutine: plain `return` no longer compiles in it,
   `MM_TRY` can't be used inside (it expands to `return`), and `co_return` always moves — no NRVO.
 * **Debuggability.** Stack traces grow `coroutine_handle::resume` thunks, locals live in heap frames, and the
