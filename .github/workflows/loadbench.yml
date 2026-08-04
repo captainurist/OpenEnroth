@@ -45,6 +45,11 @@ jobs:
             windows_x86_64) platform=windows; architecture=x86_64; cmake_args="";;
             darwin_arm64)   platform=darwin;  architecture=arm64;  cmake_args="-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11";;
             linux_x86_64)   platform=linux;   architecture=x86_64; cmake_args="-DCMAKE_C_COMPILER=gcc-15 -DCMAKE_CXX_COMPILER=g++-15";;
+            *) ;;
+          esac
+          case "$target/${{matrix.lto}}" in
+            # ld.lld can only do LTO on LLVM bitcode; GCC's -flto objects need the bfd/gold plugin path.
+            linux_x86_64/ON) cmake_args="$cmake_args -DOE_USE_LD_LLD=OFF -DOE_USE_LD_MOLD=OFF";;
             *) echo "Unknown target: $target" >&2; exit 1;;
           esac
           echo "MATRIX_PLATFORM=$platform" >> "$GITHUB_ENV"
@@ -137,12 +142,24 @@ jobs:
         run: |
           set -euo pipefail
           exe=build/src/Bin/LoadBench/LoadBench
-          [ -f "$exe.exe" ] && exe="$exe.exe"
+          if [ -f "$exe.exe" ]; then
+            exe="$exe.exe"
+          fi
+
           lod="$GITHUB_WORKSPACE/OpenEnroth_GameData/mm7/data/games.lod"
+          if [ ! -f "$lod" ]; then
+            echo "::error::games.lod not found, data cache layout follows"
+            ls "$GITHUB_WORKSPACE/OpenEnroth_GameData" || true
+            ls "$GITHUB_WORKSPACE/OpenEnroth_GameData/mm7" || true
+            ls "$GITHUB_WORKSPACE/OpenEnroth_GameData/mm7/data" || true
+            exit 1
+          fi
 
           echo "### LoadBench ${{matrix.target}} lto=${{matrix.lto}}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           for run in 1 2 3; do
-            "$exe" "$lod" 15 | tee /dev/stderr | grep RESULT >> "$GITHUB_STEP_SUMMARY"
+            out=$("$exe" "$lod" 15)
+            echo "$out"
+            echo "$out" | grep RESULT >> "$GITHUB_STEP_SUMMARY"
           done
           echo '```' >> "$GITHUB_STEP_SUMMARY"
