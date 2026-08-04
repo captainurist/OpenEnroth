@@ -27,12 +27,6 @@ class EvtProgram {
     }
 
     /**
-     * @param eventId                   Event id.
-     * @param step                      Step in the script to get event for.
-     * @return                          Reference to an instruction for the given `eventId` and `step`.
-     * @throws Exception                If the instruction doesn't exist for the provided `eventId` and `step`.
-     */
-    /**
      * @param eventId                   Event id to look up.
      * @param step                      Step to look up.
      * @return                          The requested instruction, or an error if there is no such event or step.
@@ -41,10 +35,10 @@ class EvtProgram {
 
     /**
      * @param eventId                   Event id.
-     * @return                          Reference to a list of events for the provided `eventId`.
-     * @throws Exception                If there are no events for the provided `eventId`.
+     * @return                          List of instructions for the provided `eventId`, or `nullptr` if there is
+     *                                  no such event.
      */
-    const std::vector<EvtInstruction> *function(int eventId) const; // Returns nullptr if there is no such event.
+    const std::vector<EvtInstruction> *function(int eventId) const;
 
     /**
      * @param triggerType               Event type to look for.

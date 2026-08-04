@@ -179,6 +179,12 @@ class [[nodiscard]] Result {
      * @param fallback                  Value to return if this `Result` holds an error.
      * @return                          The value held by this `Result`, or `fallback`.
      */
+    [[nodiscard]] T valueOr(T fallback) && {
+        if (!ok())
+            return fallback;
+        return *std::move(_impl);
+    }
+
     /**
      * Explicitly discards this `Result`, error and all.
      *
@@ -189,12 +195,6 @@ class [[nodiscard]] Result {
      * ```
      */
     void discard() && {}
-
-    [[nodiscard]] T valueOr(T fallback) && {
-        if (!ok())
-            return fallback;
-        return *std::move(_impl);
-    }
 
     /**
      * @param fmt                       Format string describing what the caller was doing.
