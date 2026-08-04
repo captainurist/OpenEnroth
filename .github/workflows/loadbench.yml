@@ -2,7 +2,7 @@ name: LoadBench
 
 # Cross-platform level-loading benchmark for the error handling migration, see ExceptionFreeErrorHandling.md.
 # Builds the LoadBench tool in Release, with and without LTO (/GL /LTCG on MSVC), runs it against games.lod, and
-# publishes the RESULT lines in the job summary.
+# publishes the RESULT lines in the job summary. Compare against local aarch64 numbers in ExceptionFreeErrorHandling.md.
 
 on:
   push:
