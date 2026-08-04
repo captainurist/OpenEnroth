@@ -16,10 +16,10 @@ struct BlobSerializer {
 
 template<class T>
 struct BlobDeserializer {
-    T operator()(const Blob &blob) const {
-        // TODO(captainurist): #exceptions This is a throwing bridge, port the callers to `Result`.
+    Result<T> operator()(const Blob &blob) const {
         T result;
-        deserialize(blob, &result).orThrow();
+        if (Result<void> status = deserialize(blob, &result); !status)
+            return std::move(status).error();
         return result;
     }
 };
@@ -27,10 +27,10 @@ struct BlobDeserializer {
 template<class T>
 struct StreamDeserializer {
     template<class... Tags>
-    T operator()(InputStream &src, const Tags &... tags) const {
-        // TODO(captainurist): #exceptions This is a throwing bridge, port the callers to `Result`.
+    Result<T> operator()(InputStream &src, const Tags &... tags) const {
         T val;
-        deserialize(src, &val, tags...).orThrow();
+        if (Result<void> status = deserialize(src, &val, tags...); !status)
+            return std::move(status).error();
         return val;
     }
 };

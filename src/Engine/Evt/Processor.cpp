@@ -94,7 +94,12 @@ static void registerTimerTriggers(EvtOpcode triggerType, std::vector<MapTimer> *
     triggers->clear();
     for (EventTrigger &trigger : timerTriggers) {
         MapTimer timer;
-        EvtInstruction ir = engine->_localEventMap.instruction(trigger.eventId, trigger.eventStep);
+        Result<EvtInstruction> maybeIr = engine->_localEventMap.instruction(trigger.eventId, trigger.eventStep);
+        if (!maybeIr) {
+            logger->error("Skipping timer trigger: {}", maybeIr.error());
+            continue;
+        }
+        EvtInstruction ir = *std::move(maybeIr);
 
         if (ir.data.timer_descr.alt_halfmin_interval) {
             // Alternative interval is defined in terms of half-minutes

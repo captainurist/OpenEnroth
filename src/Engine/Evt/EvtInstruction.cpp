@@ -840,20 +840,21 @@ std::string EvtInstruction::toString() const {
     return fmt::format("{}: UNPROCESSED/{}", step, ::toString(opcode));
 }
 
-EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
+Result<EvtInstruction> EvtInstruction::parse(InputStream &stream, size_t size) {
     // TODO(yoctozepto): zeroing-out the struct to prevent values from previous events from lingering;
     //                   this makes it slightly easier to spot uninitialised members but, since the 0s may have a proper meaning, not always;
     EvtInstruction ir = {};
 
-    ir.step = fromStream<uint8_t>(stream);
-    ir.opcode = EvtOpcode(fromStream<uint8_t>(stream));
+    ir.step = co_await fromStream<uint8_t>(stream);
+    ir.opcode = EvtOpcode(co_await fromStream<uint8_t>(stream));
 
     bool requireSizeCalled = false;
 
-    const auto requireSize = [&](size_t minSize) {
+    const auto requireSize = [&](size_t minSize) -> Result<void> {
         requireSizeCalled = true;
         if (size < minSize)
-            throw Exception("Invalid evt record size for event '{}': expected at least {} bytes, got {} bytes", ::toString(ir.opcode), minSize, size);
+            return fail("Invalid evt record size for event '{}': expected at least {} bytes, got {} bytes", ::toString(ir.opcode), minSize, size);
+        return {};
     };
 
     // TODO(captainurist): verify enum ranges here.
@@ -862,140 +863,140 @@ EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
 
     switch (ir.opcode) {
         case EVENT_Exit:
-            requireSize(6);
-            fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
+            co_await requireSize(6);
+            co_await fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
             break;
         case EVENT_SpeakInHouse:
-            requireSize(6);
-            ir.data.house_id = static_cast<HouseId>(fromStream<uint32_t>(stream));
+            co_await requireSize(6);
+            ir.data.house_id = static_cast<HouseId>(co_await fromStream<uint32_t>(stream));
             break;
         case EVENT_PlaySound:
-            requireSize(17);
-            ir.data.sound_descr.sound_id = static_cast<SoundId>(fromStream<uint32_t>(stream));  // TODO(yoctozepto): this downcasts a DWORD to WORD
-            ir.data.sound_descr.x = fromStream<uint32_t>(stream);
-            ir.data.sound_descr.y = fromStream<uint32_t>(stream);
+            co_await requireSize(17);
+            ir.data.sound_descr.sound_id = static_cast<SoundId>(co_await fromStream<uint32_t>(stream));  // TODO(yoctozepto): this downcasts a DWORD to WORD
+            ir.data.sound_descr.x = co_await fromStream<uint32_t>(stream);
+            ir.data.sound_descr.y = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_MouseOver:
-            requireSize(6);
-            ir.data.text_id = fromStream<uint8_t>(stream);
+            co_await requireSize(6);
+            ir.data.text_id = co_await fromStream<uint8_t>(stream);
             ir.step = -1; // Step duplicated for other command, so ignore it
             break;
         case EVENT_LocationName:  // TODO(yoctozepto): not present in used MM7 data
             ir.step = -1; // Step duplicated for other command, so ignore it
             break;
         case EVENT_MoveToMap:
-            requireSize(32);
-            ir.data.move_map_descr.x = fromStream<uint32_t>(stream);
-            ir.data.move_map_descr.y = fromStream<uint32_t>(stream);
-            ir.data.move_map_descr.z = fromStream<uint32_t>(stream);
-            ir.data.move_map_descr.yaw = fromStream<uint32_t>(stream);
-            ir.data.move_map_descr.pitch = fromStream<uint32_t>(stream);
-            ir.data.move_map_descr.zspeed = fromStream<uint32_t>(stream);
-            ir.data.move_map_descr.house_id = static_cast<HouseId>(fromStream<uint8_t>(stream)); // TODO(captainurist): Is this correct? Houses can have ids > 255.
-            ir.data.move_map_descr.exit_pic_id = fromStream<uint8_t>(stream);
-            ir.str = fromStream<std::string>(stream, tags::nullTerminated);
+            co_await requireSize(32);
+            ir.data.move_map_descr.x = co_await fromStream<uint32_t>(stream);
+            ir.data.move_map_descr.y = co_await fromStream<uint32_t>(stream);
+            ir.data.move_map_descr.z = co_await fromStream<uint32_t>(stream);
+            ir.data.move_map_descr.yaw = co_await fromStream<uint32_t>(stream);
+            ir.data.move_map_descr.pitch = co_await fromStream<uint32_t>(stream);
+            ir.data.move_map_descr.zspeed = co_await fromStream<uint32_t>(stream);
+            ir.data.move_map_descr.house_id = static_cast<HouseId>(co_await fromStream<uint8_t>(stream)); // TODO(captainurist): Is this correct? Houses can have ids > 255.
+            ir.data.move_map_descr.exit_pic_id = co_await fromStream<uint8_t>(stream);
+            ir.str = co_await fromStream<std::string>(stream, tags::nullTerminated);
             break;
         case EVENT_OpenChest:
-            requireSize(6);
-            ir.data.chest_id = fromStream<uint8_t>(stream);
+            co_await requireSize(6);
+            ir.data.chest_id = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_ShowFace:  // TODO(yoctozepto): not present in used MM7 data
-            requireSize(7);
-            ir.who = static_cast<EvtTargetCharacter>(fromStream<uint8_t>(stream));
-            ir.data.portrait_id = static_cast<PortraitId>(fromStream<uint8_t>(stream));
+            co_await requireSize(7);
+            ir.who = static_cast<EvtTargetCharacter>(co_await fromStream<uint8_t>(stream));
+            ir.data.portrait_id = static_cast<PortraitId>(co_await fromStream<uint8_t>(stream));
             break;
         case EVENT_ReceiveDamage:
-            requireSize(11);
-            ir.who = static_cast<EvtTargetCharacter>(fromStream<uint8_t>(stream));
-            ir.data.damage_descr.damage_type = static_cast<DamageType>(fromStream<uint8_t>(stream));
-            ir.data.damage_descr.damage = fromStream<uint32_t>(stream);
+            co_await requireSize(11);
+            ir.who = static_cast<EvtTargetCharacter>(co_await fromStream<uint8_t>(stream));
+            ir.data.damage_descr.damage_type = static_cast<DamageType>(co_await fromStream<uint8_t>(stream));
+            ir.data.damage_descr.damage = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_SetSnow:  // TODO(yoctozepto): not present in used MM7 data; likely present in MM6
-            requireSize(7);
-            ir.data.snow_descr.is_nop = fromStream<uint8_t>(stream);
-            ir.data.snow_descr.is_enable = fromStream<uint8_t>(stream);
+            co_await requireSize(7);
+            ir.data.snow_descr.is_nop = co_await fromStream<uint8_t>(stream);
+            ir.data.snow_descr.is_enable = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_SetTexture:
-            requireSize(10);
-            ir.data.sprite_texture_descr.cog = fromStream<uint32_t>(stream);
-            ir.str = fromStream<std::string>(stream, tags::nullTerminated);
+            co_await requireSize(10);
+            ir.data.sprite_texture_descr.cog = co_await fromStream<uint32_t>(stream);
+            ir.str = co_await fromStream<std::string>(stream, tags::nullTerminated);
             break;
         case EVENT_ShowMovie:
-            requireSize(8);
-            fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 1 in MM7 data, check MM6&8
-            ir.data.movie_unknown_field = fromStream<uint8_t>(stream);  // NOTE(yoctozepto): seems to be a boolean as it takes either 0 or 1 in MM7 data
-            ir.str = fromStream<std::string>(stream, tags::nullTerminated);
+            co_await requireSize(8);
+            co_await fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 1 in MM7 data, check MM6&8
+            ir.data.movie_unknown_field = co_await fromStream<uint8_t>(stream);  // NOTE(yoctozepto): seems to be a boolean as it takes either 0 or 1 in MM7 data
+            ir.str = co_await fromStream<std::string>(stream, tags::nullTerminated);
             break;
         case EVENT_SetSprite:
-            requireSize(11);
-            ir.data.sprite_texture_descr.cog = fromStream<uint32_t>(stream);
-            ir.data.sprite_texture_descr.hide = fromStream<uint8_t>(stream);
-            ir.str = fromStream<std::string>(stream, tags::nullTerminated);
+            co_await requireSize(11);
+            ir.data.sprite_texture_descr.cog = co_await fromStream<uint32_t>(stream);
+            ir.data.sprite_texture_descr.hide = co_await fromStream<uint8_t>(stream);
+            ir.str = co_await fromStream<std::string>(stream, tags::nullTerminated);
             break;
         case EVENT_Compare:
-            requireSize(11);
-            ir.data.variable_descr.type = static_cast<EvtVariable>(fromStream<uint16_t>(stream));
-            ir.data.variable_descr.value = fromStream<uint32_t>(stream);
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(11);
+            ir.data.variable_descr.type = static_cast<EvtVariable>(co_await fromStream<uint16_t>(stream));
+            ir.data.variable_descr.value = co_await fromStream<uint32_t>(stream);
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_ChangeDoorState:
-            requireSize(7);
-            ir.data.door_descr.door_id = fromStream<uint8_t>(stream);
-            ir.data.door_descr.door_action = static_cast<DoorAction>(fromStream<uint8_t>(stream));
+            co_await requireSize(7);
+            ir.data.door_descr.door_id = co_await fromStream<uint8_t>(stream);
+            ir.data.door_descr.door_action = static_cast<DoorAction>(co_await fromStream<uint8_t>(stream));
             break;
         case EVENT_Add:
         case EVENT_Subtract:
         case EVENT_Set:
-            requireSize(8);
-            ir.data.variable_descr.type = static_cast<EvtVariable>(fromStream<uint16_t>(stream));
-            ir.data.variable_descr.value = fromStream<uint32_t>(stream);
+            co_await requireSize(8);
+            ir.data.variable_descr.type = static_cast<EvtVariable>(co_await fromStream<uint16_t>(stream));
+            ir.data.variable_descr.value = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_SummonMonsters:
-            requireSize(28);
-            ir.data.monster_descr.type = fromStream<uint8_t>(stream);
-            ir.data.monster_descr.level = fromStream<uint8_t>(stream);
-            ir.data.monster_descr.count = fromStream<uint8_t>(stream);
-            ir.data.monster_descr.x = fromStream<uint32_t>(stream);
-            ir.data.monster_descr.y = fromStream<uint32_t>(stream);
-            ir.data.monster_descr.z = fromStream<uint32_t>(stream);
-            ir.data.monster_descr.group = fromStream<uint32_t>(stream);
-            ir.data.monster_descr.name_id = fromStream<uint32_t>(stream);
+            co_await requireSize(28);
+            ir.data.monster_descr.type = co_await fromStream<uint8_t>(stream);
+            ir.data.monster_descr.level = co_await fromStream<uint8_t>(stream);
+            ir.data.monster_descr.count = co_await fromStream<uint8_t>(stream);
+            ir.data.monster_descr.x = co_await fromStream<uint32_t>(stream);
+            ir.data.monster_descr.y = co_await fromStream<uint32_t>(stream);
+            ir.data.monster_descr.z = co_await fromStream<uint32_t>(stream);
+            ir.data.monster_descr.group = co_await fromStream<uint32_t>(stream);
+            ir.data.monster_descr.name_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_CastSpell:
-            requireSize(32);
-            ir.data.spell_descr.spell_id = static_cast<SpellId>(fromStream<uint8_t>(stream));
-            ir.data.spell_descr.spell_mastery = static_cast<Mastery>(fromStream<uint8_t>(stream) + 1);  // TODO(yoctozepto): why add 1? it is not done with Event_CheckSkill
-            ir.data.spell_descr.spell_level = fromStream<uint8_t>(stream);
-            ir.data.spell_descr.fromx = fromStream<uint32_t>(stream);
-            ir.data.spell_descr.fromy = fromStream<uint32_t>(stream);
-            ir.data.spell_descr.fromz = fromStream<uint32_t>(stream);
-            ir.data.spell_descr.tox = fromStream<uint32_t>(stream);
-            ir.data.spell_descr.toy = fromStream<uint32_t>(stream);
-            ir.data.spell_descr.toz = fromStream<uint32_t>(stream);
+            co_await requireSize(32);
+            ir.data.spell_descr.spell_id = static_cast<SpellId>(co_await fromStream<uint8_t>(stream));
+            ir.data.spell_descr.spell_mastery = static_cast<Mastery>(co_await fromStream<uint8_t>(stream) + 1);  // TODO(yoctozepto): why add 1? it is not done with Event_CheckSkill
+            ir.data.spell_descr.spell_level = co_await fromStream<uint8_t>(stream);
+            ir.data.spell_descr.fromx = co_await fromStream<uint32_t>(stream);
+            ir.data.spell_descr.fromy = co_await fromStream<uint32_t>(stream);
+            ir.data.spell_descr.fromz = co_await fromStream<uint32_t>(stream);
+            ir.data.spell_descr.tox = co_await fromStream<uint32_t>(stream);
+            ir.data.spell_descr.toy = co_await fromStream<uint32_t>(stream);
+            ir.data.spell_descr.toz = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_SpeakNPC:
-            requireSize(9);
-            ir.data.npc_descr.npc_id = fromStream<uint32_t>(stream);
+            co_await requireSize(9);
+            ir.data.npc_descr.npc_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_SetFacesBit:
-            requireSize(14);
-            ir.data.faces_bit_descr.cog = fromStream<uint32_t>(stream);
-            ir.data.faces_bit_descr.face_bit = static_cast<FaceAttribute>(fromStream<uint32_t>(stream));
-            ir.data.faces_bit_descr.is_on = fromStream<uint8_t>(stream);
+            co_await requireSize(14);
+            ir.data.faces_bit_descr.cog = co_await fromStream<uint32_t>(stream);
+            ir.data.faces_bit_descr.face_bit = static_cast<FaceAttribute>(co_await fromStream<uint32_t>(stream));
+            ir.data.faces_bit_descr.is_on = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_ToggleActorFlag:  // TODO(yoctozepto): not present in used MM7 data
-            requireSize(14);
-            ir.data.actor_flag_descr.id = fromStream<uint32_t>(stream);
-            ir.data.actor_flag_descr.attr = static_cast<ActorAttribute>(fromStream<uint32_t>(stream));
-            ir.data.actor_flag_descr.is_set = fromStream<uint8_t>(stream);
+            co_await requireSize(14);
+            ir.data.actor_flag_descr.id = co_await fromStream<uint32_t>(stream);
+            ir.data.actor_flag_descr.attr = static_cast<ActorAttribute>(co_await fromStream<uint32_t>(stream));
+            ir.data.actor_flag_descr.is_set = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_RandomGoTo:
-            requireSize(11);
+            co_await requireSize(11);
             {
                 auto &rgt = ir.data.random_goto_descr;
                 rgt.random_goto_len = 0;
                 for (int i = 0; i < rgt.random_goto.size(); i++) {
-                    rgt.random_goto[i] = fromStream<uint8_t>(stream);
+                    rgt.random_goto[i] = co_await fromStream<uint8_t>(stream);
                     if (rgt.random_goto[i] > 0) {
                         rgt.random_goto_len++;
                     }
@@ -1006,138 +1007,138 @@ EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
             }
             break;
         case EVENT_InputString:  // TODO(yoctozepto): not present in used MM7 data; likely present in MM8 (e.g., Escaton's riddles)
-            requireSize(9);
-            ir.data.text_id = fromStream<uint32_t>(stream);
+            co_await requireSize(9);
+            ir.data.text_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_StatusText:
-            requireSize(9);
-            ir.data.text_id = fromStream<uint32_t>(stream);
+            co_await requireSize(9);
+            ir.data.text_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_ShowMessage:
-            requireSize(9);
-            ir.data.text_id = fromStream<uint32_t>(stream);
+            co_await requireSize(9);
+            ir.data.text_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_OnTimer:
         case EVENT_OnLongTimer:
-            requireSize(15);
-            ir.data.timer_descr.is_yearly = fromStream<uint8_t>(stream);
-            ir.data.timer_descr.is_monthly = fromStream<uint8_t>(stream);
-            ir.data.timer_descr.is_weekly = fromStream<uint8_t>(stream);
-            ir.data.timer_descr.daily_start_hour = fromStream<uint8_t>(stream);
-            ir.data.timer_descr.daily_start_minute = fromStream<uint8_t>(stream);
-            ir.data.timer_descr.daily_start_second = fromStream<uint8_t>(stream);
-            ir.data.timer_descr.alt_halfmin_interval = fromStream<uint16_t>(stream);
-            fromStream<uint16_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
+            co_await requireSize(15);
+            ir.data.timer_descr.is_yearly = co_await fromStream<uint8_t>(stream);
+            ir.data.timer_descr.is_monthly = co_await fromStream<uint8_t>(stream);
+            ir.data.timer_descr.is_weekly = co_await fromStream<uint8_t>(stream);
+            ir.data.timer_descr.daily_start_hour = co_await fromStream<uint8_t>(stream);
+            ir.data.timer_descr.daily_start_minute = co_await fromStream<uint8_t>(stream);
+            ir.data.timer_descr.daily_start_second = co_await fromStream<uint8_t>(stream);
+            ir.data.timer_descr.alt_halfmin_interval = co_await fromStream<uint16_t>(stream);
+            co_await fromStream<uint16_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
             break;
         case EVENT_ToggleIndoorLight:
-            requireSize(10);
-            ir.data.light_descr.light_id = fromStream<uint32_t>(stream);
-            ir.data.light_descr.is_enable = fromStream<uint8_t>(stream);
+            co_await requireSize(10);
+            ir.data.light_descr.light_id = co_await fromStream<uint32_t>(stream);
+            ir.data.light_descr.is_enable = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_PressAnyKey:  // TODO(yoctozepto): not present in used MM7 data
             // Nothing?
             break;
         case EVENT_SummonItem:  // TODO(yoctozepto): not present in used MM7 data
-            requireSize(27);
-            ir.data.summon_item_descr.sprite = static_cast<SpriteId>(fromStream<uint32_t>(stream));  // TODO(yoctozepto): this downcasts a DWORD to WORD
-            ir.data.summon_item_descr.x = fromStream<uint32_t>(stream);
-            ir.data.summon_item_descr.y = fromStream<uint32_t>(stream);
-            ir.data.summon_item_descr.z = fromStream<uint32_t>(stream);
-            ir.data.summon_item_descr.speed = fromStream<uint32_t>(stream);
-            ir.data.summon_item_descr.count = fromStream<uint8_t>(stream);
-            ir.data.summon_item_descr.random_rotate = fromStream<uint8_t>(stream);
+            co_await requireSize(27);
+            ir.data.summon_item_descr.sprite = static_cast<SpriteId>(co_await fromStream<uint32_t>(stream));  // TODO(yoctozepto): this downcasts a DWORD to WORD
+            ir.data.summon_item_descr.x = co_await fromStream<uint32_t>(stream);
+            ir.data.summon_item_descr.y = co_await fromStream<uint32_t>(stream);
+            ir.data.summon_item_descr.z = co_await fromStream<uint32_t>(stream);
+            ir.data.summon_item_descr.speed = co_await fromStream<uint32_t>(stream);
+            ir.data.summon_item_descr.count = co_await fromStream<uint8_t>(stream);
+            ir.data.summon_item_descr.random_rotate = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_ForPartyMember:
-            requireSize(6);
-            ir.who = static_cast<EvtTargetCharacter>(fromStream<uint8_t>(stream));
+            co_await requireSize(6);
+            ir.who = static_cast<EvtTargetCharacter>(co_await fromStream<uint8_t>(stream));
             break;
         case EVENT_Jmp:
-            requireSize(6);
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(6);
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_OnMapReload:
-            requireSize(6);
-            fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
+            co_await requireSize(6);
+            co_await fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
             break;
         case EVENT_SetNPCTopic:
-            requireSize(14);
-            ir.data.npc_topic_descr.npc_id = fromStream<uint32_t>(stream);
-            ir.data.npc_topic_descr.index = fromStream<uint8_t>(stream);
-            ir.data.npc_topic_descr.event_id = fromStream<uint32_t>(stream);
+            co_await requireSize(14);
+            ir.data.npc_topic_descr.npc_id = co_await fromStream<uint32_t>(stream);
+            ir.data.npc_topic_descr.index = co_await fromStream<uint8_t>(stream);
+            ir.data.npc_topic_descr.event_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_MoveNPC:
-            requireSize(10);
-            ir.data.npc_move_descr.npc_id = fromStream<uint32_t>(stream);
-            ir.data.npc_move_descr.location_id = static_cast<HouseId>(fromStream<uint32_t>(stream));
+            co_await requireSize(10);
+            ir.data.npc_move_descr.npc_id = co_await fromStream<uint32_t>(stream);
+            ir.data.npc_move_descr.location_id = static_cast<HouseId>(co_await fromStream<uint32_t>(stream));
             break;
         case EVENT_GiveItem:
-            requireSize(11);
-            ir.data.give_item_descr.treasure_level = static_cast<ItemTreasureLevel>(fromStream<uint8_t>(stream));
-            ir.data.give_item_descr.treasure_type = static_cast<RandomItemType>(fromStream<uint8_t>(stream));
-            ir.data.give_item_descr.item_id = static_cast<ItemId>(fromStream<uint32_t>(stream));
+            co_await requireSize(11);
+            ir.data.give_item_descr.treasure_level = static_cast<ItemTreasureLevel>(co_await fromStream<uint8_t>(stream));
+            ir.data.give_item_descr.treasure_type = static_cast<RandomItemType>(co_await fromStream<uint8_t>(stream));
+            ir.data.give_item_descr.item_id = static_cast<ItemId>(co_await fromStream<uint32_t>(stream));
             break;
         case EVENT_ChangeEvent:
-            requireSize(9);
-            ir.data.event_id = fromStream<uint32_t>(stream);
+            co_await requireSize(9);
+            ir.data.event_id = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_CheckSkill:
-            requireSize(12);
-            ir.data.check_skill_descr.skill_type = static_cast<Skill>(fromStream<uint8_t>(stream));
-            ir.data.check_skill_descr.skill_mastery = static_cast<Mastery>(fromStream<uint8_t>(stream));
-            ir.data.check_skill_descr.skill_level = fromStream<uint32_t>(stream);
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(12);
+            ir.data.check_skill_descr.skill_type = static_cast<Skill>(co_await fromStream<uint8_t>(stream));
+            ir.data.check_skill_descr.skill_mastery = static_cast<Mastery>(co_await fromStream<uint8_t>(stream));
+            ir.data.check_skill_descr.skill_level = co_await fromStream<uint32_t>(stream);
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_OnCanShowDialogItemCmp:
-            requireSize(12);
-            ir.data.variable_descr.type = static_cast<EvtVariable>(fromStream<uint16_t>(stream));
-            ir.data.variable_descr.value = fromStream<uint32_t>(stream);
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(12);
+            ir.data.variable_descr.type = static_cast<EvtVariable>(co_await fromStream<uint16_t>(stream));
+            ir.data.variable_descr.value = co_await fromStream<uint32_t>(stream);
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_EndCanShowDialogItem:
-            requireSize(6);
-            fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
+            co_await requireSize(6);
+            co_await fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
             break;
         case EVENT_SetCanShowDialogItem:
-            requireSize(6);
-            ir.data.can_show_npc_dialogue = fromStream<uint8_t>(stream);
+            co_await requireSize(6);
+            ir.data.can_show_npc_dialogue = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_SetNPCGroupNews:
-            requireSize(13);
-            ir.data.npc_groups_descr.groups_id = fromStream<uint32_t>(stream);
-            ir.data.npc_groups_descr.group = fromStream<uint32_t>(stream);
+            co_await requireSize(13);
+            ir.data.npc_groups_descr.groups_id = co_await fromStream<uint32_t>(stream);
+            ir.data.npc_groups_descr.group = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_SetActorGroup:  // TODO(yoctozepto): not present in used MM7 data
             // TODO
             break;
         case EVENT_NPCSetItem:
         case EVENT_SetActorItem:
-            requireSize(14);
-            ir.data.npc_item_descr.id = fromStream<uint32_t>(stream);
-            ir.data.npc_item_descr.item = static_cast<ItemId>(fromStream<uint32_t>(stream));
-            ir.data.npc_item_descr.is_give = fromStream<uint8_t>(stream);
+            co_await requireSize(14);
+            ir.data.npc_item_descr.id = co_await fromStream<uint32_t>(stream);
+            ir.data.npc_item_descr.item = static_cast<ItemId>(co_await fromStream<uint32_t>(stream));
+            ir.data.npc_item_descr.is_give = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_SetNPCGreeting:
-            requireSize(13);
-            ir.data.npc_descr.npc_id = fromStream<uint32_t>(stream);
-            ir.data.npc_descr.greeting = fromStream<uint32_t>(stream);
+            co_await requireSize(13);
+            ir.data.npc_descr.npc_id = co_await fromStream<uint32_t>(stream);
+            ir.data.npc_descr.greeting = co_await fromStream<uint32_t>(stream);
             break;
         case EVENT_IsActorKilled:
-            requireSize(12);
-            ir.data.actor_descr.policy = static_cast<ActorKillCheckPolicy>(fromStream<uint8_t>(stream));
-            ir.data.actor_descr.param = fromStream<uint32_t>(stream);
-            ir.data.actor_descr.num = fromStream<uint8_t>(stream);
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(12);
+            ir.data.actor_descr.policy = static_cast<ActorKillCheckPolicy>(co_await fromStream<uint8_t>(stream));
+            ir.data.actor_descr.param = co_await fromStream<uint32_t>(stream);
+            ir.data.actor_descr.num = co_await fromStream<uint8_t>(stream);
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_CanShowTopic_IsActorKilled:  // TODO(yoctozepto): not present in used MM7 data
-            requireSize(12);
-            ir.data.actor_descr.policy = static_cast<ActorKillCheckPolicy>(fromStream<uint8_t>(stream));
-            ir.data.actor_descr.param = fromStream<uint32_t>(stream);
-            ir.data.actor_descr.num = fromStream<uint8_t>(stream);
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(12);
+            ir.data.actor_descr.policy = static_cast<ActorKillCheckPolicy>(co_await fromStream<uint8_t>(stream));
+            ir.data.actor_descr.param = co_await fromStream<uint32_t>(stream);
+            ir.data.actor_descr.num = co_await fromStream<uint8_t>(stream);
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_OnMapLeave:
-            requireSize(6);
-            fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
+            co_await requireSize(6);
+            co_await fromStream<uint8_t>(stream);  // TODO(yoctozepto): always 0 in MM7 data, check MM6&8
             break;
         case EVENT_ChangeGroup:  // TODO(yoctozepto): not present in used MM7 data
             // TODO
@@ -1146,26 +1147,26 @@ EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
             // TODO
             break;
         case EVENT_CheckSeason:
-            requireSize(7);
-            ir.data.season = static_cast<Season>(fromStream<uint8_t>(stream));
-            ir.target_step = fromStream<uint8_t>(stream);
+            co_await requireSize(7);
+            ir.data.season = static_cast<Season>(co_await fromStream<uint8_t>(stream));
+            ir.target_step = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_ToggleActorGroupFlag:
-            requireSize(14);
-            ir.data.actor_flag_descr.id = fromStream<uint32_t>(stream);
-            ir.data.actor_flag_descr.attr = ActorAttribute(fromStream<uint32_t>(stream));
-            ir.data.actor_flag_descr.is_set = fromStream<uint8_t>(stream);
+            co_await requireSize(14);
+            ir.data.actor_flag_descr.id = co_await fromStream<uint32_t>(stream);
+            ir.data.actor_flag_descr.attr = ActorAttribute(co_await fromStream<uint32_t>(stream));
+            ir.data.actor_flag_descr.is_set = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_ToggleChestFlag:
-            requireSize(14);
-            ir.data.chest_flag_descr.chest_id = fromStream<uint32_t>(stream);
-            ir.data.chest_flag_descr.flag = (ChestFlag)fromStream<uint32_t>(stream);  // TODO(yoctozepto): this downcasts a DWORD to WORD
-            ir.data.chest_flag_descr.is_set = fromStream<uint8_t>(stream);
+            co_await requireSize(14);
+            ir.data.chest_flag_descr.chest_id = co_await fromStream<uint32_t>(stream);
+            ir.data.chest_flag_descr.flag = (ChestFlag)co_await fromStream<uint32_t>(stream);  // TODO(yoctozepto): this downcasts a DWORD to WORD
+            ir.data.chest_flag_descr.is_set = co_await fromStream<uint8_t>(stream);
             break;
         case EVENT_CharacterAnimation:
-            requireSize(7);
-            ir.who = static_cast<EvtTargetCharacter>(fromStream<uint8_t>(stream));
-            ir.data.speech_id = static_cast<SpeechId>(fromStream<uint8_t>(stream));
+            co_await requireSize(7);
+            ir.who = static_cast<EvtTargetCharacter>(co_await fromStream<uint8_t>(stream));
+            ir.data.speech_id = static_cast<SpeechId>(co_await fromStream<uint8_t>(stream));
             break;
         case EVENT_OnDateTimer:  // TODO(yoctozepto): not present in used MM7 data
             // TODO
@@ -1192,14 +1193,14 @@ EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
             // TODO
             break;
         default:
-            throw Exception("Unknown evt type: {}", static_cast<uint8_t>(ir.opcode));
+            co_return fail("Unknown evt type: {}", static_cast<uint8_t>(ir.opcode));
             break;
     }
 
     assert(requireSizeCalled && "please report");
 
     if (stream.position() != stream.size())
-        throw Exception("{}", binarySerializationLeftoverDataError(stream.position(), stream.size() - stream.position(), typeid(EvtInstruction).name()).message()); // TODO(captainurist): #exceptions Port EvtInstruction::parse to Result.
+        co_return binarySerializationLeftoverDataError(stream.position(), stream.size() - stream.position(), typeid(EvtInstruction).name());
 
-    return ir;
+    co_return ir;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
 #include <array>
 #include <string>
 
@@ -19,7 +20,7 @@ class InputStream;
 class EvtInstruction {
  public:
     std::string toString() const;
-    static EvtInstruction parse(InputStream &stream, size_t size);
+    static Result<EvtInstruction> parse(InputStream &stream, size_t size);
 
     EvtOpcode opcode = EVENT_Invalid;
     int step = 0;

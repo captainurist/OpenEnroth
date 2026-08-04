@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -15,7 +16,7 @@ struct EventTrigger {
 
 class EvtProgram {
  public:
-    static EvtProgram load(const Blob &rawData);
+    static Result<EvtProgram> load(const Blob &rawData);
 
     void add(int eventId, EvtInstruction ir);
     void clear();
@@ -30,14 +31,19 @@ class EvtProgram {
      * @return                          Reference to an instruction for the given `eventId` and `step`.
      * @throws Exception                If the instruction doesn't exist for the provided `eventId` and `step`.
      */
-    const EvtInstruction &instruction(int eventId, int step) const;
+    /**
+     * @param eventId                   Event id to look up.
+     * @param step                      Step to look up.
+     * @return                          The requested instruction, or an error if there is no such event or step.
+     */
+    Result<EvtInstruction> instruction(int eventId, int step) const;
 
     /**
      * @param eventId                   Event id.
      * @return                          Reference to a list of events for the provided `eventId`.
      * @throws Exception                If there are no events for the provided `eventId`.
      */
-    const std::vector<EvtInstruction>& function(int eventId) const;
+    const std::vector<EvtInstruction> *function(int eventId) const; // Returns nullptr if there is no such event.
 
     /**
      * @param triggerType               Event type to look for.

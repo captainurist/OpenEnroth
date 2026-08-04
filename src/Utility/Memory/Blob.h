@@ -112,19 +112,19 @@ class Blob final {
     /**
      * @param file                      File to read from.
      * @param size                      Number of bytes to read.
-     * @return                          Blob that owns the data that was read from the provided file.
-     * @throws Exception                If the provided number of bytes couldn't be read.
+     * @return                          Blob that owns the data that was read from the provided file, or an error if
+     *                                  the provided number of bytes couldn't be read.
      */
-    [[nodiscard]] static Blob read(FILE *file, size_t size);
+    [[nodiscard]] static Result<Blob> read(FILE *file, size_t size);
 
     /**
      * @param stream                    Stream to read from.
      * @param size                      Number of bytes to read.
-     * @return                          Blob that owns the data that was read from the provided file, with display path
-     *                                  set to the display path of the passed stream.
-     * @throws Exception                If the provided number of bytes couldn't be read.
+     * @return                          Blob that owns the data that was read from the provided stream, with display
+     *                                  path set to the display path of the passed stream - or an error if the
+     *                                  provided number of bytes couldn't be read.
      */
-    [[nodiscard]] static Blob read(InputStream *stream, size_t size);
+    [[nodiscard]] static Result<Blob> read(InputStream *stream, size_t size);
 
     /**
      * @param l                         First blob.

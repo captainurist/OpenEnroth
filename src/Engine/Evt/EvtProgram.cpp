@@ -19,7 +19,7 @@
 #include "Utility/MapAccess.h"
 #include "Utility/Exception.h"
 
-EvtProgram EvtProgram::load(const Blob &rawData) {
+Result<EvtProgram> EvtProgram::load(const Blob &rawData) {
     EvtProgram result;
 
     const uint8_t *pos = reinterpret_cast<const uint8_t *>(rawData.data());
@@ -27,16 +27,16 @@ EvtProgram EvtProgram::load(const Blob &rawData) {
     while (pos < end) {
         size_t size = *pos + 1; // +1 because we also count the size byte.
         if (size < 5)
-            throw Exception("Invalid evt record size: expected at least {}, got {}", 5, size);
+            co_return fail("Invalid evt record size: expected at least {}, got {}", 5, size);
         if (pos + size > end)
-            throw Exception("Encountered corrupted evt binary data");
+            co_return fail("Encountered corrupted evt binary data");
         MemoryInputStream stream(pos + 1, size - 1); // offset is 1 because we are skipping the `size` byte - it was already read
-        uint16_t eventId = fromStream<uint16_t>(stream);
-        result.add(eventId, EvtInstruction::parse(stream, size));
+        uint16_t eventId = co_await fromStream<uint16_t>(stream);
+        result.add(eventId, co_await EvtInstruction::parse(stream, size));
         pos += size;
     }
 
-    return result;
+    co_return result;
 }
 
 void EvtProgram::add(int eventId, EvtInstruction ir) {
@@ -47,18 +47,16 @@ void EvtProgram::clear() {
     _eventsById.clear();
 }
 
-const EvtInstruction &EvtProgram::instruction(int eventId, int step) const {
-    for (const EvtInstruction &ir : function(eventId))
-        if (ir.step == step)
-            return ir;
-    throw Exception("Event {}:{} not found", eventId, step);
+Result<EvtInstruction> EvtProgram::instruction(int eventId, int step) const {
+    if (const std::vector<EvtInstruction> *instructions = function(eventId))
+        for (const EvtInstruction &ir : *instructions)
+            if (ir.step == step)
+                return ir;
+    return fail("Event {}:{} not found", eventId, step);
 }
 
-const std::vector<EvtInstruction>& EvtProgram::function(int eventId) const {
-    const auto *result = valuePtr(_eventsById, eventId);
-    if (!result)
-        throw Exception("Event {} not found", eventId);
-    return *result;
+const std::vector<EvtInstruction> *EvtProgram::function(int eventId) const {
+    return valuePtr(_eventsById, eventId);
 }
 
 std::vector<EventTrigger> EvtProgram::enumerateTriggers(EvtOpcode triggerType) {

@@ -744,7 +744,7 @@ void Engine::SecondaryInitialization() {
     initializeMessageScrolls(engine->resources()->eventsData("scroll.txt").mustSucceed());
     initializeChests();
 
-    engine->_globalEventMap = EvtProgram::load(engine->resources()->eventsData("global.evt").mustSucceed());
+    engine->_globalEventMap = EvtProgram::load(engine->resources()->eventsData("global.evt").mustSucceed()).mustSucceed();
 
     pBitmaps_LOD->reserveLoadedTextures();
     pSprites_LOD->reserveLoadedSprites();
@@ -1435,7 +1435,9 @@ void loadMapEventsAndStrings(MapId mapid) {
 
     initLevelStrings(engine->resources()->eventsData(fmt::format("{}.str", mapNameWithoutExt)).mustSucceed());
 
-    engine->_localEventMap = EvtProgram::load(engine->resources()->eventsData(fmt::format("{}.evt", mapNameWithoutExt)).mustSucceed());
+    // TODO(captainurist): #exceptions A corrupt map script should bounce the player back to the main menu with an
+    //                     error message, not kill the process.
+    engine->_localEventMap = EvtProgram::load(engine->resources()->eventsData(fmt::format("{}.evt", mapNameWithoutExt)).mustSucceed()).mustSucceed();
 }
 
 bool _44100D_should_alter_right_panel() {

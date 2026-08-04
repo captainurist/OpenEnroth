@@ -80,7 +80,7 @@ UNIT_TEST(Blob, DisplayPathFromStream) {
     FileInputStream in;
 
     ASSERT_TRUE(in.open("1.bin"));
-    std::string displayPath = Blob::read(&in, 2).displayPath();
+    std::string displayPath = Blob::read(&in, 2).orThrow().displayPath();
     EXPECT_TRUE(displayPath.ends_with("1.bin"));
     EXPECT_TRUE(std::filesystem::path(displayPath).is_absolute());
 }

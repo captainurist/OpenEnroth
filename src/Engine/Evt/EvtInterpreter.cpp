@@ -646,9 +646,8 @@ void EvtInterpreter::prepare(const EvtProgram &eventMap, int eventId, Pid object
     _objectPid = objectPid;
 
     _events.clear();
-    if (eventMap.hasEvent(eventId)) {
-        _events = eventMap.function(eventId);
-    }
+    if (const std::vector<EvtInstruction> *events = eventMap.function(eventId))
+        _events = *events;
 }
 
 bool EvtInterpreter::isValid() {

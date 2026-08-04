@@ -20,7 +20,7 @@ src/Engine/Components/Trace/            10  # Test instrumentation, not shipped 
 # The remnants of the exception island. The (de)serialization layer itself is exception-free now (option D,
 # see ExceptionFreeErrorHandling.md §3) - what still throws is the streams underneath it, and those throws are
 # absorbed into an `Error` by the innermost enclosing coroutine.
-src/Utility/                             5  # Exception.cpp, Result::orThrow, one Blob file-API bridge. Streams and UnicodeCrt are at 0.
+src/Utility/                             4  # Exception.cpp helpers and Result::orThrow - the sanctioned bridge. Everything else is at 0.
 
 # Not yet ported. Every one of these is a TODO – see the migration plan in ExceptionFreeErrorHandling.md.
 src/Engine/Evt/                          8  # Event script decoding, incl. the EvtInstruction::parse bridge.

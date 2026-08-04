@@ -10,7 +10,6 @@
 #include <mio/mmap.hpp>
 
 #include "Utility/Streams/FileInputStream.h"
-#include "Utility/Exception.h"
 
 #include "FreeDeleter.h"
 
@@ -102,7 +101,7 @@ Blob Blob::view(std::string_view data) {
     return view(data.data(), data.size());
 }
 
-Blob Blob::read(FILE *file, size_t size) {
+Result<Blob> Blob::read(FILE *file, size_t size) {
     if (size == 0)
         return Blob();
 
@@ -110,17 +109,18 @@ Blob Blob::read(FILE *file, size_t size) {
 
     size_t read = fread(memory.get(), size, 1, file);
     if (read != 1)
-        throw Exception("Failed to read {} bytes from file", size);
+        return fail("Failed to read {} bytes from file", size);
 
     return fromMalloc(std::move(memory), size);
 }
 
-Blob Blob::read(InputStream *stream, size_t size) {
+Result<Blob> Blob::read(InputStream *stream, size_t size) {
     if (size == 0)
         return Blob();
 
     std::unique_ptr<void, FreeDeleter> memory(malloc(size));
-    stream->readOrFail(memory.get(), size).orThrow(); // TODO(captainurist): #exceptions Blob file API still throws.
+    if (Result<void> result = stream->readOrFail(memory.get(), size); !result)
+        return std::move(result).error();
     return fromMalloc(std::move(memory), size).withDisplayPath(stream->displayPath());
 }
 
