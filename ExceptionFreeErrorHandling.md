@@ -261,7 +261,7 @@ templates.
 * **Failure semantics**: better than A/B — the reader zero-fills unread output, so a failed parse yields a
   well-defined (if meaningless) object rather than a partially-written one.
 
-### Option D — coroutines: `co_await` as the `?` operator
+### Option D — coroutines: `co_await` as the `?` operator *(chosen direction)*
 
 C++20 coroutines can express Rust's `?` exactly, and it has the nicest syntax of all the options — deserializer
 bodies keep their shape, with a keyword prefix instead of a macro wrapper:
@@ -284,58 +284,84 @@ Result<IndoorDelta_MM7> loadDelta(const Blob &blob) {
 ```
 
 `co_await someResult` either yields the value, or writes the error into the caller-side `Result` and destroys the
-coroutine on the spot (running the destructors of its locals). The machinery is ~70 lines added to `Result`: a
+coroutine on the spot (running the destructors of its locals). **The machinery is now part of `Result`** — a
 nested `promise_type` with `initial_suspend`/`final_suspend` both `suspend_never` (so the body runs synchronously
 and the frame is freed on completion), an `await_transform` whose awaiter calls `handle.destroy()` on error, and
 one extra `Result` constructor that lets `get_return_object` register the caller-side address (mandatory copy
-elision guarantees it's the real one). A full compiling prototype with correctness tests exists; everything works:
-short-circuiting, mid-body destructor execution, coroutines awaiting coroutines, and — a genuinely nice touch —
+elision guarantees it's the real one). Everything works and is unit-tested: short-circuiting, mid-body destructor
+execution, coroutines awaiting coroutines, move-only payloads, and — a genuinely nice touch —
 `unhandled_exception()` gives you `tryCatch` for free, so a throwing call inside a coroutine body becomes an
-`Error` with zero extra syntax.
+`Error` with zero extra syntax. From the outside a `Result` coroutine is indistinguishable from a plain function:
+non-coroutine callers just call it and get a finished `Result` back.
 
-Why it's still not recommended — measured, not guessed (GCC 15, `-O2`, a deserializer-shaped function doing ten
-fallible calls in a loop):
+#### Performance, measured (GCC 15, `-O2`)
+
+The naive version heap-allocated one frame per call — GCC does no HALO frame elision in practice, MSVC rarely.
+Fixed with **pooled frames**: the compiler looks up `operator new` in the promise type's scope, so a ~40-line
+thread-local bump arena on the promise base is the entire change — nothing outside the machinery is affected.
+These coroutines are fully synchronous (`suspend_never` on both ends), so frames alloc/free in strict LIFO order
+even on the error path; a bump pointer with an LIFO assert is provably sufficient.
+
+Deserializer-shaped microbenchmark, ten fallible calls per function:
 
 | | ns/call | heap allocations/call |
 | --- | ---: | ---: |
 | `MM_TRY` version | 12.5 | 0 |
-| `co_await` version | 25 | 1 (112-byte frame) |
-| `co_await` + pooled frames | 19 | 0 |
+| `co_await`, naive | 25 | 1 (112-byte frame) |
+| `co_await`, pooled frames | 20 | 0 |
 
-* **Every coroutine call heap-allocates its frame.** GCC does not do HALO frame elision in practice, MSVC rarely;
-  a level load performs tens of thousands of deserialize calls, all on the critical path.
-* **Pooling recovers most, not all, of that.** The frame allocation can be redirected without touching a single
-  line outside the machinery: the compiler looks up `operator new` in the promise type's scope, so a ~30-line
-  thread-local bump arena on the promise base class is the entire change. And because these coroutines are fully
-  synchronous (`suspend_never` on both ends), frames are allocated and freed in strict LIFO order even on the
-  error path — a bump pointer with an LIFO assert is provably sufficient. That gets allocations to zero, but the
-  remaining ~1.5× gap is frame setup/teardown and the optimizer losing visibility through the coroutine
-  transformation, and that part doesn't go away.
-* **Function coloring.** A body that uses `co_await` is a coroutine: plain `return` no longer compiles in it,
-  `MM_TRY` can't be used inside (it expands to `return`), and `co_return` always moves — no NRVO.
-* **Debuggability.** Stack traces grow `coroutine_handle::resume` thunks, locals live in heap frames, and the
-  destroy-in-`await_suspend` pattern is exactly the kind of cleverness that's miserable to step through. ASAN's
-  use-after-free detection around coroutine frames is also notoriously weak.
+Decomposing by varying the number of awaits per coroutine: the overhead is **~3.5–5 ns per frame** plus
+**~0.5–2 ns per `co_await`**. Micro-optimizations beyond pooling (constinit arena, reference-holding awaiter,
+noexcept annotations) measure as noise — the residual is frame setup/teardown and the optimizer losing
+cross-statement visibility through the coroutine transformation, and that part doesn't go away on today's GCC.
+Clang/AppleClang can elide frames entirely (HALO), so macOS will likely do better; MSVC is the open question and
+Windows CI is the gate.
 
-It's a real option — the syntax wins are real — but it buys a one-keyword improvement over `MM_TRY_VOID` at the
-cost of an allocation per deserializer call on the hottest loading path, on the compilers we actually ship with.
+What makes this affordable in practice is *where* the frames are. Leaf reads (memcopy structs, bulk
+`std::span`/vector payloads) are plain functions — no `co_await` inside, no frame. Only struct-level deserializers
+that sequence multiple fallible calls become coroutines. A level load runs on the order of 10⁴–10⁵ such calls, so
+the added cost is **~0.1–0.5 ms per load**, which is noise next to disk and zlib. The rule that keeps it that way:
+never write a per-element or per-byte coroutine; bulk paths stay plain.
+
+#### Footguns, documented in `Result.h` and pinned by tests
+
+* A `Result<void>` coroutine must end with `co_return {};`. Flowing off the end is formally UB, and
+  `-Werror=return-type` does **not** catch it. In practice our machinery surfaces it as an
+  `"internal: coroutine ended without co_return"` error rather than garbage — a unit test pins that behavior.
+* A coroutine body can't use plain `return` or `MM_TRY` — `co_await` / `co_return` replace both. `co_return`
+  accepts a value, `fail(...)`, or another `Result`, and always moves (no NRVO).
+* Never introduce a real suspension point — the frame arena relies on LIFO order and asserts on violations.
+* Debuggability is still coroutine debuggability: locals live in frames, backtraces grow resume thunks, and ASAN
+  is weak around frames. This is the price of the syntax.
 
 ### Considered and rejected
 
 * **Monadic chaining** (`and_then` pipelines) — unreadable, ruled out (see §2).
 
-### Recommendation
+### Decision and rollout
 
-**A is a perfectly good end state**, not just an interim: the island is small, bounded by the budget file, and
-invisible from outside — every public API is `Result`, and no exception crosses a library boundary. The
-determinism goal is met at the level where it matters.
+**Option D is the chosen direction** — the syntax won, and with pooled frames the measured cost on a realistic
+load is fractions of a millisecond. The coroutine machinery is in `Result.h`, unit-tested, and ready to use; the
+exception island (Option A) remains in place until the port lands, and the two coexist without friction — a
+coroutine is just another way to produce a `Result`.
 
-If we later decide exceptions must leave the parse layer too, **C is the cheapest way to get there** that doesn't
-tax every line of deserializer code — take it only if scoped deferred checking is acceptable. **B is the purist
-answer**; it buys "one mechanism everywhere" at the price of ~200 wrapped lines and a combinator rewrite. **D has
-the best syntax and the worst runtime** — an allocation per deserializer call rules it out for level loading unless
-compilers get reliable frame elision. None of this is urgent: A doesn't paint us into a corner, since switching
-means editing the serialization layer and the ~30 boundary functions, not the whole engine.
+Rollout order for the serialization layer:
+
+1. ~~Machinery in `Result` + tests.~~ Done.
+2. `Library/Binary`: leaf memcopy and bulk span/vector paths become plain functions returning `Result<void>`
+   (split from the looping paths via `requires` clauses — note that a `co_await` in a *discarded* `if constexpr`
+   branch still makes the function a coroutine, so the split must be at the overload level). Looping combinators
+   become coroutines.
+3. `Library/Snapshots` (`tags::via` / `tags::context` machinery) the same way.
+4. The ~50 struct-level deserializers: signatures go `void` → `Result<void>`, bodies get a `co_await` prefix per
+   line and a trailing `co_return {};`. Mechanical.
+5. Boundary functions drop their `tryCatch` wrappers; `tryDeserialize` becomes a plain alias and eventually
+   disappears.
+6. `InputStream::readOrFail` / `skipOrFail` / `readAsBlobOrFail` return `Result<void>` / `Result<Blob>`, and the
+   stream throws are gone — the island dissolves, and the budget entries for `src/Utility/` and
+   `src/Library/Binary/` ratchet down.
+7. **Windows CI is the gate.** MSVC coroutine codegen is the one thing we can't measure locally; if it's
+   pathological, the fallback is keeping Option A on the same public API, which stays unchanged either way.
 
 
 ## 4. What's been ported

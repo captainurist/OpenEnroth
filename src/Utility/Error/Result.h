@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cassert>
+#include <coroutine>
+#include <cstddef>
 #include <expected>
+#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -72,6 +75,8 @@ template<class T>
 class [[nodiscard]] Result {
     static_assert(!std::is_same_v<T, Error>, "Result<Error> doesn't make sense.");
  public:
+    struct promise_type; // Makes `Result<T> f() { co_return ...; }` a coroutine. See the coroutine docs below.
+
     Result(T value) : _impl(std::move(value)) {} // NOLINT(runtime/explicit): implicit conversion is intended.
     Result(Error error) : _impl(std::unexpect, std::move(error)) {} // NOLINT(runtime/explicit): same.
 
@@ -182,12 +187,18 @@ class [[nodiscard]] Result {
     }
 
  private:
+    friend promise_type;
+    explicit Result(promise_type *promise); // Coroutine machinery only.
+
+ private:
     std::expected<T, Error> _impl;
 };
 
 template<>
 class [[nodiscard]] Result<void> {
  public:
+    struct promise_type; // Makes `Result<> f() { co_return {}; }` a coroutine. See the coroutine docs below.
+
     Result() = default;
     Result(Error error) : _impl(std::unexpect, std::move(error)) {} // NOLINT(runtime/explicit): implicit is intended.
 
@@ -225,6 +236,10 @@ class [[nodiscard]] Result<void> {
             return {};
         return Result(std::move(_impl).error().withContext(fmt, std::forward<Args>(args)...));
     }
+
+ private:
+    friend promise_type;
+    explicit Result(promise_type *promise); // Coroutine machinery only.
 
  private:
     std::expected<void, Error> _impl;
@@ -356,3 +371,167 @@ template<class Callable>
  * @param ...                          Expression evaluating to a `Result`.
  */
 #define MM_TRY_VOID(...) MM_DETAIL_TRY_VOID(MM_DETAIL_TRY_TMP, __VA_ARGS__)
+
+
+//
+// Coroutine support: `co_await` as the `?` operator.
+//
+// A function returning `Result<T>` can be written as a coroutine. Inside such a function, `co_await someResult`
+// either produces the value, or ends the function right there with the error - the exact equivalent of `MM_TRY`,
+// as a language construct instead of a macro:
+//
+// ```
+// Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst) {
+//     co_await deserialize(src, &dst->header);
+//     co_await deserialize(src, &dst->visibleOutlines);
+//     co_return {};
+// }
+// ```
+//
+// These coroutines are fully synchronous: the body runs to completion (or is aborted by a failed `co_await`)
+// inside the call expression, so from the outside a coroutine is indistinguishable from a regular function - any
+// caller just gets a finished `Result` back. Coroutine frames are allocated from a thread-local LIFO arena, not
+// the heap.
+//
+// Rules of the road:
+// - `co_return` accepts anything a `Result` accepts: a value, `fail(...)`, or another `Result`. Void coroutines
+//   end with `co_return {};`.
+// - Don't forget that final `co_return {};` - flowing off the end of a `Result` coroutine is formally UB. In
+//   practice (and pinned by a unit test) the caller gets the "coroutine ended without co_return" internal error,
+//   but don't rely on it. Note that `-Werror=return-type` does NOT catch this.
+// - A coroutine body can't use plain `return` or `MM_TRY` - propagation is what `co_await` is for.
+// - Exceptions thrown inside the body are converted to an `Error` automatically, so a coroutine gets `tryCatch`
+//   semantics for free.
+// - An actual suspension point must never be introduced (no awaiting real async things) - the frame arena relies
+//   on strict LIFO allocation order, and asserts on it.
+//
+
+namespace detail {
+
+/**
+ * Thread-local arena for `Result` coroutine frames.
+ *
+ * `Result` coroutines are fully synchronous, so their frames are allocated and freed in strict LIFO order, even
+ * when an error aborts a coroutine mid-body - which makes a bump allocator sufficient. GCC and MSVC essentially
+ * never elide coroutine frame allocations, so without this every coroutine call would be a `malloc`.
+ */
+class ResultCoroutineArena {
+ public:
+    constexpr ResultCoroutineArena() = default;
+
+    void *allocate(std::size_t size) {
+        size = align(size);
+        if (_top + size > sizeof(_buffer)) [[unlikely]]
+            return ::operator new(size); // Arena overflow, fall back to the heap.
+        void *result = _buffer + _top;
+        _top += size;
+        return result;
+    }
+
+    void deallocate(void *ptr, std::size_t size) {
+        if (ptr < _buffer || ptr >= _buffer + sizeof(_buffer)) [[unlikely]] {
+            ::operator delete(ptr); // Was a heap fallback.
+            return;
+        }
+        size = align(size);
+        assert(static_cast<std::byte *>(ptr) == _buffer + _top - size && "Result coroutines must stay synchronous");
+        _top -= size;
+    }
+
+ private:
+    static std::size_t align(std::size_t size) {
+        return (size + 15) & ~std::size_t(15);
+    }
+
+ private:
+    alignas(16) std::byte _buffer[64 * 1024] = {}; // Zero-init lands in .tbss, so this costs nothing at runtime.
+    std::size_t _top = 0;
+};
+
+inline constinit thread_local ResultCoroutineArena resultCoroutineArena;
+
+/**
+ * The awaiter behind `co_await someResult`: either produces the value, or writes the error into the enclosing
+ * coroutine's caller-side `Result` and destroys the coroutine on the spot, running the destructors of its locals.
+ *
+ * Holds a reference - the awaited `Result` is a temporary of the `co_await` full-expression and outlives the
+ * awaiter.
+ */
+template<class U, class Out>
+struct ResultAwaiter {
+    Result<U> &awaited;
+    Out *out;
+
+    bool await_ready() const noexcept { return awaited.ok(); }
+
+    U await_resume() noexcept(std::is_nothrow_move_constructible_v<U>) { return *std::move(awaited); }
+
+    void await_suspend(std::coroutine_handle<> handle) noexcept {
+        *out = Out(std::move(awaited).error());
+        handle.destroy(); // `this` lives in the frame being destroyed - not another word about it past this line.
+    }
+};
+
+template<class Out>
+struct ResultAwaiter<void, Out> {
+    Result<void> &awaited;
+    Out *out;
+
+    bool await_ready() const noexcept { return awaited.ok(); }
+    void await_resume() noexcept {}
+
+    void await_suspend(std::coroutine_handle<> handle) noexcept {
+        *out = Out(std::move(awaited).error());
+        handle.destroy();
+    }
+};
+
+template<class Out>
+struct ResultPromiseBase {
+    Out *out = nullptr;
+
+    static void *operator new(std::size_t size) { return resultCoroutineArena.allocate(size); }
+    static void operator delete(void *ptr, std::size_t size) { resultCoroutineArena.deallocate(ptr, size); }
+
+    // Both suspend_never: the body runs synchronously inside the call expression, and the frame is freed the
+    // moment it completes.
+    std::suspend_never initial_suspend() const noexcept { return {}; }
+    std::suspend_never final_suspend() const noexcept { return {}; }
+
+    void unhandled_exception() { *out = Out(Error::fromCurrentException()); }
+
+    template<class U>
+    ResultAwaiter<U, Out> await_transform(Result<U> &&awaited) noexcept {
+        return {awaited, out};
+    }
+};
+
+// This is what the caller sees if a coroutine flows off the end without `co_return` - see the rules above.
+inline const Error resultCoroutineAbandonedError("internal: coroutine ended without co_return");
+
+} // namespace detail
+
+template<class T>
+struct Result<T>::promise_type : detail::ResultPromiseBase<Result<T>> {
+    Result get_return_object() noexcept { return Result(this); }
+
+    // Takes a Result, so `co_return value;`, `co_return fail(...);` and `co_return otherResult;` all work.
+    void return_value(Result value) noexcept(std::is_nothrow_move_constructible_v<T>) {
+        *this->out = std::move(value);
+    }
+};
+
+struct Result<void>::promise_type : detail::ResultPromiseBase<Result<void>> {
+    Result get_return_object() noexcept { return Result(this); }
+
+    void return_value(Result value) noexcept { *this->out = std::move(value); }
+};
+
+template<class T>
+Result<T>::Result(promise_type *promise) : _impl(std::unexpect, detail::resultCoroutineAbandonedError) {
+    promise->out = this; // Mandatory copy elision guarantees that `this` is the caller-side object.
+}
+
+inline Result<void>::Result(promise_type *promise) : _impl(std::unexpect, detail::resultCoroutineAbandonedError) {
+    promise->out = this;
+}

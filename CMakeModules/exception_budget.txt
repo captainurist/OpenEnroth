@@ -13,7 +13,7 @@
 src/Scripting/                          14  # sol2 turns C++ exceptions into Lua errors. That's the sanctioned bridge.
 src/Bin/                                 9  # Command-line tools. Top-level catch prints the message and exits.
 test/                                    2  # Test harness. GTest is built around exceptions.
-src/Utility/Error/Tests/                 4  # Tests for the exception <-> Result bridges have to throw something.
+src/Utility/Error/Tests/                 5  # Tests for the exception <-> Result bridges have to throw something.
 src/Engine/Components/Control/          11  # Test instrumentation, not shipped in the game loop.
 src/Engine/Components/Trace/            10  # Test instrumentation, not shipped in the game loop.
 

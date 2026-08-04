@@ -216,6 +216,93 @@ UNIT_TEST(Result, Discard) {
     discard(checkPositive(-1));
 }
 
+static int coroGuardsDestroyed = 0;
+
+namespace {
+struct CoroGuard {
+    ~CoroGuard() { coroGuardsDestroyed++; }
+};
+} // namespace
+
+static Result<int> sumPositiveCoro(int l, int r) {
+    CoroGuard guard; // Checks that locals are destroyed when an error aborts the coroutine.
+    int lv = co_await parsePositive(l);
+    int rv = co_await parsePositive(r);
+    co_return lv + rv;
+}
+
+static Result<void> checkPositiveCoro(int value) {
+    co_await parsePositive(value); // Coroutine awaiting a plain Result-returning function.
+    co_return {};
+}
+
+static Result<std::unique_ptr<int>> makeUniqueCoro(bool ok) {
+    if (!ok)
+        co_return fail("nope");
+    co_return std::make_unique<int>(42);
+}
+
+static Result<int> useUniqueCoro(bool ok) {
+    std::unique_ptr<int> value = co_await makeUniqueCoro(ok); // Coroutine awaiting a coroutine, move-only payload.
+    co_return *value;
+}
+
+static Result<int> throwingCoro() {
+    throw Exception("boom {}", 7); // Handled by the promise, becomes an Error.
+    co_return 1; // Unreachable, but its presence is what makes this function a coroutine.
+}
+
+static Result<void> forgottenCoReturnCoro() {
+    co_await Result<void>();
+    // Deliberately no `co_return {};` - this test documents the failure mode of a real bug class. Flowing off the
+    // end is formally UB, but both GCC and Clang compile it into "return_value was never called", which our
+    // machinery surfaces as the abandoned-coroutine error rather than as garbage.
+}
+
+UNIT_TEST(Result, CoroutineSuccess) {
+    coroGuardsDestroyed = 0;
+    Result<int> ok = sumPositiveCoro(1, 2);
+    ASSERT_TRUE(ok);
+    EXPECT_EQ(*ok, 3);
+    EXPECT_EQ(coroGuardsDestroyed, 1);
+
+    EXPECT_TRUE(checkPositiveCoro(5));
+}
+
+UNIT_TEST(Result, CoroutineErrorShortCircuits) {
+    coroGuardsDestroyed = 0;
+    Result<int> bad = sumPositiveCoro(1, -2);
+    ASSERT_FALSE(bad);
+    EXPECT_EQ(bad.error().message(), "'-2' is not a positive number");
+    EXPECT_EQ(coroGuardsDestroyed, 1); // Locals were destroyed when the failed co_await aborted the coroutine.
+}
+
+UNIT_TEST(Result, CoroutineReturnsFail) {
+    Result<std::unique_ptr<int>> bad = makeUniqueCoro(false);
+    ASSERT_FALSE(bad);
+    EXPECT_EQ(bad.error().message(), "nope");
+}
+
+UNIT_TEST(Result, CoroutineAwaitsCoroutine) {
+    Result<int> ok = useUniqueCoro(true);
+    ASSERT_TRUE(ok);
+    EXPECT_EQ(*ok, 42);
+
+    EXPECT_FALSE(useUniqueCoro(false));
+}
+
+UNIT_TEST(Result, CoroutineCatchesExceptions) {
+    Result<int> thrown = throwingCoro();
+    ASSERT_FALSE(thrown);
+    EXPECT_EQ(thrown.error().message(), "boom 7");
+}
+
+UNIT_TEST(Result, CoroutineFlowingOffTheEndIsAnError) {
+    Result<void> abandoned = forgottenCoReturnCoro();
+    ASSERT_FALSE(abandoned);
+    EXPECT_THAT(abandoned.error().message(), testing::HasSubstr("without co_return"));
+}
+
 UNIT_TEST(Result, SizeIsSmall) {
     // `Error` is a single shared_ptr, so `Result<T>` doesn't blow up in size. This is what makes it viable to return
     // `Result`s from hot-ish code.
