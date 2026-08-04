@@ -271,11 +271,11 @@ UNIT_TEST(LowercaseFileSystem, DisplayPath) {
 
     std::unique_ptr<InputStream> input = fs.openForReading("a/a");
     EXPECT_EQ(input->displayPath(), "ram://A/A");
-    input->close();
+    EXPECT_TRUE(input->close());
 
     std::unique_ptr<OutputStream> output = fs.openForWriting("a/a");
     EXPECT_EQ(output->displayPath(), "ram://A/A");
-    output->close();
+    EXPECT_TRUE(output->close());
 
     EXPECT_EQ(fs.displayPath("a/b/c"), "ram://A/b/c");
     EXPECT_EQ(fs.displayPath(""), "ram://");

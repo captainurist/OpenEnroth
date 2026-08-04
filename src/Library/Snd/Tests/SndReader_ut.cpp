@@ -22,7 +22,7 @@ static Blob makeSndBlob(int entryCount) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(entryCount), &stream);
+    EXPECT_TRUE(serialize(uint32_t(entryCount), &stream));
 
     for (int i = 0; i < entryCount; i++) {
         SndEntry_MM7 entry = {};
@@ -30,12 +30,12 @@ static Blob makeSndBlob(int entryCount) {
         entry.offset = headerSize + i * dataSize;
         entry.size = dataSize;
         entry.decompressedSize = 0; // Uncompressed.
-        serialize(entry, &stream);
+        EXPECT_TRUE(serialize(entry, &stream));
     }
 
     // Append dummy data.
-    stream.write(std::string(entryCount * dataSize, '\0'));
-    stream.close();
+    EXPECT_TRUE(stream.write(std::string(entryCount * dataSize, '\0')));
+    EXPECT_TRUE(stream.close());
     return result;
 }
 
@@ -50,8 +50,8 @@ UNIT_TEST(SndDetect, EmptyBlob) {
 UNIT_TEST(SndDetect, ZeroEntries) {
     Blob result;
     BlobOutputStream stream(&result);
-    serialize(uint32_t(0), &stream);
-    stream.close();
+    EXPECT_TRUE(serialize(uint32_t(0), &stream));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(snd::detect(result));
 }
 
@@ -59,8 +59,8 @@ UNIT_TEST(SndDetect, TruncatedHeader) {
     // Claim 1000 entries but provide only the count.
     Blob result;
     BlobOutputStream stream(&result);
-    serialize(uint32_t(1000), &stream);
-    stream.close();
+    EXPECT_TRUE(serialize(uint32_t(1000), &stream));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(snd::detect(result));
 }
 
@@ -68,17 +68,17 @@ UNIT_TEST(SndDetect, OffsetInsideHeader) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(1), &stream);
+    EXPECT_TRUE(serialize(uint32_t(1), &stream));
 
     SndEntry_MM7 entry = {};
     snapshot(std::string("test.wav"), &entry.name);
     entry.offset = 0; // Points inside header.
     entry.size = 10;
     entry.decompressedSize = 0;
-    serialize(entry, &stream);
+    EXPECT_TRUE(serialize(entry, &stream));
 
-    stream.write(std::string(100, '\0'));
-    stream.close();
+    EXPECT_TRUE(stream.write(std::string(100, '\0')));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(snd::detect(result));
 }
 
@@ -88,17 +88,17 @@ UNIT_TEST(SndDetect, GarbageDecompressedSize) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(1), &stream);
+    EXPECT_TRUE(serialize(uint32_t(1), &stream));
 
     SndEntry_MM7 entry = {};
     snapshot(std::string("test.wav"), &entry.name);
     entry.offset = headerSize;
     entry.size = 100;
     entry.decompressedSize = 0x776B656B; // "kekw" as a little-endian int - obvious garbage.
-    serialize(entry, &stream);
+    EXPECT_TRUE(serialize(entry, &stream));
 
-    stream.write(std::string(100, '\0'));
-    stream.close();
+    EXPECT_TRUE(stream.write(std::string(100, '\0')));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(snd::detect(result));
 }
 
@@ -113,17 +113,17 @@ static Blob makeSndBlobWithCorruptCompressedEntry(std::string_view content) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(1), &stream);
+    EXPECT_TRUE(serialize(uint32_t(1), &stream));
 
     SndEntry_MM7 entry = {};
     snapshot(std::string("corrupt.wav"), &entry.name);
     entry.offset = headerSize;
     entry.size = compressed.size();
     entry.decompressedSize = content.size(); // deliberately wrong checksum in payload
-    serialize(entry, &stream);
+    EXPECT_TRUE(serialize(entry, &stream));
 
-    stream.write(compressed);
-    stream.close();
+    EXPECT_TRUE(stream.write(compressed));
+    EXPECT_TRUE(stream.close());
     return result;
 }
 
@@ -148,15 +148,15 @@ UNIT_TEST(SndDetect, OffsetPastEnd) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(1), &stream);
+    EXPECT_TRUE(serialize(uint32_t(1), &stream));
 
     SndEntry_MM7 entry = {};
     snapshot(std::string("test.wav"), &entry.name);
     entry.offset = 4 + sizeof(SndEntry_MM7);
     entry.size = 9999; // Way past end.
     entry.decompressedSize = 0;
-    serialize(entry, &stream);
+    EXPECT_TRUE(serialize(entry, &stream));
 
-    stream.close();
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(snd::detect(result));
 }

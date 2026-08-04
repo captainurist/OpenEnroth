@@ -45,7 +45,7 @@ static const std::vector<int> ints012345 = {0, 1, 2, 3, 4, 5};
 UNIT_TEST(Snapshots, Via) {
     Blob blob;
     std::vector<int> ref = {100, 200}; // Also test overwrite.
-    serialize(ints012, &blob, tags::each, tags::via<Int_MM>);
+    EXPECT_TRUE(serialize(ints012, &blob, tags::each, tags::via<Int_MM>));
     deserialize(blob, &ref, tags::each, tags::via<Int_MM>).orThrow();
     EXPECT_EQ(ref, ints012);
 }
@@ -53,7 +53,7 @@ UNIT_TEST(Snapshots, Via) {
 UNIT_TEST(Snapshots, SizedVia) {
     Blob blob;
     std::vector<int> ref = {100, 200}; // Also test overwrite.
-    serialize(ints012, &blob, tags::unsized, tags::each, tags::via<Int_MM>);
+    EXPECT_TRUE(serialize(ints012, &blob, tags::unsized, tags::each, tags::via<Int_MM>));
     deserialize(blob, &ref, tags::presized(3), tags::each, tags::via<Int_MM>).orThrow();
     EXPECT_EQ(ref, ints012);
 }
@@ -62,9 +62,9 @@ UNIT_TEST(Snapshots, MultiSizedVia) {
     Blob blob;
     BlobOutputStream output(&blob);
     std::vector<int> ref = {100, 200}; // Also test overwrite.
-    serialize(ints012, &output, tags::unsized, tags::each, tags::via<Int_MM>);
-    serialize(ints345, &output, tags::unsized, tags::each, tags::via<Int_MM>);
-    output.close();
+    EXPECT_TRUE(serialize(ints012, &output, tags::unsized, tags::each, tags::via<Int_MM>));
+    EXPECT_TRUE(serialize(ints345, &output, tags::unsized, tags::each, tags::via<Int_MM>));
+    EXPECT_TRUE(output.close());
     BlobInputStream input2(std::move(blob));
     deserialize(input2, &ref, tags::presized(6), tags::each, tags::via<Int_MM>).orThrow();
     EXPECT_EQ(ref, ints012345);
@@ -74,9 +74,9 @@ UNIT_TEST(Snapshots, AppendSizedVia) {
     Blob blob;
     BlobOutputStream output(&blob);
     std::vector<int> ref;
-    serialize(ints012, &output, tags::unsized, tags::each, tags::via<Int_MM>);
-    serialize(ints345, &output, tags::unsized, tags::each, tags::via<Int_MM>);
-    output.close();
+    EXPECT_TRUE(serialize(ints012, &output, tags::unsized, tags::each, tags::via<Int_MM>));
+    EXPECT_TRUE(serialize(ints345, &output, tags::unsized, tags::each, tags::via<Int_MM>));
+    EXPECT_TRUE(output.close());
     BlobInputStream input3(std::move(blob));
     deserialize(input3, &ref, tags::append, tags::presized(3), tags::each, tags::via<Int_MM>).orThrow();
     deserialize(input3, &ref, tags::append, tags::presized(3), tags::each, tags::via<Int_MM>).orThrow();
@@ -87,9 +87,9 @@ UNIT_TEST(Snapshots, AppendVia) {
     Blob blob;
     BlobOutputStream output(&blob);
     std::vector<int> ref;
-    serialize(ints012, &output, tags::each, tags::via<Int_MM>);
-    serialize(ints345, &output, tags::each, tags::via<Int_MM>);
-    output.close();
+    EXPECT_TRUE(serialize(ints012, &output, tags::each, tags::via<Int_MM>));
+    EXPECT_TRUE(serialize(ints345, &output, tags::each, tags::via<Int_MM>));
+    EXPECT_TRUE(output.close());
     BlobInputStream input4(std::move(blob));
     deserialize(input4, &ref, tags::append, tags::each, tags::via<Int_MM>).orThrow();
     deserialize(input4, &ref, tags::append, tags::each, tags::via<Int_MM>).orThrow();
@@ -101,7 +101,7 @@ UNIT_TEST(Snapshots, ArrayVia) {
 
     Blob blob;
     std::array<int, 3> ref;
-    serialize(ints123, &blob, tags::each, tags::via<Int_MM>);
+    EXPECT_TRUE(serialize(ints123, &blob, tags::each, tags::via<Int_MM>));
     deserialize(blob, &ref, tags::each, tags::via<Int_MM>).orThrow();
     EXPECT_EQ(ref, ints123);
 }
@@ -110,7 +110,7 @@ UNIT_TEST(Snapshots, ViaWithTags) {
     Blob blob;
     int ref = 0;
 
-    serialize(10, &blob, tags::via<Offset_MM>, tags::context(100));
+    EXPECT_TRUE(serialize(10, &blob, tags::via<Offset_MM>, tags::context(100)));
     deserialize(blob, &ref, tags::via<Offset_MM>, tags::context(100)).orThrow();
     EXPECT_EQ(ref, 10);
 }

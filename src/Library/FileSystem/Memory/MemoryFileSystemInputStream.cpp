@@ -20,11 +20,11 @@ MemoryFileSystemInputStream::~MemoryFileSystemInputStream() {
     destroy();
 }
 
-void MemoryFileSystemInputStream::_close(bool canThrow) {
+Result<void> MemoryFileSystemInputStream::_close() {
     assert(_data);
     _data->readerCount--;
     _data.reset();
-    base_type::_close(canThrow);
+    return base_type::_close();
 }
 
 } // namespace detail

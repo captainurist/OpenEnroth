@@ -12,7 +12,7 @@ extern "C" {
 
 int ffRead(void *opaque, uint8_t *buf, int size) {
     FFmpegBlobIoContext *ctx = static_cast<FFmpegBlobIoContext *>(opaque);
-    size_t bytes = ctx->_stream.read(buf, static_cast<size_t>(size));
+    size_t bytes = ctx->_stream.read(buf, static_cast<size_t>(size)).mustSucceed(); // Blob-backed streams never fail.
     if (bytes == 0)
         return AVERROR_EOF;
     return bytes;
@@ -43,9 +43,9 @@ int64_t ffSeek(void *opaque, int64_t offset, int whence) {
     }
 
     // Reopen stream and skip to the new position.
-    ctx->_stream.close();
+    ctx->_stream.close().mustSucceed(); // Blob-backed streams never fail.
     ctx->_stream.open(ctx->_blob);
-    return ctx->_stream.skip(pos);
+    return ctx->_stream.skip(pos).mustSucceed();
 }
 
 FFmpegBlobIoContext::FFmpegBlobIoContext(Blob blob) {
@@ -77,5 +77,5 @@ void FFmpegBlobIoContext::destroyAvioContext() {
 
     av_free(_ctx->buffer);
     avio_context_free(&_ctx);
-    _stream.close();
+    _stream.close().mustSucceed(); // Blob-backed streams never fail.
 }

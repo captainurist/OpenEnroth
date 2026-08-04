@@ -14,20 +14,20 @@ UNIT_TEST(BlobInputStream, MixedBlobAndNonBlobReads) {
     EXPECT_EQ(hello.str(), "Hello");
 
     char buf[5];
-    EXPECT_EQ(stream.read(buf, 5), 5u);
+    EXPECT_EQ(stream.read(buf, 5).orThrow(), 5u);
     EXPECT_EQ(std::string_view(buf, 5), "World");
 
     Blob rest = stream.readAllAsBlob();
     EXPECT_EQ(rest.str(), "Foo");
 
-    EXPECT_EQ(stream.read(buf, 1), 0u); // Stream exhausted.
+    EXPECT_EQ(stream.read(buf, 1).orThrow(), 0u); // Stream exhausted.
 }
 
 UNIT_TEST(BlobInputStream, SkipThenReadAsBlob) {
     Blob blob = Blob::fromString("HeaderPayload");
     BlobInputStream stream(std::move(blob));
 
-    EXPECT_EQ(stream.skip(6), 6u);
+    EXPECT_EQ(stream.skip(6).orThrow(), 6u);
 
     Result<Blob> payload = stream.readAsBlobOrFail(7);
     ASSERT_TRUE(payload);
@@ -41,7 +41,7 @@ UNIT_TEST(BlobInputStream, ReadAsBlobThenReadAll) {
     Blob prefix = stream.readAsBlob(6);
     EXPECT_EQ(prefix.str(), "Prefix");
 
-    std::string rest = stream.readAll();
+    std::string rest = stream.readAll().orThrow();
     EXPECT_EQ(rest, "Suffix");
 }
 
@@ -57,7 +57,7 @@ UNIT_TEST(BlobInputStream, ReadAllAsBlobAfterExhausting) {
     Blob blob = Blob::fromString("abc");
     BlobInputStream stream(std::move(blob));
 
-    EXPECT_EQ(stream.skip(3), 3u);
+    EXPECT_EQ(stream.skip(3).orThrow(), 3u);
     Blob result = stream.readAllAsBlob();
     EXPECT_EQ(result.size(), 0u);
 }
@@ -82,9 +82,9 @@ UNIT_TEST(BlobInputStream, ReadAsBlobShort) {
 UNIT_TEST(BlobInputStream, CloseIdempotent) {
     Blob blob = Blob::fromString("hello");
     BlobInputStream stream(std::move(blob));
-    stream.close();
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(stream.isOpen());
-    EXPECT_NO_THROW(stream.close()); // Double close is fine.
+    EXPECT_TRUE(stream.close()); // Double close is fine.
     EXPECT_FALSE(stream.isOpen());
 }
 
@@ -93,12 +93,12 @@ UNIT_TEST(BlobInputStream, ReopenAfterClose) {
     Blob blob2 = Blob::fromString("second");
 
     BlobInputStream stream(std::move(blob1));
-    EXPECT_EQ(stream.readAll(), "first");
-    stream.close();
+    EXPECT_EQ(stream.readAll().orThrow(), "first");
+    EXPECT_TRUE(stream.close());
 
     stream.open(std::move(blob2));
     EXPECT_TRUE(stream.isOpen());
-    EXPECT_EQ(stream.readAll(), "second");
+    EXPECT_EQ(stream.readAll().orThrow(), "second");
 }
 
 UNIT_TEST(BlobInputStream, SizeMatchesBlobSize) {
@@ -142,7 +142,7 @@ UNIT_TEST(BlobInputStream, PositionResetsOnReopen) {
     (void) stream.skip(3);
     EXPECT_EQ(stream.position(), 3u);
 
-    stream.close();
+    EXPECT_TRUE(stream.close());
     stream.open(std::move(blob2));
     EXPECT_EQ(stream.position(), 0u);
     EXPECT_EQ(stream.size(), 7u);

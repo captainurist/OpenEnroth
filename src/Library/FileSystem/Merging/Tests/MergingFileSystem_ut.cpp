@@ -53,7 +53,7 @@ UNIT_TEST(MergingFileSystem, ShrodingerMaxxxing) {
     EXPECT_EQ(fs.stat("a/b"), FileStat(FILE_REGULAR, 1));
     EXPECT_TRUE(fs.exists("a/b"));
     EXPECT_EQ(fs.read("a/b").str(), "B");
-    EXPECT_EQ(fs.openForReading("a/b")->readAll(), "B");
+    EXPECT_EQ(fs.openForReading("a/b")->readAll().orThrow(), "B");
 
     // Implementation sorts, so it's OK to not re-sort here.
     EXPECT_EQ(fs.ls("a"), std::vector<DirectoryEntry>({{"b", FILE_REGULAR}, {"b", FILE_DIRECTORY}, {"c", FILE_DIRECTORY}}));

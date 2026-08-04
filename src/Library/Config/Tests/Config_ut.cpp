@@ -37,7 +37,7 @@ UNIT_TEST_FIXTURE(ConfigTest, InvalidValueIsIgnoredAndPreviousValueKept) {
 
     std::string_view ini = "[test]\nvalue = not_a_number\n";
     MemoryInputStream stream(ini.data(), ini.size());
-    EXPECT_NO_THROW(config.load(&stream));
+    EXPECT_TRUE(config.load(&stream));
     EXPECT_EQ(config.test.value.value(), 99); // Previous value preserved, not default.
 }
 
@@ -46,6 +46,6 @@ UNIT_TEST_FIXTURE(ConfigTest, ValidValueIsLoaded) {
 
     std::string_view ini = "[test]\nvalue = 7\n";
     MemoryInputStream stream(ini.data(), ini.size());
-    EXPECT_NO_THROW(config.load(&stream));
+    EXPECT_TRUE(config.load(&stream));
     EXPECT_EQ(config.test.value.value(), 7);
 }

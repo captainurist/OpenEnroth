@@ -8,7 +8,7 @@
 
 InputStream::~InputStream() = default;
 
-size_t InputStream::readAll(std::string *dst) {
+Result<size_t> InputStream::readAll(std::string *dst) {
     assert(isOpen());
     assert(dst);
     dst->clear();
@@ -18,17 +18,19 @@ size_t InputStream::readAll(std::string *dst) {
         size_t bytesTotal = _size - position();
         if (bytesTotal == 0)
             return 0;
-        dst->resize_and_overwrite(bytesTotal, [](char *, size_t n) { return n; }); // Technically UB, but throwing from
-        return read(dst->data(), bytesTotal);                                      // the callback is also UB, so...
+        dst->resize_and_overwrite(bytesTotal, [](char *, size_t n) { return n; }); // Technically UB, but so what.
+        return read(dst->data(), bytesTotal);
     } else {
         // Unsized stream: accumulate in chunks, materialize once.
         MemoryScratchpad scratchpad;
         size_t bytesTotal = 0;
         while (true) {
             std::span<char> chunk = scratchpad.next();
-            size_t bytesRead = read(chunk.data(), chunk.size());
-            bytesTotal += bytesRead;
-            if (bytesRead < chunk.size())
+            Result<size_t> bytesRead = read(chunk.data(), chunk.size());
+            if (!bytesRead) [[unlikely]]
+                return bytesRead;
+            bytesTotal += *bytesRead;
+            if (*bytesRead < chunk.size())
                 break;
         }
         dst->resize_and_overwrite(bytesTotal, [&scratchpad](char *buffer, size_t size) {
@@ -47,21 +49,22 @@ void InputStream::open(Buffer buffer, size_t size, std::string_view displayPath)
     _displayPath = displayPath;
 }
 
-size_t InputStream::_underflow(void *, size_t, Buffer *buffer) {
+Result<size_t> InputStream::_underflow(void *, size_t, Buffer *buffer) {
     assert(buffer->remaining() == 0);
     return 0;
 }
 
-void InputStream::_close(bool /*canThrow*/) {
+Result<void> InputStream::_close() {
     assert(isOpen());
     _buffer.reset(nullptr, nullptr, nullptr);
     _bufferBase = 0;
     _size = static_cast<size_t>(-1);
     _isOpen = false;
     _displayPath = {};
+    return {};
 }
 
-size_t InputStream::underflow(void *data, size_t size) {
+Result<size_t> InputStream::underflow(void *data, size_t size) {
     assert(size > _buffer.remaining());
 
     size_t pos = position();
@@ -76,12 +79,14 @@ size_t InputStream::underflow(void *data, size_t size) {
     }
     size -= head;
 
-    size_t tail = _underflow(data, size, &_buffer);
-    _bufferBase = pos + head + tail - _buffer.used();
-    return head + tail;
+    Result<size_t> tail = _underflow(data, size, &_buffer);
+    if (!tail) [[unlikely]]
+        return tail;
+    _bufferBase = pos + head + *tail - _buffer.used();
+    return head + *tail;
 }
 
-size_t InputStream::readUntilSlow(char delimiter, std::string *dst) {
+Result<size_t> InputStream::readUntilSlow(char delimiter, std::string *dst) {
     assert(dst->empty());
 
     size_t bytesRead = 0;
@@ -93,7 +98,8 @@ size_t InputStream::readUntilSlow(char delimiter, std::string *dst) {
     // Refill from source and search.
     while (true) {
         _bufferBase += _buffer.used();
-        _underflow(nullptr, 0, &_buffer);
+        if (Result<size_t> refilled = _underflow(nullptr, 0, &_buffer); !refilled) [[unlikely]]
+            return refilled;
         if (_buffer.remaining() == 0)
             break; // No more data.
 

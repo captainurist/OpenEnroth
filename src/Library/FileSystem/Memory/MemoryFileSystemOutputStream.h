@@ -21,7 +21,7 @@ class MemoryFileSystemOutputStream : public BlobOutputStream {
     ~MemoryFileSystemOutputStream();
 
  private:
-    virtual void _close(Buffer *buffer, bool canThrow) override;
+    virtual Result<void> _close(Buffer *buffer) override;
 
  private:
     std::shared_ptr<MemoryFileData> _data;

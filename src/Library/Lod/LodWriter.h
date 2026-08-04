@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
 #include <string_view>
 #include <string>
 #include <memory>
@@ -13,14 +14,18 @@
 class LodWriter {
  public:
     LodWriter();
-    LodWriter(std::string_view path, LodInfo info);
     LodWriter(OutputStream *stream, LodInfo info);
     ~LodWriter();
 
-    void open(std::string_view path, LodInfo info);
+    Result<void> open(std::string_view path, LodInfo info);
     void open(OutputStream *stream, LodInfo info);
 
-    void close();
+    /**
+     * Writes out the LOD index & all buffered entries, and closes this writer.
+     *
+     * @return                          Success, or an I/O error.
+     */
+    Result<void> close();
 
     [[nodiscard]] bool isOpen() const {
         return _stream != nullptr;

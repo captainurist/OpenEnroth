@@ -22,11 +22,12 @@ MemoryFileSystemOutputStream::~MemoryFileSystemOutputStream() {
     destroy();
 }
 
-void MemoryFileSystemOutputStream::_close(Buffer *buffer, bool canThrow) {
+Result<void> MemoryFileSystemOutputStream::_close(Buffer *buffer) {
     // Must call base_type::_close() before releasing `_data` — it flushes buffered data into `_data->blob`.
-    base_type::_close(buffer, canThrow);
+    Result<void> result = base_type::_close(buffer);
     _data->writerCount--;
     _data.reset();
+    return result;
 }
 
 } // namespace detail

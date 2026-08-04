@@ -9,7 +9,7 @@ struct BlobSerializer {
     template<class T>
     Blob operator()(const T &value) const {
         Blob result;
-        serialize(value, &result);
+        serialize(value, &result).mustSucceed(); // Writes to a Blob can't fail.
         return result;
     }
 };

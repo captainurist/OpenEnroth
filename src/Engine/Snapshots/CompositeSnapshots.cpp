@@ -400,18 +400,19 @@ void reconstruct(const IndoorDelta_MM7 &src, IndoorLocation *dst) {
     reconstruct(src.locationTime, &dst->stru1);
 }
 
-void serialize(const IndoorDelta_MM7 &src, OutputStream *dst) {
-    serialize(src.header, dst);
-    serialize(src.visibleOutlines, dst);
-    serialize(src.faceAttributes, dst, tags::unsized);
-    serialize(src.decorationFlags, dst, tags::unsized);
-    serialize(src.actors, dst);
-    serialize(src.spriteObjects, dst);
-    serialize(src.chests, dst);
-    serialize(src.doors, dst, tags::unsized);
-    serialize(src.doorsData, dst, tags::unsized);
-    serialize(src.eventVariables, dst);
-    serialize(src.locationTime, dst);
+Result<void> serialize(const IndoorDelta_MM7 &src, OutputStream *dst) {
+    co_await serialize(src.header, dst);
+    co_await serialize(src.visibleOutlines, dst);
+    co_await serialize(src.faceAttributes, dst, tags::unsized);
+    co_await serialize(src.decorationFlags, dst, tags::unsized);
+    co_await serialize(src.actors, dst);
+    co_await serialize(src.spriteObjects, dst);
+    co_await serialize(src.chests, dst);
+    co_await serialize(src.doors, dst, tags::unsized);
+    co_await serialize(src.doorsData, dst, tags::unsized);
+    co_await serialize(src.eventVariables, dst);
+    co_await serialize(src.locationTime, dst);
+    co_return {};
 }
 
 Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
@@ -637,17 +638,18 @@ void reconstruct(const OutdoorDelta_MM7 &src, OutdoorLocation *dst) {
     reconstruct(src.locationTime, &dst->loc_time);
 }
 
-void serialize(const OutdoorDelta_MM7 &src, OutputStream *dst) {
-    serialize(src.header, dst);
-    serialize(src.fullyRevealedCells, dst);
-    serialize(src.partiallyRevealedCells, dst);
-    serialize(src.faceAttributes, dst, tags::unsized);
-    serialize(src.decorationFlags, dst, tags::unsized);
-    serialize(src.actors, dst);
-    serialize(src.spriteObjects, dst);
-    serialize(src.chests, dst);
-    serialize(src.eventVariables, dst);
-    serialize(src.locationTime, dst);
+Result<void> serialize(const OutdoorDelta_MM7 &src, OutputStream *dst) {
+    co_await serialize(src.header, dst);
+    co_await serialize(src.fullyRevealedCells, dst);
+    co_await serialize(src.partiallyRevealedCells, dst);
+    co_await serialize(src.faceAttributes, dst, tags::unsized);
+    co_await serialize(src.decorationFlags, dst, tags::unsized);
+    co_await serialize(src.actors, dst);
+    co_await serialize(src.spriteObjects, dst);
+    co_await serialize(src.chests, dst);
+    co_await serialize(src.eventVariables, dst);
+    co_await serialize(src.locationTime, dst);
+    co_return {};
 }
 
 Result<void> deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<OutdoorLocation_MM7> ctx) {
@@ -728,7 +730,7 @@ void reconstruct(const SaveGame_MM7 &src, SaveGame *dst) {
     dst->thumbnail = Blob::share(src.thumbnail);
 }
 
-void serialize(const SaveGame_MM7 &src, Blob *dst) {
+Result<void> serialize(const SaveGame_MM7 &src, Blob *dst) {
     LodInfo lodInfo;
     lodInfo.version = LOD_VERSION_MM7;
     lodInfo.rootName = "chapter";
@@ -758,8 +760,9 @@ void serialize(const SaveGame_MM7 &src, Blob *dst) {
     // Our code doesn't support duplicate entries, so we just add a dummy entry.
     lodWriter.write("z.bin", Blob::fromString("dummy"));
 
-    lodWriter.close();
-    stream.close();
+    co_await lodWriter.close();
+    co_await stream.close();
+    co_return {};
 }
 
 Result<void> deserialize(const Blob &src, SaveGame_MM7 *dst) {

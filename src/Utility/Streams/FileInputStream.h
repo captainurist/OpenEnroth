@@ -18,13 +18,6 @@ class FileInputStream : public InputStream {
     static constexpr size_t DEFAULT_BUFFER_SIZE = 1024 * 1024;
 
     FileInputStream() = default;
-
-    /**
-     * @param path                      Path to the file to open.
-     * @param bufferSize                Size of the internal read buffer.
-     * @throws Exception                On error.
-     */
-    explicit FileInputStream(std::string_view path, size_t bufferSize = DEFAULT_BUFFER_SIZE);
     virtual ~FileInputStream();
 
     /**
@@ -32,13 +25,13 @@ class FileInputStream : public InputStream {
      *
      * @param path                      Path to the file to open.
      * @param bufferSize                Size of the internal read buffer.
-     * @throws Exception                On error.
+     * @return                          Success, or an error if the file couldn't be opened.
      */
-    void open(std::string_view path, size_t bufferSize = DEFAULT_BUFFER_SIZE);
+    Result<void> open(std::string_view path, size_t bufferSize = DEFAULT_BUFFER_SIZE);
 
  private:
-    virtual size_t _underflow(void *data, size_t size, Buffer *buffer) override;
-    virtual void _close(bool canThrow) override;
+    virtual Result<size_t> _underflow(void *data, size_t size, Buffer *buffer) override;
+    virtual Result<void> _close() override;
 
  private:
     FILE *_file = nullptr;

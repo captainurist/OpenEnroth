@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 
+#include "Utility/Error/Result.h"
 #include "Utility/Memory/Blob.h"
 #include "Utility/Streams/StreamBuffer.h"
 
@@ -28,53 +29,54 @@ class OutputStream {
      *
      * @param data                      Pointer to the data to write.
      * @param size                      Data size.
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    void write(const void *data, size_t size) {
+    Result<void> write(const void *data, size_t size) {
         assert(isOpen());
         assert(data || size == 0);
 
         if (size == 0)
-            return;
+            return {};
 
         if (size <= _buffer.remaining()) {
             _buffer.write(data, size);
-            return;
+            return {};
         }
 
-        overflow(data, size);
+        return overflow(data, size);
     }
 
     /**
      * Writes provided string into the output stream.
      *
      * @param s                         String to write.
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    void write(std::string_view s) {
-        write(s.data(), s.size());
+    Result<void> write(std::string_view s) {
+        return write(s.data(), s.size());
     }
 
     /**
      * Writes provided `Blob` into the output stream.
      *
      * @param blob                      `Blob` to write.
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    void write(const Blob &blob) {
-        write(blob.data(), blob.size());
+    Result<void> write(const Blob &blob) {
+        return write(blob.data(), blob.size());
     }
 
     /**
      * Flushes this output stream, writing any buffered data to the underlying target.
      *
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    void flush() {
+    Result<void> flush() {
         assert(isOpen());
         size_t pos = position();
-        _flush(&_buffer);
+        Result<void> result = _flush(&_buffer);
         _bufferBase = pos - _buffer.used();
+        return result;
     }
 
     /**
@@ -82,12 +84,12 @@ class OutputStream {
      *
      * Does nothing if the stream is already closed.
      *
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    void close() {
+    Result<void> close() {
         if (!isOpen())
-            return;
-        _close(&_buffer, true);
+            return {};
+        return _close(&_buffer);
     }
 
     /**
@@ -130,17 +132,17 @@ class OutputStream {
      *                                  `[buffer->start, buffer->pos)` is treated as dirty (not yet flushed).
      * @param data                      Pointer to the overflow data to write.
      * @param size                      Size of the overflow data, always greater than `buffer->remaining()`.
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    virtual void _overflow(Buffer *buffer, const void *data, size_t size) = 0;
+    virtual Result<void> _overflow(Buffer *buffer, const void *data, size_t size) = 0;
 
     /**
      * Flushes buffered data to the underlying target.
      *
      * @param[in,out] buffer            Current buffer state.
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    virtual void _flush(Buffer *buffer) = 0;
+    virtual Result<void> _flush(Buffer *buffer) = 0;
 
     /**
      * Flushes any remaining buffered data and releases held resources.
@@ -148,23 +150,21 @@ class OutputStream {
      * Derived implementations should call `OutputStream::_close()` at the end.
      *
      * @param[in,out] buffer            Current buffer state.
-     * @param canThrow                  Whether the implementation is allowed to throw. When called from a destructor
-     *                                  via `destroy()`, this is `false` and the implementation should do best-effort
-     *                                  cleanup without throwing.
-     * @throws Exception                On error, only if `canThrow` is `true`.
+     * @return                          Success, or an I/O error.
      */
-    virtual void _close(Buffer *buffer, bool canThrow) = 0;
+    virtual Result<void> _close(Buffer *buffer) = 0;
 
     /**
-     * Non-throwing close for use in derived destructors. Calls `_close` with `canThrow=false`.
+     * Non-throwing close for use in derived destructors. Errors are explicitly dropped - there's nothing a
+     * destructor could do with them.
      */
     void destroy() noexcept {
         if (isOpen())
-            _close(&_buffer, false);
+            discard(_close(&_buffer));
     }
 
  private:
-    void overflow(const void *data, size_t size);
+    Result<void> overflow(const void *data, size_t size);
 
  private:
     Buffer _buffer;

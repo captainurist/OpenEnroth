@@ -38,7 +38,7 @@ UNIT_TEST(EmbeddedFileSystem, Read) {
     EXPECT_CONTAINS(data.str(), needle);
 
     std::unique_ptr<InputStream> input = fs.openForReading("Tests/EmbeddedFileSystem_ut.cpp");
-    EXPECT_CONTAINS(input->readAll(), needle);
+    EXPECT_CONTAINS(input->readAll().orThrow(), needle);
 
     EXPECT_ANY_THROW((void) fs.read("DoesntExist"));
     EXPECT_ANY_THROW((void) fs.openForReading("DoesntExist"));

@@ -19,7 +19,7 @@ class UnsizedInputStream : public InputStream {
     }
 
  protected:
-    virtual size_t _underflow(void *data, size_t size, Buffer *buffer) override {
+    virtual Result<size_t> _underflow(void *data, size_t size, Buffer *buffer) override {
         size_t bytesAvailable = _dataSize - _pos;
         if (bytesAvailable == 0) {
             buffer->reset(nullptr, nullptr, nullptr);
@@ -60,14 +60,14 @@ UNIT_TEST(InputStream, ReadAll) {
     std::string largeString(10000, 'a');
     MemoryInputStream input(largeString.data(), largeString.size());
 
-    std::string resultingString = input.readAll();
+    std::string resultingString = input.readAll().orThrow();
     EXPECT_EQ(largeString, resultingString); // There was a bug in readAll resulting in failures on large files.
 }
 
 UNIT_TEST(InputStream, ReadAllToString) {
     MemoryInputStream input("hello world", 11);
     std::string result;
-    size_t bytes = input.readAll(&result);
+    size_t bytes = input.readAll(&result).orThrow();
     EXPECT_EQ(bytes, 11);
     EXPECT_EQ(result, "hello world");
 }
@@ -75,7 +75,7 @@ UNIT_TEST(InputStream, ReadAllToString) {
 UNIT_TEST(InputStream, ReadAllToStringClears) {
     MemoryInputStream input("world", 5);
     std::string result = "hello ";
-    size_t bytes = input.readAll(&result);
+    size_t bytes = input.readAll(&result).orThrow();
     EXPECT_EQ(bytes, 5);
     EXPECT_EQ(result, "world");
 }
@@ -83,7 +83,7 @@ UNIT_TEST(InputStream, ReadAllToStringClears) {
 UNIT_TEST(InputStream, ReadAllEmpty) {
     MemoryInputStream input("", 0);
     std::string result;
-    size_t bytes = input.readAll(&result);
+    size_t bytes = input.readAll(&result).orThrow();
     EXPECT_EQ(bytes, 0);
     EXPECT_EQ(result, "");
 }
@@ -129,78 +129,78 @@ UNIT_TEST(InputStream, SkipOrFailSucceeds) {
     MemoryInputStream input("hello", 5);
     EXPECT_TRUE(input.skipOrFail(5));
     char buf;
-    EXPECT_EQ(input.read(&buf, 1), 0u); // Stream exhausted.
+    EXPECT_EQ(input.read(&buf, 1).orThrow(), 0u); // Stream exhausted.
 }
 
 UNIT_TEST(InputStream, ReadZeroBytes) {
     MemoryInputStream input("hello", 5);
-    EXPECT_EQ(input.read(nullptr, 0), 0u);
-    EXPECT_EQ(input.readAll(), "hello"); // Nothing consumed.
+    EXPECT_EQ(input.read(nullptr, 0).orThrow(), 0u);
+    EXPECT_EQ(input.readAll().orThrow(), "hello"); // Nothing consumed.
 }
 
 UNIT_TEST(InputStream, SkipZeroBytes) {
     MemoryInputStream input("hello", 5);
-    EXPECT_EQ(input.skip(0), 0u);
-    EXPECT_EQ(input.readAll(), "hello"); // Nothing consumed.
+    EXPECT_EQ(input.skip(0).orThrow(), 0u);
+    EXPECT_EQ(input.readAll().orThrow(), "hello"); // Nothing consumed.
 }
 
 UNIT_TEST(InputStream, CloseIdempotent) {
     MemoryInputStream input("hello", 5);
-    input.close();
+    EXPECT_TRUE(input.close());
     EXPECT_FALSE(input.isOpen());
-    EXPECT_NO_THROW(input.close()); // Double close is fine.
+    EXPECT_TRUE(input.close()); // Double close is fine.
     EXPECT_FALSE(input.isOpen());
 }
 
 UNIT_TEST(InputStream, ReopenAfterClose) {
     MemoryInputStream input("hello", 5);
-    EXPECT_EQ(input.readAll(), "hello");
-    input.close();
+    EXPECT_EQ(input.readAll().orThrow(), "hello");
+    EXPECT_TRUE(input.close());
 
     input.open("world", 5);
     EXPECT_TRUE(input.isOpen());
-    EXPECT_EQ(input.readAll(), "world");
+    EXPECT_EQ(input.readAll().orThrow(), "world");
 }
 
 UNIT_TEST(InputStream, ReadUntilDelimiterNotFound) {
     MemoryInputStream input("hello", 5);
-    std::string result = input.readUntil('\0');
+    std::string result = input.readUntil('\0').orThrow();
     EXPECT_EQ(result, "hello");
 }
 
 UNIT_TEST(InputStream, ReadUntilConsumesDelimiter) {
     MemoryInputStream input("hello\0world", 11);
-    std::string first = input.readUntil('\0');
-    std::string second = input.readAll();
+    std::string first = input.readUntil('\0').orThrow();
+    std::string second = input.readAll().orThrow();
     EXPECT_EQ(first, "hello");
     EXPECT_EQ(second, "world");
 }
 
 UNIT_TEST(InputStream, ReadUntilEmptyBeforeDelimiter) {
     MemoryInputStream input("\0hello", 6);
-    std::string result = input.readUntil('\0');
+    std::string result = input.readUntil('\0').orThrow();
     EXPECT_EQ(result, "");
-    EXPECT_EQ(input.readAll(), "hello");
+    EXPECT_EQ(input.readAll().orThrow(), "hello");
 }
 
 UNIT_TEST(InputStream, ReadUntilClearsString) {
     MemoryInputStream input("world\0!", 7);
     std::string result = "hello ";
-    size_t bytes = input.readUntil('\0', &result);
+    size_t bytes = input.readUntil('\0', &result).orThrow();
     EXPECT_EQ(bytes, 6);
     EXPECT_EQ(result, "world");
 }
 
 UNIT_TEST(InputStream, ReadUntilNewlineDelimiter) {
     MemoryInputStream input("line1\nline2\nline3", 17);
-    EXPECT_EQ(input.readUntil('\n'), "line1");
-    EXPECT_EQ(input.readUntil('\n'), "line2");
-    EXPECT_EQ(input.readUntil('\n'), "line3");
+    EXPECT_EQ(input.readUntil('\n').orThrow(), "line1");
+    EXPECT_EQ(input.readUntil('\n').orThrow(), "line2");
+    EXPECT_EQ(input.readUntil('\n').orThrow(), "line3");
 }
 
 UNIT_TEST(InputStream, ReadUntilEmpty) {
     MemoryInputStream input("", 0);
-    std::string result = input.readUntil('\0');
+    std::string result = input.readUntil('\0').orThrow();
     EXPECT_EQ(result, "");
 }
 
@@ -230,7 +230,7 @@ UNIT_TEST(InputStream, PositionAdvancesOnSkip) {
 
 UNIT_TEST(InputStream, PositionAtEnd) {
     MemoryInputStream input("hello", 5);
-    EXPECT_EQ(input.readAll(), "hello");
+    EXPECT_EQ(input.readAll().orThrow(), "hello");
     EXPECT_EQ(input.position(), 5u);
     EXPECT_EQ(input.position(), input.size());
 }
@@ -257,19 +257,19 @@ UNIT_TEST(InputStream, PositionResetsOnReopen) {
 UNIT_TEST(InputStream, UnsizedReadAll) {
     std::string data = "hello world";
     UnsizedInputStream input(data.data(), data.size());
-    EXPECT_EQ(input.readAll(), "hello world");
+    EXPECT_EQ(input.readAll().orThrow(), "hello world");
 }
 
 UNIT_TEST(InputStream, UnsizedReadAllLarge) {
     std::string data(10000, 'x');
     UnsizedInputStream input(data.data(), data.size(), 128);
-    EXPECT_EQ(input.readAll(), data);
+    EXPECT_EQ(input.readAll().orThrow(), data);
 }
 
 UNIT_TEST(InputStream, UnsizedReadAllEmpty) {
     UnsizedInputStream input("", 0);
     std::string result;
-    size_t bytes = input.readAll(&result);
+    size_t bytes = input.readAll(&result).orThrow();
     EXPECT_EQ(bytes, 0u);
     EXPECT_EQ(result, "");
 }

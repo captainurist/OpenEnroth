@@ -18,13 +18,6 @@ class FileOutputStream : public OutputStream {
     static constexpr size_t DEFAULT_BUFFER_SIZE = 1024 * 1024;
 
     FileOutputStream() = default;
-
-    /**
-     * @param path                      Path to the file to open.
-     * @param bufferSize                Size of the internal write buffer.
-     * @throws Exception                On error.
-     */
-    explicit FileOutputStream(std::string_view path, size_t bufferSize = DEFAULT_BUFFER_SIZE);
     virtual ~FileOutputStream();
 
     /**
@@ -32,16 +25,16 @@ class FileOutputStream : public OutputStream {
      *
      * @param path                      Path to the file to open.
      * @param bufferSize                Size of the internal write buffer.
-     * @throws Exception                On error.
+     * @return                          Success, or an error if the file couldn't be opened.
      */
-    void open(std::string_view path, size_t bufferSize = DEFAULT_BUFFER_SIZE);
+    Result<void> open(std::string_view path, size_t bufferSize = DEFAULT_BUFFER_SIZE);
 
  private:
-    virtual void _overflow(Buffer *buffer, const void *data, size_t size) override;
-    virtual void _flush(Buffer *buffer) override;
-    virtual void _close(Buffer *buffer, bool canThrow) override;
+    virtual Result<void> _overflow(Buffer *buffer, const void *data, size_t size) override;
+    virtual Result<void> _flush(Buffer *buffer) override;
+    virtual Result<void> _close(Buffer *buffer) override;
 
-    void writeBuffer(const Buffer &buffer, bool canThrow);
+    Result<void> writeBuffer(const Buffer &buffer);
 
  private:
     FILE *_file = nullptr;

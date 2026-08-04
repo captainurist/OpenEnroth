@@ -18,10 +18,10 @@ Result<void> deserialize(Src &&src, Dst *dst, ViaTag<Via>, const Tags &... tags)
 }
 
 template<class Src, class Dst, class Via, class... Tags>
-void serialize(const Src &src, Dst *dst, ViaTag<Via>, const Tags &... tags) {
+auto serialize(const Src &src, Dst *dst, ViaTag<Via>, const Tags &... tags) {
     static_assert(!std::is_same_v<Via, Src>, "Intermediate and source types must be different.");
 
     Via tmp;
     snapshot(src, &tmp, tags...);
-    serialize(tmp, dst);
+    return serialize(tmp, dst); // Result<void> for streams, void for Blob targets.
 }

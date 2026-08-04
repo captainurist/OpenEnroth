@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -19,10 +20,10 @@ class Config {
     Config(const Config &other) = delete; // non-copyable
     Config(Config &&other) = delete; // non-movable
 
-    void load(std::string_view path);
-    void save(std::string_view path) const;
-    void load(InputStream *stream);
-    void save(OutputStream *stream) const;
+    Result<void> load(std::string_view path);
+    Result<void> save(std::string_view path) const;
+    Result<void> load(InputStream *stream);
+    Result<void> save(OutputStream *stream) const;
 
     void reset();
 

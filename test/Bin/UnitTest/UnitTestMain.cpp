@@ -6,7 +6,7 @@
 
 GTEST_API_ int main(int argc, char **argv) {
     StackTraceOnCrash st;
-    UnicodeCrt _(argc, argv);
+    UnicodeCrt crt = UnicodeCrt::create(argc, argv).orThrow();
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

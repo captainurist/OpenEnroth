@@ -90,8 +90,8 @@ UNIT_TEST(MemoryFileSystem, Streaming) {
     EXPECT_ANY_THROW((void) fs.openForReading("a"));
     EXPECT_ANY_THROW((void) fs.openForWriting("a"));
 
-    output0->write("123");
-    output0->close();
+    EXPECT_TRUE(output0->write("123"));
+    EXPECT_TRUE(output0->close());
     EXPECT_TRUE(fs.exists("a"));
     EXPECT_EQ(fs.stat("a"), FileStat(FILE_REGULAR, 3));
     EXPECT_EQ(fs.read("a").str(), "123");
@@ -102,16 +102,16 @@ UNIT_TEST(MemoryFileSystem, Streaming) {
     EXPECT_ANY_THROW(fs.write("a", Blob()));
     EXPECT_EQ(fs.read("a").str(), "123"); // read() works even when readers are active.
 
-    EXPECT_EQ(input0->readAll(), "123");
-    EXPECT_EQ(input1->readAll(), "123");
+    EXPECT_EQ(input0->readAll().orThrow(), "123");
+    EXPECT_EQ(input1->readAll().orThrow(), "123");
     EXPECT_ANY_THROW((void) fs.openForWriting("a")); // Still can't open for writing even when all read streams are at end.
     EXPECT_ANY_THROW(fs.write("a", Blob()));
 
-    input0->close();
+    EXPECT_TRUE(input0->close());
     EXPECT_ANY_THROW((void) fs.openForWriting("a")); // One reader still active, can't write.
     EXPECT_ANY_THROW(fs.write("a", Blob()));
 
-    input1->close();
+    EXPECT_TRUE(input1->close());
     fs.write("a", Blob());
     EXPECT_EQ(fs.stat("a"), FileStat(FILE_REGULAR, 0));
 }
@@ -156,8 +156,8 @@ UNIT_TEST(MemoryFileSystem, Remove) {
     EXPECT_FALSE(fs.exists("b"));
     EXPECT_EQ(fs.ls("").size(), 0);
 
-    EXPECT_EQ(input->readAll(), "123"); // Input stream still readable, even though the file was removed.
-    input->close();
+    EXPECT_EQ(input->readAll().orThrow(), "123"); // Input stream still readable, even though the file was removed.
+    EXPECT_TRUE(input->close());
     EXPECT_EQ(blob.str(), "456"); // Blob from read() still readable, even though the file was removed.
 }
 
@@ -170,15 +170,15 @@ UNIT_TEST(MemoryFileSystem, Lifetime) {
     std::unique_ptr<OutputStream> output2 = fs->openForWriting("c");
 
     fs.reset();
-    EXPECT_EQ(input->readAll(), "123"); // Input stream still readable, even though the FS was destroyed.
-    input->close();
+    EXPECT_EQ(input->readAll().orThrow(), "123"); // Input stream still readable, even though the FS was destroyed.
+    EXPECT_TRUE(input->close());
 
     // Output stream still writeable & closeable.
-    output->write("123");
-    output->close();
+    EXPECT_TRUE(output->write("123"));
+    EXPECT_TRUE(output->close());
 
     // Closing in destructor also works.
-    output2->write("456");
+    EXPECT_TRUE(output2->write("456"));
 }
 
 UNIT_TEST(MemoryFileSystem, DestructorFlushesData) {
@@ -186,7 +186,7 @@ UNIT_TEST(MemoryFileSystem, DestructorFlushesData) {
 
     {
         std::unique_ptr<OutputStream> output = fs.openForWriting("a");
-        output->write("123");
+        EXPECT_TRUE(output->write("123"));
         // No explicit close() — destructor should flush the data.
     }
 
@@ -210,9 +210,9 @@ UNIT_TEST(MemoryFileSystem, Rename) {
     EXPECT_FALSE(fs.exists("a")); // "a" is now empty, so was trimmed.
     EXPECT_ANY_THROW((void) fs.ls("a"));
 
-    EXPECT_EQ(input->readAll(), "123"); // Moving files around keeps the streams valid.
-    output->write("1234");
-    output->close();
+    EXPECT_EQ(input->readAll().orThrow(), "123"); // Moving files around keeps the streams valid.
+    EXPECT_TRUE(output->write("1234"));
+    EXPECT_TRUE(output->close());
 
     EXPECT_EQ(dumpFileSystem(&fs, FILE_SYSTEM_DUMP_WITH_CONTENTS), std::vector<FileSystemDumpEntry>({
         {"", FILE_DIRECTORY},
@@ -228,8 +228,8 @@ UNIT_TEST(MemoryFileSystem, Overwrite) {
     fs.write("a", Blob::fromString("a"));
 
     std::unique_ptr<OutputStream> output = fs.openForWriting("a");
-    output->write("A");
-    output->close();
+    EXPECT_TRUE(output->write("A"));
+    EXPECT_TRUE(output->close());
 
     EXPECT_EQ(fs.read("a").str(), "A");
 }
@@ -242,11 +242,11 @@ UNIT_TEST(MemoryFileSystem, DisplayPath) {
 
     std::unique_ptr<InputStream> input = fs.openForReading("a");
     EXPECT_EQ(input->displayPath(), "mem://a");
-    input->close();
+    EXPECT_TRUE(input->close());
 
     std::unique_ptr<OutputStream> output = fs.openForWriting("b");
     EXPECT_EQ(output->displayPath(), "mem://b");
-    output->close();
+    EXPECT_TRUE(output->close());
 
     // Also check that writing through a streaming interfaces preserves display path.
     EXPECT_EQ(fs.read("b").displayPath(), "mem://b");

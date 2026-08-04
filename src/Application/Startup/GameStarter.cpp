@@ -80,8 +80,13 @@ void GameStarter::initialize() {
     // Init config.
     _config = std::make_shared<GameConfig>();
     if (ufs->exists(configName)) {
-        _config->load(ufs->openForReading(configName).get());
-        logger->info("Configuration file '{}' loaded!", ufs->displayPath(configName));
+        if (Result<void> loaded = _config->load(ufs->openForReading(configName).get()); !loaded) {
+            logger->error("Couldn't load configuration file '{}', using defaults: {}",
+                          ufs->displayPath(configName), loaded.error());
+            _config->reset();
+        } else {
+            logger->info("Configuration file '{}' loaded!", ufs->displayPath(configName));
+        }
     } else {
         _config->reset();
 #ifdef OE_DISTRIBUTION_BUILD
@@ -293,8 +298,11 @@ void GameStarter::run() {
         _game->run();
 
         _application->component<GameWindowHandler>()->UpdateConfigFromWindow(_config.get());
-        _config->save(ufs->openForWriting(configName).get());
-        logger->info("Configuration file '{}' saved!", ufs->displayPath(configName));
+        if (Result<void> saved = _config->save(ufs->openForWriting(configName).get()); !saved) {
+            logger->error("Couldn't save configuration file '{}': {}", ufs->displayPath(configName), saved.error());
+        } else {
+            logger->info("Configuration file '{}' saved!", ufs->displayPath(configName));
+        }
     } catch (const std::exception &e) {
         // Log the exception so that it goes to all registered loggers.
         logger->critical("Terminated with exception: {}", e.what());

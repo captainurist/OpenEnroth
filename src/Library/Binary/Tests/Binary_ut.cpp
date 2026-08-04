@@ -17,9 +17,9 @@ UNIT_TEST(Binary, GarbageSizeThrowsInsteadOfBadAlloc) {
     BlobOutputStream out(&blob);
     uint32_t garbageSize = 2'000'000'000; // Claims 2B ints, but stream only has 4+4=8 bytes total.
     int oneElement = 42;
-    out.write(&garbageSize, sizeof(garbageSize));
-    out.write(&oneElement, sizeof(oneElement));
-    out.close();
+    EXPECT_TRUE(out.write(&garbageSize, sizeof(garbageSize)));
+    EXPECT_TRUE(out.write(&oneElement, sizeof(oneElement)));
+    EXPECT_TRUE(out.close());
 
     BlobInputStream input(std::move(blob));
     std::vector<int> dst;

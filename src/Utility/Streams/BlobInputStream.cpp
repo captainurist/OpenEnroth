@@ -25,7 +25,7 @@ void BlobInputStream::open(const Blob &blob) {
 Blob BlobInputStream::readAsBlob(size_t size) {
     assert(isOpen());
 
-    size_t bytes = skip(size);
+    size_t bytes = skip(size).mustSucceed(); // Blob-backed streams never fail.
     return _blob.subBlob(position() - bytes, bytes);
 }
 
@@ -41,6 +41,6 @@ Result<Blob> BlobInputStream::readAsBlobOrFail(size_t size) {
 Blob BlobInputStream::readAllAsBlob() {
     assert(isOpen());
 
-    size_t bytes = skip(size());
+    size_t bytes = skip(size()).mustSucceed(); // Blob-backed streams never fail.
     return _blob.subBlob(position() - bytes);
 }

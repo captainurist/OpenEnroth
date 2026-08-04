@@ -171,10 +171,10 @@ void FileSystem::_rename(FileSystemPathView srcPath, FileSystemPathView dstPath)
             buffer = std::make_unique_for_overwrite<char[]>(COPY_BUFFER_SIZE);
 
         while (true) {
-            size_t bytes = input->read(buffer.get(), COPY_BUFFER_SIZE);
+            size_t bytes = input->read(buffer.get(), COPY_BUFFER_SIZE).orThrow(); // TODO(captainurist): #exceptions FS port.
             if (!bytes)
                 break;
-            output->write(buffer.get(), bytes);
+            output->write(buffer.get(), bytes).orThrow();
         }
     };
 

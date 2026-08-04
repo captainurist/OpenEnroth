@@ -15,22 +15,26 @@
 #include "Utility/String/Format.h"
 #include "Utility/String/Wrap.h"
 
-void Config::load(std::string_view path) {
-    FileInputStream stream(path); // Will throw if file doesn't exist.
-    load(&stream);
+Result<void> Config::load(std::string_view path) {
+    FileInputStream stream;
+    co_await stream.open(path); // Fails if the file doesn't exist.
+    co_await load(&stream);
+    co_return {};
 }
 
-void Config::save(std::string_view path) const {
-    FileOutputStream stream(path);
-    save(&stream);
+Result<void> Config::save(std::string_view path) const {
+    FileOutputStream stream;
+    co_await stream.open(path);
+    co_await save(&stream);
+    co_return stream.close();
 }
 
-void Config::load(InputStream *stream) {
-    std::istringstream stdStream(stream->readAll());
+Result<void> Config::load(InputStream *stream) {
+    std::istringstream stdStream(co_await stream->readAll());
 
     ini::IniFile ini;
     ini.setCommentChar(';'); // Use ini comment char, not '#'.
-    ini.decode(stdStream); // This can throw.
+    ini.decode(stdStream); // inicpp is external code and can throw - the coroutine catches, per our rules.
 
     for (const auto &[sectionName, iniSection] : ini) {
         if (ConfigSection *section = this->section(sectionName)) {
@@ -46,24 +50,26 @@ void Config::load(InputStream *stream) {
             }
         }
     }
+    co_return {};
 }
 
-void Config::save(OutputStream *stream) const {
+Result<void> Config::save(OutputStream *stream) const {
     // ini::IniFile doesn't support comments so we just write things out ourselves.
     for (ConfigSection *section : sections()) {
-        stream->write(fmt::format("[{}]\n", section->name()));
+        co_await stream->write(fmt::format("[{}]\n", section->name()));
 
         for (AnyConfigEntry *entry : section->entries()) {
             if (!entry->description().empty())
                 for (const std::string &line : wrapText(entry->description(), 78))
-                    stream->write(fmt::format("; {}\n", line));
-            stream->write(fmt::format("; Default is '{}'.\n", entry->defaultString()));
-            stream->write(fmt::format("{} = {}\n", entry->name(), entry->string()));
-            stream->write("\n");
+                    co_await stream->write(fmt::format("; {}\n", line));
+            co_await stream->write(fmt::format("; Default is '{}'.\n", entry->defaultString()));
+            co_await stream->write(fmt::format("{} = {}\n", entry->name(), entry->string()));
+            co_await stream->write("\n");
         }
 
-        stream->write("\n");
+        co_await stream->write("\n");
     }
+    co_return {};
 }
 
 void Config::reset() {

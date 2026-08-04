@@ -14,36 +14,34 @@
 
 LodWriter::LodWriter() {}
 
-LodWriter::LodWriter(std::string_view path, LodInfo info) {
-    open(path, std::move(info));
-}
-
 LodWriter::LodWriter(OutputStream *stream, LodInfo info) {
     open(stream, std::move(info));
 }
 
 LodWriter::~LodWriter() {
-    close();
+    discard(close()); // Nothing a destructor can do about a failed write - use close() explicitly to handle errors.
 }
 
-void LodWriter::open(std::string_view path, LodInfo info) {
-    std::unique_ptr<OutputStream> ownedStream = std::make_unique<FileOutputStream>(path); // If this throws, no field is overwritten.
+Result<void> LodWriter::open(std::string_view path, LodInfo info) {
+    auto ownedStream = std::make_unique<FileOutputStream>();
+    co_await ownedStream->open(path); // If this fails, no field is overwritten.
     open(ownedStream.get(), std::move(info));
     _ownedStream = std::move(ownedStream);
+    co_return {};
 }
 
 void LodWriter::open(OutputStream *stream, LodInfo info) {
     assert(stream);
 
-    close();
+    discard(close()); // Opening over an unclosed writer drops any pending write errors - close explicitly to handle them.
 
     _stream = stream;
     _info = std::move(info);
 }
 
-void LodWriter::close() {
+Result<void> LodWriter::close() {
     if (!isOpen())
-        return; // Double-closing is OK.
+        co_return {}; // Double-closing is OK.
 
     // Write out LOD header.
     LodHeader header;
@@ -51,7 +49,7 @@ void LodWriter::close() {
     header.version = toString(_info.version);
     header.description = _info.description;
     header.numDirectories = 1;
-    serialize(header, _stream, tags::via<LodHeader_MM6>);
+    co_await serialize(header, _stream, tags::via<LodHeader_MM6>);
 
     // Write out root entry.
     size_t dataSize = 0;
@@ -64,7 +62,7 @@ void LodWriter::close() {
     directoryEntry.dataOffset = sizeof(LodHeader_MM6) + sizeof(LodEntry_MM6);
     directoryEntry.dataSize = indexSize + dataSize;
     directoryEntry.numItems = _files.size();
-    serialize(directoryEntry, _stream, tags::via<LodEntry_MM6>);
+    co_await serialize(directoryEntry, _stream, tags::via<LodEntry_MM6>);
 
     // Write out file entries.
     size_t currentOffset = indexSize;
@@ -80,19 +78,20 @@ void LodWriter::close() {
     }
 
     if (_info.version == LOD_VERSION_MM8) {
-        serialize(fileEntries, _stream, tags::unsized, tags::each, tags::via<LodFileEntry_MM8>);
+        co_await serialize(fileEntries, _stream, tags::unsized, tags::each, tags::via<LodFileEntry_MM8>);
     } else {
-        serialize(fileEntries, _stream, tags::unsized, tags::each, tags::via<LodEntry_MM6>);
+        co_await serialize(fileEntries, _stream, tags::unsized, tags::each, tags::via<LodEntry_MM6>);
     }
 
     for (const auto &[_, data] : _files)
-        _stream->write(data);
+        co_await _stream->write(data);
 
     // Close shop.
     _files.clear(); // Important to release the Blobs first, as they might point into a file that we're about to overwrite...
     _ownedStream = {}; // ...here.
     _stream = {};
     _info = {};
+    co_return {};
 }
 
 void LodWriter::write(std::string_view filename, const Blob &data) {

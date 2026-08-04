@@ -94,28 +94,33 @@ void DirectoryFileSystem::_ls(FileSystemPathView path, std::vector<DirectoryEntr
 
 Blob DirectoryFileSystem::_read(FileSystemPathView path) const {
     assert(!path.isEmpty());
-    return Blob::fromFile(makeBasePath(path).generic_string());
+    return Blob::fromFile(makeBasePath(path).generic_string()).orThrow(); // TODO(captainurist): #exceptions FS port.
 }
 
 void DirectoryFileSystem::_write(FileSystemPathView path, const Blob &data) {
     assert(!path.isEmpty());
     std::filesystem::path basePath = makeBasePath(path);
     std::filesystem::create_directories(basePath.parent_path());
-    FileOutputStream stream(basePath.generic_string());
-    stream.write(data.data(), data.size());
-    stream.close();
+    FileOutputStream stream;
+    stream.open(basePath.generic_string()).orThrow(); // TODO(captainurist): #exceptions FS port.
+    stream.write(data.data(), data.size()).orThrow();
+    stream.close().orThrow();
 }
 
 std::unique_ptr<InputStream> DirectoryFileSystem::_openForReading(FileSystemPathView path) const {
     assert(!path.isEmpty());
-    return std::make_unique<FileInputStream>(makeBasePath(path).generic_string());
+    auto stream = std::make_unique<FileInputStream>();
+    stream->open(makeBasePath(path).generic_string()).orThrow(); // TODO(captainurist): #exceptions FS port.
+    return stream;
 }
 
 std::unique_ptr<OutputStream> DirectoryFileSystem::_openForWriting(FileSystemPathView path) {
     assert(!path.isEmpty());
     std::filesystem::path basePath = makeBasePath(path);
     std::filesystem::create_directories(basePath.parent_path());
-    return std::make_unique<FileOutputStream>(basePath.generic_string());
+    auto stream = std::make_unique<FileOutputStream>();
+    stream->open(basePath.generic_string()).orThrow(); // TODO(captainurist): #exceptions FS port.
+    return stream;
 }
 
 void DirectoryFileSystem::_rename(FileSystemPathView srcPath, FileSystemPathView dstPath) {

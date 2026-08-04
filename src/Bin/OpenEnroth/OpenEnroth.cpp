@@ -99,8 +99,8 @@ int runRetrace(const OpenEnrothOptions &options) {
             auto startTime = std::chrono::steady_clock::now();
 
             std::string savePath = tracePath.substr(0, tracePath.length() - 5) + ".mm7";
-            Blob oldTraceBlob = Blob::fromFile(tracePath);
-            Blob oldSaveBlob = Blob::fromFile(savePath);
+            Blob oldTraceBlob = Blob::fromFile(tracePath).orThrow();
+            Blob oldSaveBlob = Blob::fromFile(savePath).orThrow();
 
             EventTrace oldTrace = EventTrace::fromJsonBlob(oldTraceBlob, application->window());
             migrateTrace(options.retrace.migration, &oldTrace);
@@ -119,7 +119,10 @@ int runRetrace(const OpenEnrothOptions &options) {
             if (oldTraceJson != newTraceJson) {
                 if (!options.retrace.checkCanonical) {
                     oldTraceBlob = Blob(); // Close old trace file
-                    FileOutputStream(tracePath).write(recording.trace);
+                    FileOutputStream traceStream;
+                    traceStream.open(tracePath).orThrow();
+                    traceStream.write(recording.trace).orThrow();
+                    traceStream.close().orThrow();
                 } else {
                     fmt::println(stderr, "Trace '{}' is not in canonical representation.", tracePath);
                     printTraceDiff(oldTraceJson, newTraceJson);
@@ -147,8 +150,8 @@ int runPlay(const OpenEnrothOptions &options) {
             std::string savePath = tracePath.substr(0, tracePath.length() - 5) + ".mm7";
 
             EngineTraceRecording recording;
-            recording.save = Blob::fromFile(savePath);
-            recording.trace = Blob::fromFile(tracePath);
+            recording.save = Blob::fromFile(savePath).orThrow();
+            recording.trace = Blob::fromFile(tracePath).orThrow();
 
             player->playTrace(game, recording, TRACE_PLAYBACK_SKIP_RANDOM_CHECKS | TRACE_PLAYBACK_SKIP_STATE_CHECKS , [&] {
                 int fps = options.play.speed * 1000 / engine->config->debug.TraceFrameTimeMs.value();
@@ -168,7 +171,7 @@ int runOpenEnroth(const OpenEnrothOptions &options) {
 int openEnrothMain(int argc, char **argv) {
     try {
         StackTraceOnCrash st;
-        UnicodeCrt _(argc, argv);
+        UnicodeCrt crt = UnicodeCrt::create(argc, argv).orThrow();
         OpenEnrothOptions options = OpenEnrothOptions::parse(argc, argv);
         if (options.helpPrinted)
             return 1;

@@ -163,7 +163,7 @@ int runLoadBench(std::string_view lodPath, int iterations) {
 
 int main(int argc, char **argv) {
     try {
-        UnicodeCrt _(argc, argv);
+        UnicodeCrt crt = UnicodeCrt::create(argc, argv).orThrow();
 
         std::string lodPath;
         if (argc >= 2) {

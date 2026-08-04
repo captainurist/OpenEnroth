@@ -19,18 +19,18 @@ static Blob makeVidBlob(int entryCount) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(entryCount), &stream);
+    EXPECT_TRUE(serialize(uint32_t(entryCount), &stream));
 
     for (int i = 0; i < entryCount; i++) {
         VidEntry_MM7 entry = {};
         snapshot(fmt::format("video{}.smk", i), &entry.name);
         entry.offset = headerSize + i * dataSize;
-        serialize(entry, &stream);
+        EXPECT_TRUE(serialize(entry, &stream));
     }
 
     // Append dummy data.
-    stream.write(std::string(entryCount * dataSize, '\0'));
-    stream.close();
+    EXPECT_TRUE(stream.write(std::string(entryCount * dataSize, '\0')));
+    EXPECT_TRUE(stream.close());
     return result;
 }
 
@@ -45,8 +45,8 @@ UNIT_TEST(VidDetect, EmptyBlob) {
 UNIT_TEST(VidDetect, ZeroEntries) {
     Blob result;
     BlobOutputStream stream(&result);
-    serialize(uint32_t(0), &stream);
-    stream.close();
+    EXPECT_TRUE(serialize(uint32_t(0), &stream));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(vid::detect(result));
 }
 
@@ -54,8 +54,8 @@ UNIT_TEST(VidDetect, TruncatedHeader) {
     // Claim 1000 entries but provide only the count.
     Blob result;
     BlobOutputStream stream(&result);
-    serialize(uint32_t(1000), &stream);
-    stream.close();
+    EXPECT_TRUE(serialize(uint32_t(1000), &stream));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(vid::detect(result));
 }
 
@@ -63,15 +63,15 @@ UNIT_TEST(VidDetect, OffsetInsideHeader) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(1), &stream);
+    EXPECT_TRUE(serialize(uint32_t(1), &stream));
 
     VidEntry_MM7 entry = {};
     snapshot(std::string("test.smk"), &entry.name);
     entry.offset = 0; // Points inside header.
-    serialize(entry, &stream);
+    EXPECT_TRUE(serialize(entry, &stream));
 
-    stream.write(std::string(100, '\0'));
-    stream.close();
+    EXPECT_TRUE(stream.write(std::string(100, '\0')));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(vid::detect(result));
 }
 
@@ -81,19 +81,19 @@ UNIT_TEST(VidDetect, NonMonotonicOffsets) {
     Blob result;
     BlobOutputStream stream(&result);
 
-    serialize(uint32_t(2), &stream);
+    EXPECT_TRUE(serialize(uint32_t(2), &stream));
 
     VidEntry_MM7 entry0 = {};
     snapshot(std::string("a.smk"), &entry0.name);
     entry0.offset = headerSize + 100;
-    serialize(entry0, &stream);
+    EXPECT_TRUE(serialize(entry0, &stream));
 
     VidEntry_MM7 entry1 = {};
     snapshot(std::string("b.smk"), &entry1.name);
     entry1.offset = headerSize; // Less than entry0, non-monotonic.
-    serialize(entry1, &stream);
+    EXPECT_TRUE(serialize(entry1, &stream));
 
-    stream.write(std::string(200, '\0'));
-    stream.close();
+    EXPECT_TRUE(stream.write(std::string(200, '\0')));
+    EXPECT_TRUE(stream.close());
     EXPECT_FALSE(vid::detect(result));
 }

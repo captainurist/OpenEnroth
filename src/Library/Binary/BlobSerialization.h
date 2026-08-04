@@ -13,10 +13,11 @@
 #include "BinaryErrors.h"
 
 template<class Src, class... Tags> requires (!starts_with_v<is_greedy_tag, Tags...>)
-void serialize(const Src &src, Blob *dst, const Tags &... tags) {
+Result<void> serialize(const Src &src, Blob *dst, const Tags &... tags) {
     BlobOutputStream stream(dst);
-    serialize(src, &stream, tags...);
-    stream.close(); // Flush data into a Blob.
+    if (Result<void> result = serialize(src, &stream, tags...); !result)
+        return result;
+    return stream.close(); // Flush data into a Blob.
 }
 
 template<class Dst, class... Tags> requires (!starts_with_v<is_greedy_tag, Tags...>)

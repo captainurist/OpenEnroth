@@ -48,15 +48,17 @@ struct AppendWrapper {
 //
 
 template<class T> requires is_memcopy_serializable_v<T>
-void serialize(const T &src, OutputStream *dst) {
-    dst->write(&src, sizeof(T));
+Result<void> serialize(const T &src, OutputStream *dst) {
+    return dst->write(&src, sizeof(T));
 }
 
 template<class T> requires is_memcopy_serializable_v<T>
 Result<void> deserialize(InputStream &src, T *dst) {
-    size_t bytes = src.read(dst, sizeof(T));
-    if (bytes != sizeof(T)) [[unlikely]]
-        return binarySerializationNoMoreDataError(bytes, sizeof(T), typeid(T).name());
+    Result<size_t> bytes = src.read(dst, sizeof(T));
+    if (!bytes) [[unlikely]]
+        return std::move(bytes).error();
+    if (*bytes != sizeof(T)) [[unlikely]]
+        return binarySerializationNoMoreDataError(*bytes, sizeof(T), typeid(T).name());
     return {};
 }
 
@@ -71,9 +73,11 @@ Result<void> deserialize(InputStream &src, T *dst) {
 template<StdSpan Span, class T = typename Span::value_type> requires is_memcopy_serializable_v<T>
 Result<void> deserialize(InputStream &src, Span *dst) {
     size_t bytesExpected = dst->size() * sizeof(T);
-    size_t bytesRead = src.read(dst->data(), bytesExpected);
-    if (bytesRead != bytesExpected) [[unlikely]]
-        return binarySerializationNoMoreDataError(bytesRead % sizeof(T), sizeof(T), typeid(T).name());
+    Result<size_t> bytesRead = src.read(dst->data(), bytesExpected);
+    if (!bytesRead) [[unlikely]]
+        return std::move(bytesRead).error();
+    if (*bytesRead != bytesExpected) [[unlikely]]
+        return binarySerializationNoMoreDataError(*bytesRead % sizeof(T), sizeof(T), typeid(T).name());
     return {};
 }
 
@@ -85,14 +89,17 @@ Result<void> deserialize(InputStream &src, Span *dst) {
     return {};
 }
 
-template<StdSpan Span, class T = typename Span::value_type>
-void serialize(const Span &src, OutputStream *dst) {
-    if constexpr (is_memcopy_serializable_v<T>) {
-        dst->write(src.data(), src.size() * sizeof(T));
-    } else {
-        for (const T &element : src)
-            serialize(element, dst);
-    }
+template<StdSpan Span, class T = typename Span::value_type> requires is_memcopy_serializable_v<T>
+Result<void> serialize(const Span &src, OutputStream *dst) {
+    return dst->write(src.data(), src.size() * sizeof(T));
+}
+
+template<StdSpan Span, class T = typename Span::value_type> requires (!is_memcopy_serializable_v<T>)
+Result<void> serialize(const Span &src, OutputStream *dst) {
+    for (const T &element : src)
+        if (Result<void> result = serialize(element, dst); !result)
+            return result;
+    return {};
 }
 
 
@@ -109,9 +116,11 @@ Result<void> deserialize(InputStream &src, Span *dst, EachTag, const Tags &... t
 }
 
 template<StdSpan Span, class... Tags>
-void serialize(const Span &src, OutputStream *dst, EachTag, const Tags &... tags) {
+Result<void> serialize(const Span &src, OutputStream *dst, EachTag, const Tags &... tags) {
     for (const auto &element : src)
-        serialize(element, dst, tags...);
+        if (Result<void> result = serialize(element, dst, tags...); !result)
+            return result;
+    return {};
 }
 
 
@@ -120,8 +129,8 @@ void serialize(const Span &src, OutputStream *dst, EachTag, const Tags &... tags
 //
 
 template<class T, size_t N, class... Tags>
-void serialize(const std::array<T, N> &src, OutputStream *dst, const Tags &... tags) {
-    serialize(std::span(src), dst, tags...);
+Result<void> serialize(const std::array<T, N> &src, OutputStream *dst, const Tags &... tags) {
+    return serialize(std::span(src), dst, tags...);
 }
 
 template<class T, size_t N, class... Tags>
@@ -136,13 +145,14 @@ Result<void> deserialize(InputStream &src, std::array<T, N> *dst, const Tags &..
 //
 
 template<ResizableContiguousContainer Src, class... Tags>
-void serialize(const Src &src, OutputStream *dst, const Tags &... tags) {
+Result<void> serialize(const Src &src, OutputStream *dst, const Tags &... tags) {
     assert(src.size() <= UINT32_MAX);
 
     uint32_t size = src.size();
-    serialize(size, dst);
+    if (Result<void> result = serialize(size, dst); !result)
+        return result;
     std::span span(src.data(), src.size());
-    serialize(span, dst, tags...);
+    return serialize(span, dst, tags...);
 }
 
 template<ResizableContiguousContainer Dst, class... Tags>
@@ -162,8 +172,8 @@ Result<void> deserialize(InputStream &src, Dst *dst, const Tags &... tags) {
 }
 
 template<ResizableContiguousContainer Src, class... Tags>
-void serialize(const Src &src, OutputStream *dst, UnsizedTag, const Tags &... tags) {
-    serialize(std::span(src), dst, tags...);
+Result<void> serialize(const Src &src, OutputStream *dst, UnsizedTag, const Tags &... tags) {
+    return serialize(std::span(src), dst, tags...);
 }
 
 template<ResizableContiguousContainer Dst, class... Tags>
@@ -185,7 +195,8 @@ Result<void> deserialize(InputStream &src, Dst *dst, AppendTag, const Tags &... 
 //
 
 inline Result<void> deserialize(InputStream &src, std::string *dst, NullTerminatedTag) {
-    *dst = src.readUntil('\0');
+    if (Result<size_t> bytesRead = src.readUntil('\0', dst); !bytesRead)
+        return std::move(bytesRead).error();
     return {};
 }
 

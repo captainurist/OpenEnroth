@@ -167,10 +167,10 @@ std::pair<SaveGameHeader, Blob> createSaveData(bool resetWorld, std::string_view
 
         Blob uncompressed;
         if (uCurrentlyLoadedLevelType == LEVEL_INDOOR) {
-            serialize(*pIndoor, &uncompressed, tags::via<IndoorDelta_MM7>);
+            serialize(*pIndoor, &uncompressed, tags::via<IndoorDelta_MM7>).mustSucceed(); // Writes to a Blob, can't fail.
         } else {
             assert(uCurrentlyLoadedLevelType == LEVEL_OUTDOOR);
-            serialize(*pOutdoor, &uncompressed, tags::via<OutdoorDelta_MM7>);
+            serialize(*pOutdoor, &uncompressed, tags::via<OutdoorDelta_MM7>).mustSucceed(); // Writes to a Blob, can't fail.
         }
 
         std::string deltaName = currentMapName;
@@ -183,7 +183,7 @@ std::pair<SaveGameHeader, Blob> createSaveData(bool resetWorld, std::string_view
     state.thumbnail = pcx::encode(render->MakeViewportScreenshot(150, 112));
 
     Blob blob;
-    serialize(state, &blob, tags::via<SaveGame_MM7>);
+    serialize(state, &blob, tags::via<SaveGame_MM7>).mustSucceed(); // Writes to a Blob, can't fail.
 
     // Update pMapDeltas global with new state.
     pMapDeltas = std::move(state.mapDeltas);

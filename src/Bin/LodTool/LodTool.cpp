@@ -173,7 +173,7 @@ int runExtract(const LodToolOptions &options) {
 
 int main(int argc, char **argv) {
     try {
-        UnicodeCrt _(argc, argv);
+        UnicodeCrt crt = UnicodeCrt::create(argc, argv).orThrow();
         LodToolOptions options = LodToolOptions::parse(argc, argv);
         if (options.helpPrinted)
             return 1;

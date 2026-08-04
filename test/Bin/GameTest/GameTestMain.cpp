@@ -26,7 +26,7 @@ void printGoogleTestHelp(char *app) {
 int platformMain(int argc, char **argv) {
     try {
         StackTraceOnCrash st;
-        UnicodeCrt _(argc, argv);
+        UnicodeCrt crt = UnicodeCrt::create(argc, argv).orThrow();
         GameTestOptions opts = GameTestOptions::parse(argc, argv);
         if (opts.helpPrinted) {
             fmt::print(stdout, "\n");

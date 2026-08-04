@@ -564,7 +564,7 @@ int runLstrCodegen(const CodeGenOptions &options, ResourceManager *resourceManag
 
 int platformMain(int argc, char **argv) {
     try {
-        UnicodeCrt _(argc, argv);
+        UnicodeCrt crt = UnicodeCrt::create(argc, argv).orThrow();
         CodeGenOptions options = CodeGenOptions::parse(argc, argv);
         if (options.helpPrinted)
             return 1;

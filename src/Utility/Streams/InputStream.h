@@ -26,11 +26,10 @@ class InputStream {
     /**
      * @param[out] data                 Output buffer to write read data into.
      * @param size                      Number of bytes to read.
-     * @return                          Number of bytes actually read. A return value that's less than `size` signals
-     *                                  end of stream.
-     * @throws Exception                On error.
+     * @return                          Number of bytes actually read, or an I/O error. A returned value that's less
+     *                                  than `size` signals end of stream.
      */
-    [[nodiscard]] size_t read(void *data, size_t size) {
+    [[nodiscard]] Result<size_t> read(void *data, size_t size) {
         assert(isOpen());
         assert(data || size == 0);
 
@@ -51,9 +50,11 @@ class InputStream {
      * @return                          Success, or an error if the stream had less than `size` bytes in it.
      */
     Result<void> readOrFail(void *data, size_t size) {
-        size_t bytesRead = read(data, size);
-        if (bytesRead != size) [[unlikely]]
-            return readError(size, bytesRead);
+        Result<size_t> bytesRead = read(data, size);
+        if (!bytesRead) [[unlikely]]
+            return std::move(bytesRead).error();
+        if (*bytesRead != size) [[unlikely]]
+            return readError(size, *bytesRead);
         return {};
     }
 
@@ -61,30 +62,28 @@ class InputStream {
      * Reads everything that's in this stream, writing into the provided string.
      *
      * @param[out] dst                  String to write the data into. Previous contents are cleared.
-     * @return                          Number of bytes read from the stream.
-     * @throws Exception                On error.
+     * @return                          Number of bytes read from the stream, or an I/O error.
      */
-    [[nodiscard]] size_t readAll(std::string *dst);
+    [[nodiscard]] Result<size_t> readAll(std::string *dst);
 
     /**
      * Reads everything that's in this stream.
      *
-     * @return                          Data read from the stream, as `std::string`.
-     * @throws Exception                On error.
+     * @return                          Data read from the stream as `std::string`, or an I/O error.
      */
-    [[nodiscard]] std::string readAll() {
+    [[nodiscard]] Result<std::string> readAll() {
         std::string result;
-        (void) readAll(&result);
+        if (Result<size_t> bytesRead = readAll(&result); !bytesRead) [[unlikely]]
+            return std::move(bytesRead).error();
         return result;
     }
 
     /**
      * @param size                      Number of bytes to skip.
-     * @return                          Number of bytes actually skipped. A return value that's less than `size` signals
-     *                                  end of stream.
-     * @throws Exception                On error.
+     * @return                          Number of bytes actually skipped, or an I/O error. A returned value that's
+     *                                  less than `size` signals end of stream.
      */
-    [[nodiscard]] size_t skip(size_t size) {
+    [[nodiscard]] Result<size_t> skip(size_t size) {
         assert(isOpen());
 
         if (size <= _buffer.remaining())
@@ -100,9 +99,11 @@ class InputStream {
      * @return                          Success, or an error if the stream had less than `size` bytes in it.
      */
     Result<void> skipOrFail(size_t size) {
-        size_t bytesSkipped = skip(size);
-        if (bytesSkipped != size) [[unlikely]]
-            return skipError(size, bytesSkipped);
+        Result<size_t> bytesSkipped = skip(size);
+        if (!bytesSkipped) [[unlikely]]
+            return std::move(bytesSkipped).error();
+        if (*bytesSkipped != size) [[unlikely]]
+            return skipError(size, *bytesSkipped);
         return {};
     }
 
@@ -112,10 +113,10 @@ class InputStream {
      *
      * @param delimiter                 Delimiter character to search for.
      * @param[out] dst                  String to write the data into. Previous contents are cleared.
-     * @return                          Number of bytes read from the stream, including the delimiter if it was found.
-     * @throws Exception                On error.
+     * @return                          Number of bytes read from the stream (including the delimiter if it was
+     *                                  found), or an I/O error.
      */
-    [[nodiscard]] size_t readUntil(char delimiter, std::string *dst) {
+    [[nodiscard]] Result<size_t> readUntil(char delimiter, std::string *dst) {
         assert(isOpen());
         assert(dst);
         dst->clear();
@@ -134,12 +135,13 @@ class InputStream {
      * is consumed from the stream but not included in the returned string.
      *
      * @param delimiter                 Delimiter character to search for.
-     * @return                          Data read from the stream, up to (but not including) the delimiter.
-     * @throws Exception                On error.
+     * @return                          Data read from the stream up to (but not including) the delimiter, or an
+     *                                  I/O error.
      */
-    [[nodiscard]] std::string readUntil(char delimiter) {
+    [[nodiscard]] Result<std::string> readUntil(char delimiter) {
         std::string result;
-        (void) readUntil(delimiter, &result);
+        if (Result<size_t> bytesRead = readUntil(delimiter, &result); !bytesRead) [[unlikely]]
+            return std::move(bytesRead).error();
         return result;
     }
 
@@ -148,11 +150,12 @@ class InputStream {
      *
      * Does nothing if the stream is already closed.
      *
-     * @throws Exception                On error.
+     * @return                          Success, or an I/O error.
      */
-    void close() {
+    Result<void> close() {
         if (isOpen())
-            _close(true);
+            return _close();
+        return {};
     }
 
     /**
@@ -201,36 +204,33 @@ class InputStream {
      * @param[out] data                 Buffer to read into, or `nullptr` for skip/refill.
      * @param size                      Number of bytes to read or skip.
      * @param[out] buffer               New buffer state.
-     * @return                          Number of bytes read into `data` or skipped.
-     * @throws Exception                On error.
+     * @return                          Number of bytes read into `data` or skipped, or an I/O error.
      */
-    virtual size_t _underflow(void *data, size_t size, Buffer *buffer);
+    virtual Result<size_t> _underflow(void *data, size_t size, Buffer *buffer);
 
     /**
      * Closes the underlying source, releasing any held resources. Override in subclasses that need cleanup.
      * Derived implementations should call `InputStream::_close()` at the end.
      *
-     * @param canThrow                  Whether the implementation is allowed to throw. When called from a destructor
-     *                                  via `destroy()`, this is `false` and the implementation should do best-effort
-     *                                  cleanup without throwing.
-     * @throws Exception                On error, only if `canThrow` is `true`.
+     * @return                          Success, or an I/O error.
      */
-    virtual void _close(bool canThrow);
+    virtual Result<void> _close();
 
     /**
-     * Non-throwing close for use in derived destructors. Calls `_close` with `canThrow=false`.
+     * Non-throwing close for use in derived destructors. Errors are explicitly dropped - there's nothing a
+     * destructor could do with them.
      */
     void destroy() noexcept {
         if (isOpen())
-            _close(false);
+            discard(_close());
     }
 
     [[nodiscard]] Error readError(size_t requested, size_t actual) const;
     [[nodiscard]] Error skipError(size_t requested, size_t actual) const;
 
  private:
-    size_t underflow(void *data, size_t size);
-    size_t readUntilSlow(char delimiter, std::string *dst);
+    Result<size_t> underflow(void *data, size_t size);
+    Result<size_t> readUntilSlow(char delimiter, std::string *dst);
 
  private:
     Buffer _buffer;

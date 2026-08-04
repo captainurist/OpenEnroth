@@ -61,9 +61,11 @@ UNIT_TEST(UnicodeCrt, filesystem_exists_remove) {
     std::u8string u8path = std::u8string(u8prefix) + u8"_exists";
     std::string path = reinterpret_cast<const char *>(u8path.c_str());
 
-    FileOutputStream s(path);
-    s.write("something");
-    s.close();
+    FileOutputStream s;
+
+    ASSERT_TRUE(s.open(path));
+    EXPECT_TRUE(s.write("something"));
+    EXPECT_TRUE(s.close());
 
     // Using char * api here, expecting it to be handled as UTF-8.
     EXPECT_TRUE(std::filesystem::exists(path));
@@ -88,9 +90,11 @@ UNIT_TEST(UnicodeCrt, filesystem_rename) {
     std::string path = reinterpret_cast<const char *>(u8path.c_str());
     std::string path2 = path + "2";
 
-    FileOutputStream s(path);
-    s.write("something_else");
-    s.close();
+    FileOutputStream s;
+
+    ASSERT_TRUE(s.open(path));
+    EXPECT_TRUE(s.write("something_else"));
+    EXPECT_TRUE(s.close());
 
     // Using char * api here, expecting it to be handled as UTF-8.
     EXPECT_TRUE(std::filesystem::exists(path));
@@ -112,7 +116,7 @@ UNIT_TEST(UnicodeCrt, fstreams) {
 
     std::ofstream f1;
     f1.open(path);
-    f1.write(data, dataSize);
+    EXPECT_TRUE(f1.write(data, dataSize));
     f1.close();
 
     std::ifstream f2;

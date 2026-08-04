@@ -11,7 +11,6 @@
 #   include <memory>
 
 #   include "Utility/String/Encoding.h"
-#   include "Utility/Exception.h"
 
 struct LocalFreeDeleter {
     void operator()(HLOCAL ptr) {
@@ -22,9 +21,11 @@ struct LocalFreeDeleter {
 
 static bool globalUnicodeCrtInitialized = false;
 
-UnicodeCrt::UnicodeCrt(int &argc, char **&argv) {
+Result<UnicodeCrt> UnicodeCrt::create(int &argc, char **&argv) {
     assert(!globalUnicodeCrtInitialized); // Don't create several instances!
     globalUnicodeCrtInitialized = true;
+
+    UnicodeCrt result;
 
 #ifdef _WINDOWS
     // Convert command line first.
@@ -37,22 +38,23 @@ UnicodeCrt::UnicodeCrt(int &argc, char **&argv) {
     std::unique_ptr<LPWSTR[], LocalFreeDeleter> argvw(CommandLineToArgvW(GetCommandLineW(), &argc)); // NOLINT
 
     for (int i = 0; i < argc; i++)
-        _storage.push_back(txt::wideToUtf8(argvw[i]));
+        result._storage.push_back(txt::wideToUtf8(argvw[i]));
     for (int i = 0; i < argc; i++)
-        _argv.push_back(_storage[i].data());
-    _argv.push_back(nullptr);
-    argv = _argv.data();
+        result._argv.push_back(result._storage[i].data());
+    result._argv.push_back(nullptr);
+    argv = result._argv.data();
 
     // Switch to UTF8 for CRT functions. Without this, std::filesystem won't be able to process UTF8 paths.
     if (std::setlocale(LC_ALL, ".UTF-8") == nullptr)
-        throw Exception("Could not change system locale to UTF-8");
+        return fail("Could not change system locale to UTF-8");
 
     // Also use UTF8 for console io.
     if (SetConsoleCP(CP_UTF8) == 0)
-        throw Exception("Could not set console input codepage to UTF-8");
+        return fail("Could not set console input codepage to UTF-8");
     if (SetConsoleOutputCP(CP_UTF8) == 0)
-        throw Exception("Could not set console output codepage to UTF-8");
+        return fail("Could not set console output codepage to UTF-8");
 #endif
+    return result;
 }
 
 bool UnicodeCrt::isInitialized() {

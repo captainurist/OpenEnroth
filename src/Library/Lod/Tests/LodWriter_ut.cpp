@@ -28,8 +28,8 @@ UNIT_TEST(LodWriter, TestWrite) {
     writer.write("2", Blob::view(file2));
     writer.write("3", Blob::view(file3));
     writer.write("4", Blob::view(file4));
-    writer.close();
-    stream.close();
+    EXPECT_TRUE(writer.close());
+    EXPECT_TRUE(stream.close());
 
     LodReader reader;
     ASSERT_TRUE(reader.open(std::move(lod)));
