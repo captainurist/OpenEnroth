@@ -90,7 +90,12 @@ GUIWindow_Save::GUIWindow_Save() : GUIWindow(WINDOW_Save, {0, 0}, render->GetRen
             pSavegameList->pSavegameHeader[i].name = localization->str(LSTR_EMPTY_SAVE);
         } else {
             SaveGameLite save;
-            deserialize(ufs->read(str), &save, tags::via<SaveGameLite_MM7>);
+            if (Result<void> loaded = deserialize(ufs->read(str), &save, tags::via<SaveGameLite_MM7>); !loaded) {
+                logger->warning("Couldn't read the header of savegame '{}': {}", file_name, loaded.error());
+                pSavegameList->pSavegameUsedSlots[i] = false;
+                pSavegameList->pSavegameHeader[i].name = localization->str(LSTR_EMPTY_SAVE);
+                continue;
+            }
             pSavegameList->pSavegameHeader[i] = save.header;
 
             if (pSavegameList->pSavegameHeader[i].name.empty()) {
@@ -185,7 +190,11 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
         }
 
         SaveGameLite save;
-        deserialize(ufs->read(str), &save, tags::via<SaveGameLite_MM7>);
+        if (Result<void> loaded = deserialize(ufs->read(str), &save, tags::via<SaveGameLite_MM7>); !loaded) {
+            logger->warning("Couldn't read the header of savegame '{}': {}", pSavegameList->pFileList[i], loaded.error());
+            pSavegameList->pSavegameUsedSlots[i] = false;
+            continue;
+        }
         pSavegameList->pSavegameHeader[i] = save.header;
 
         if (ascii::noCaseEquals(pSavegameList->pFileList[i], localization->str(LSTR_AUTOSAVE_MM7))) { // TODO(captainurist): #unicode might not be ascii

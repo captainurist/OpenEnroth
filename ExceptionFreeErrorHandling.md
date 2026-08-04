@@ -261,7 +261,7 @@ templates.
 * **Failure semantics**: better than A/B — the reader zero-fills unread output, so a failed parse yields a
   well-defined (if meaningless) object rather than a partially-written one.
 
-### Option D — coroutines: `co_await` as the `?` operator *(chosen direction)*
+### Option D — coroutines: `co_await` as the `?` operator *(chosen, and rolled out)*
 
 C++20 coroutines can express Rust's `?` exactly, and it has the nicest syntax of all the options — deserializer
 bodies keep their shape, with a keyword prefix instead of a macro wrapper:
@@ -348,20 +348,21 @@ coroutine is just another way to produce a `Result`.
 Rollout order for the serialization layer:
 
 1. ~~Machinery in `Result` + tests.~~ Done.
-2. `Library/Binary`: leaf memcopy and bulk span/vector paths become plain functions returning `Result<void>`
-   (split from the looping paths via `requires` clauses — note that a `co_await` in a *discarded* `if constexpr`
-   branch still makes the function a coroutine, so the split must be at the overload level). Looping combinators
-   become coroutines.
-3. `Library/Snapshots` (`tags::via` / `tags::context` machinery) the same way.
-4. The ~50 struct-level deserializers: signatures go `void` → `Result<void>`, bodies get a `co_await` prefix per
-   line and a trailing `co_return {};`. Mechanical.
-5. Boundary functions drop their `tryCatch` wrappers; `tryDeserialize` becomes a plain alias and eventually
-   disappears.
-6. `InputStream::readOrFail` / `skipOrFail` / `readAsBlobOrFail` return `Result<void>` / `Result<Blob>`, and the
-   stream throws are gone — the island dissolves, and the budget entries for `src/Utility/` and
-   `src/Library/Binary/` ratchet down.
-7. **Windows CI is the gate.** MSVC coroutine codegen is the one thing we can't measure locally; if it's
-   pathological, the fallback is keeping Option A on the same public API, which stays unchanged either way.
+2. ~~`Library/Binary` + `Library/Snapshots`: `deserialize` returns `Result<void>`; leaf memcopy / bulk span paths
+   are plain functions (split at the overload level — a `co_await` in a *discarded* `if constexpr` branch still
+   makes a coroutine); looping combinators are plain functions with `MM_TRY_VOID`, so per-element code never pays
+   for a frame.~~ Done.
+3. ~~The ~50 struct-level deserializers in `Engine/Snapshots` become coroutines: one `co_await` per read, one
+   `co_return {};` at the end.~~ Done.
+4. ~~Boundary functions drop their `tryCatch` wrappers (`lod::decode*` are now coroutines themselves), and
+   `tryDeserialize` is gone — `deserialize` is the only spelling.~~ Done. Measured on LoadBench: identical to the
+   exception-island implementation within noise, exactly as the microbenchmarks predicted.
+5. `InputStream::readOrFail` / `skipOrFail` / `readAsBlobOrFail` still throw — today those throws are absorbed
+   into an `Error` by the innermost enclosing coroutine (`unhandled_exception` doubles as `tryCatch`), which is
+   correct but implicit. Converting them to `Result` is the remaining cleanup, and ratchets `src/Utility/` down.
+6. `fromStream<T>` and `EvtInstruction::parse` still throw (TODO-marked bridges inside the `Engine/Evt` budget).
+7. **Windows CI is the gate.** MSVC coroutine codegen is the one thing we can't measure locally; the public API
+   wouldn't change if a leg of it ever needed to go back to option A.
 
 
 ## 4. What's been ported

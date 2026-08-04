@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
+
 #include <string_view>
 #include <vector>
 
@@ -30,7 +32,7 @@ class TextureFrameTable {
 
     GraphicsImage *animationFrame(int animationId, Duration frameTime);
 
-    friend void deserialize(const Blob &src, TextureFrameTable *dst); // In TableSerialization.cpp.
+    friend Result<void> deserialize(const Blob &src, TextureFrameTable *dst); // In TableSerialization.cpp.
 
  private:
     GraphicsImage *loadTexture(int frameId);

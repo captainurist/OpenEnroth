@@ -60,7 +60,9 @@ void loadGame(int uSlot) {
 
     // Blob::copy below detaches from the underlying file so subsequent saves to the same path are not blocked.
     SaveGame state;
-    deserialize(Blob::copy(ufs->read(filename)), &state, tags::via<SaveGame_MM7>);
+    // TODO(captainurist): #exceptions A corrupt save should take the player back to the save selection screen with
+    //                     an error message, not blow up the game.
+    deserialize(Blob::copy(ufs->read(filename)), &state, tags::via<SaveGame_MM7>).orThrow();
 
     // Move loaded state to global variables.
     *pParty = std::move(state.party);

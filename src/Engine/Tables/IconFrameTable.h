@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
+
 #include <string_view>
 #include <vector>
 
@@ -15,7 +17,7 @@ class IconFrameTable {
     Duration animationLength(int animationId) const;
     GraphicsImage *animationFrame(int animationId, Duration frameTime);
 
-    friend void deserialize(const Blob &src, IconFrameTable *dst); // In TableSerialization.cpp.
+    friend Result<void> deserialize(const Blob &src, IconFrameTable *dst); // In TableSerialization.cpp.
 
  private:
     GraphicsImage *loadTexture(int frameId);

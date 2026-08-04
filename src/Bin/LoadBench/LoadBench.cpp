@@ -66,22 +66,22 @@ size_t processMap(const MapEntry &map, Buckets *buckets) {
     if (map.isIndoor) {
         IndoorLocation_MM7 rawLocation;
         start = std::chrono::steady_clock::now();
-        deserialize(location, &rawLocation);
+        deserialize(location, &rawLocation).orThrow();
         buckets->locationsMs += msSince(start);
 
         IndoorDelta_MM7 rawDelta;
         start = std::chrono::steady_clock::now();
-        deserialize(delta, &rawDelta, tags::context(rawLocation));
+        deserialize(delta, &rawDelta, tags::context(rawLocation)).orThrow();
         buckets->deltasMs += msSince(start);
     } else {
         OutdoorLocation_MM7 rawLocation;
         start = std::chrono::steady_clock::now();
-        deserialize(location, &rawLocation);
+        deserialize(location, &rawLocation).orThrow();
         buckets->locationsMs += msSince(start);
 
         OutdoorDelta_MM7 rawDelta;
         start = std::chrono::steady_clock::now();
-        deserialize(delta, &rawDelta, tags::context(rawLocation));
+        deserialize(delta, &rawDelta, tags::context(rawLocation)).orThrow();
         buckets->deltasMs += msSince(start);
     }
 

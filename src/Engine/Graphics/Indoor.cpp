@@ -272,7 +272,7 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     IndoorLocation_MM7 location;
     MM_TRY(Blob rawLocationBlob, pGames_LOD->read(blv_filename));
     MM_TRY(Blob locationBlob, lod::decodeMaybeCompressed(rawLocationBlob));
-    MM_TRY_VOID(tryDeserialize(locationBlob, &location));
+    MM_TRY_VOID(deserialize(locationBlob, &location));
     reconstruct(location, this);
 
     std::string dlv_filename = fmt::format("{}.dlv", filename.substr(0, filename.size() - 4));
@@ -282,7 +282,7 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     IndoorDelta_MM7 delta;
     MM_TRY(Blob deltaBlob, lod::decodeMaybeCompressed(pMapDeltas.at(dlv_filename)));
     if (deltaBlob) {
-        if (Result<void> deserialized = tryDeserialize(deltaBlob, &delta, tags::context(location))) {
+        if (Result<void> deserialized = deserialize(deltaBlob, &delta, tags::context(location))) {
             // Level was changed externally and we have a save there? Don't crash, just respawn.
             if (delta.header.totalFacesCount > 0 && delta.header.decorationCount > 0 &&
                 (delta.header.totalFacesCount != faces.size() || delta.header.decorationCount != pLevelDecorations.size()))
@@ -308,14 +308,14 @@ Result<void> IndoorLocation::Load(std::string_view filename, int num_days_played
     if (respawnInitial) {
         MM_TRY(Blob rawPristine, pGames_LOD->read(dlv_filename));
         MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
+        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
         *indoor_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
         auto visibleOutlines = delta.visibleOutlines;
         MM_TRY(Blob rawPristine, pGames_LOD->read(dlv_filename));
         MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
+        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
         delta.header = header;
         delta.visibleOutlines = visibleOutlines;
         *indoor_was_respawned = true;

@@ -19,7 +19,7 @@
 
 static Result<LodHeader> parseHeader(InputStream &stream, LodVersion *version) {
     LodHeader header;
-    MM_TRY_VOID(tryDeserialize(stream, &header, tags::via<LodHeader_MM6>));
+    MM_TRY_VOID(deserialize(stream, &header, tags::via<LodHeader_MM6>));
 
     if (header.signature != "LOD")
         return fail("File '{}' is not a valid LOD: expected signature '{}', got '{}'", stream.displayPath(), "LOD", ascii::toPrintable(header.signature));
@@ -37,7 +37,7 @@ static Result<LodHeader> parseHeader(InputStream &stream, LodVersion *version) {
 
 static Result<LodEntry> parseDirectoryEntry(InputStream &stream, LodVersion version, size_t lodSize) {
     LodEntry result;
-    MM_TRY_VOID(tryDeserialize(stream, &result, tags::via<LodEntry_MM6>));
+    MM_TRY_VOID(deserialize(stream, &result, tags::via<LodEntry_MM6>));
 
     size_t expectedDataSize = result.numItems * fileEntrySize(version);
     if (result.dataSize < expectedDataSize)
@@ -52,9 +52,9 @@ static Result<LodEntry> parseDirectoryEntry(InputStream &stream, LodVersion vers
 static Result<std::vector<LodEntry>> parseFileEntries(InputStream &stream, const LodEntry &directoryEntry, LodVersion version) {
     std::vector<LodEntry> result;
     if (version == LOD_VERSION_MM8) {
-        MM_TRY_VOID(tryDeserialize(stream, &result, tags::presized(directoryEntry.numItems), tags::each, tags::via<LodFileEntry_MM8>));
+        MM_TRY_VOID(deserialize(stream, &result, tags::presized(directoryEntry.numItems), tags::each, tags::via<LodFileEntry_MM8>));
     } else {
-        MM_TRY_VOID(tryDeserialize(stream, &result, tags::presized(directoryEntry.numItems), tags::each, tags::via<LodEntry_MM6>));
+        MM_TRY_VOID(deserialize(stream, &result, tags::presized(directoryEntry.numItems), tags::each, tags::via<LodEntry_MM6>));
     }
 
     for (const LodEntry &entry : result) {
@@ -173,7 +173,8 @@ bool lod::detect(const Blob &data) {
 
     BlobInputStream stream(data);
     LodHeader header;
-    deserialize(stream, &header, tags::via<LodHeader_MM6>);
+    if (!deserialize(stream, &header, tags::via<LodHeader_MM6>))
+        return false;
 
     if (header.signature != "LOD")
         return false;

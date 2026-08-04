@@ -20,9 +20,8 @@ bool detect(const Blob &data) {
     std::array<char, 4> riff;
     uint32_t chunkSize;
     std::array<char, 4> form;
-    deserialize(stream, &riff);
-    deserialize(stream, &chunkSize);
-    deserialize(stream, &form);
+    if (!deserialize(stream, &riff) || !deserialize(stream, &chunkSize) || !deserialize(stream, &form))
+        return false;
 
     if (std::string_view(form.data(), form.size()) != "WAVE")
         return false;

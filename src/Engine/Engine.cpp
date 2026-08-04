@@ -645,34 +645,34 @@ void Engine::MM7_Initialize() {
     localization->initialize();
 
     pSpriteFrameTable = new SpriteFrameTable;
-    deserialize(engine->resources()->eventsData("dsft.bin").mustSucceed(), pSpriteFrameTable); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dsft.bin").mustSucceed(), pSpriteFrameTable).mustSucceed();
 
     pTextureFrameTable = new TextureFrameTable;
-    deserialize(engine->resources()->eventsData("dtft.bin").mustSucceed(), pTextureFrameTable); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dtft.bin").mustSucceed(), pTextureFrameTable).mustSucceed();
 
     pTileTable = new TileTable;
-    deserialize(engine->resources()->eventsData("dtile.bin").mustSucceed(), pTileTable); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dtile.bin").mustSucceed(), pTileTable).mustSucceed();
 
     pPortraitFrameTable = new PortraitFrameTable;
-    deserialize(engine->resources()->eventsData("dpft.bin").mustSucceed(), pPortraitFrameTable); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dpft.bin").mustSucceed(), pPortraitFrameTable).mustSucceed();
 
     pIconsFrameTable = new IconFrameTable;
-    deserialize(engine->resources()->eventsData("dift.bin").mustSucceed(), pIconsFrameTable); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dift.bin").mustSucceed(), pIconsFrameTable).mustSucceed();
 
     pDecorationList = new DecorationList;
-    deserialize(engine->resources()->eventsData("ddeclist.bin").mustSucceed(), pDecorationList); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("ddeclist.bin").mustSucceed(), pDecorationList).mustSucceed();
 
     pObjectList = new ObjectList;
-    deserialize(engine->resources()->eventsData("dobjlist.bin").mustSucceed(), pObjectList); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dobjlist.bin").mustSucceed(), pObjectList).mustSucceed();
 
     pMonsterList = new MonsterList;
-    deserialize(engine->resources()->eventsData("dmonlist.bin").mustSucceed(), pMonsterList); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dmonlist.bin").mustSucceed(), pMonsterList).mustSucceed();
 
     pOverlayList = new OverlayList;
-    deserialize(engine->resources()->eventsData("doverlay.bin").mustSucceed(), pOverlayList); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("doverlay.bin").mustSucceed(), pOverlayList).mustSucceed();
 
     pSoundList = new SoundList;
-    deserialize(engine->resources()->eventsData("dsounds.bin").mustSucceed(), pSoundList); // TODO(captainurist): #exceptions Port TableSerialization.
+    deserialize(engine->resources()->eventsData("dsounds.bin").mustSucceed(), pSoundList).mustSucceed();
 
     if (!config->debug.NoSound.value())
         pAudioPlayer->Initialize();

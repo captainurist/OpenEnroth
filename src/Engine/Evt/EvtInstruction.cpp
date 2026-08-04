@@ -9,7 +9,7 @@
 #include "Engine/Tables/NPCTable.h"
 #include "Engine/Engine.h"
 
-#include "Library/Binary/BinaryExceptions.h"
+#include "Library/Binary/BinaryErrors.h"
 #include "Library/Binary/BinarySerialization.h"
 #include "Library/Serialization/Serialization.h"
 
@@ -1199,7 +1199,7 @@ EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
     assert(requireSizeCalled && "please report");
 
     if (stream.position() != stream.size())
-        throwBinarySerializationLeftoverDataError(stream.position(), stream.size() - stream.position(), typeid(EvtInstruction).name());
+        throw Exception("{}", binarySerializationLeftoverDataError(stream.position(), stream.size() - stream.position(), typeid(EvtInstruction).name()).message()); // TODO(captainurist): #exceptions Port EvtInstruction::parse to Result.
 
     return ir;
 }

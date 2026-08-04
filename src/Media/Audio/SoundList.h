@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
+
 #include <unordered_map>
 
 #include "SoundInfo.h"
@@ -8,7 +10,7 @@ class SoundList {
  public:
     SoundInfo *soundInfo(SoundId soundId); // TODO(captainurist): should be const
 
-    friend void deserialize(const Blob &src, SoundList *dst); // In TableSerialization.cpp.
+    friend Result<void> deserialize(const Blob &src, SoundList *dst); // In TableSerialization.cpp.
 
  private:
     std::unordered_map<SoundId, SoundInfo> _mapSounds;

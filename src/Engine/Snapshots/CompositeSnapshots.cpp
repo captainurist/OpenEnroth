@@ -265,24 +265,25 @@ void reconstruct(const IndoorLocation_MM7 &src, IndoorLocation *dst) {
     reconstruct(src.mapOutlines, &dst->mapOutlines);
 }
 
-void deserialize(InputStream &src, IndoorLocation_MM7 *dst) {
-    deserialize(src, &dst->header);
-    deserialize(src, &dst->vertices);
-    deserialize(src, &dst->faces);
-    deserialize(src, &dst->faceData, tags::presized(dst->header.faceDataSizeBytes / sizeof(uint16_t)));
-    deserialize(src, &dst->faceTextures, tags::presized(dst->faces.size()));
-    deserialize(src, &dst->faceExtras);
-    deserialize(src, &dst->faceExtraTextures, tags::presized(dst->faceExtras.size()));
-    deserialize(src, &dst->sectors);
-    deserialize(src, &dst->sectorData, tags::presized(dst->header.sectorDataSizeBytes / sizeof(uint16_t)));
-    deserialize(src, &dst->sectorLightData, tags::presized(dst->header.sectorLightDataSizeBytes / sizeof(uint16_t)));
-    deserialize(src, &dst->doorCount);
-    deserialize(src, &dst->decorations);
-    deserialize(src, &dst->decorationNames, tags::presized(dst->decorations.size()));
-    deserialize(src, &dst->lights);
-    deserialize(src, &dst->bspNodes);
-    deserialize(src, &dst->spawnPoints);
-    deserialize(src, &dst->mapOutlines);
+Result<void> deserialize(InputStream &src, IndoorLocation_MM7 *dst) {
+    co_await deserialize(src, &dst->header);
+    co_await deserialize(src, &dst->vertices);
+    co_await deserialize(src, &dst->faces);
+    co_await deserialize(src, &dst->faceData, tags::presized(dst->header.faceDataSizeBytes / sizeof(uint16_t)));
+    co_await deserialize(src, &dst->faceTextures, tags::presized(dst->faces.size()));
+    co_await deserialize(src, &dst->faceExtras);
+    co_await deserialize(src, &dst->faceExtraTextures, tags::presized(dst->faceExtras.size()));
+    co_await deserialize(src, &dst->sectors);
+    co_await deserialize(src, &dst->sectorData, tags::presized(dst->header.sectorDataSizeBytes / sizeof(uint16_t)));
+    co_await deserialize(src, &dst->sectorLightData, tags::presized(dst->header.sectorLightDataSizeBytes / sizeof(uint16_t)));
+    co_await deserialize(src, &dst->doorCount);
+    co_await deserialize(src, &dst->decorations);
+    co_await deserialize(src, &dst->decorationNames, tags::presized(dst->decorations.size()));
+    co_await deserialize(src, &dst->lights);
+    co_await deserialize(src, &dst->bspNodes);
+    co_await deserialize(src, &dst->spawnPoints);
+    co_await deserialize(src, &dst->mapOutlines);
+    co_return {};
 }
 
 void snapshot(const IndoorLocation &src, IndoorDelta_MM7 *dst) {
@@ -413,18 +414,19 @@ void serialize(const IndoorDelta_MM7 &src, OutputStream *dst) {
     serialize(src.locationTime, dst);
 }
 
-void deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
-    deserialize(src, &dst->header);
-    deserialize(src, &dst->visibleOutlines);
-    deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size()));
-    deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size()));
-    deserialize(src, &dst->actors);
-    deserialize(src, &dst->spriteObjects);
-    deserialize(src, &dst->chests);
-    deserialize(src, &dst->doors, tags::presized(ctx->doorCount));
-    deserialize(src, &dst->doorsData, tags::presized(ctx->header.doorsDataSizeBytes / sizeof(int16_t)));
-    deserialize(src, &dst->eventVariables);
-    deserialize(src, &dst->locationTime);
+Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx) {
+    co_await deserialize(src, &dst->header);
+    co_await deserialize(src, &dst->visibleOutlines);
+    co_await deserialize(src, &dst->faceAttributes, tags::presized(ctx->faces.size()));
+    co_await deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size()));
+    co_await deserialize(src, &dst->actors);
+    co_await deserialize(src, &dst->spriteObjects);
+    co_await deserialize(src, &dst->chests);
+    co_await deserialize(src, &dst->doors, tags::presized(ctx->doorCount));
+    co_await deserialize(src, &dst->doorsData, tags::presized(ctx->header.doorsDataSizeBytes / sizeof(int16_t)));
+    co_await deserialize(src, &dst->eventVariables);
+    co_await deserialize(src, &dst->locationTime);
+    co_return {};
 }
 
 void reconstruct(std::tuple<const BSPModelData_MM7 &, const BSPModelExtras_MM7 &> src, BSPModel *dst) {
@@ -539,37 +541,38 @@ void reconstruct(const OutdoorLocation_MM7 &src, OutdoorLocation *dst) {
     reconstruct(src.spawnPoints, &dst->pSpawnPoints);
 }
 
-void deserialize(InputStream &src, OutdoorLocation_MM7 *dst) {
-    deserialize(src, &dst->name);
-    deserialize(src, &dst->fileName);
-    deserialize(src, &dst->description);
-    deserialize(src, &dst->skyTexture);
-    deserialize(src, &dst->groundTilesetUnused);
-    deserialize(src, &dst->tileTypes);
-    deserialize(src, &dst->heightMap);
-    deserialize(src, &dst->tileMap);
-    deserialize(src, &dst->attributeMap);
-    deserialize(src, &dst->normalCount);
-    deserialize(src, &dst->someOtherMap);
-    deserialize(src, &dst->normalMap);
-    deserialize(src, &dst->normals, tags::presized(dst->normalCount));
-    deserialize(src, &dst->models);
+Result<void> deserialize(InputStream &src, OutdoorLocation_MM7 *dst) {
+    co_await deserialize(src, &dst->name);
+    co_await deserialize(src, &dst->fileName);
+    co_await deserialize(src, &dst->description);
+    co_await deserialize(src, &dst->skyTexture);
+    co_await deserialize(src, &dst->groundTilesetUnused);
+    co_await deserialize(src, &dst->tileTypes);
+    co_await deserialize(src, &dst->heightMap);
+    co_await deserialize(src, &dst->tileMap);
+    co_await deserialize(src, &dst->attributeMap);
+    co_await deserialize(src, &dst->normalCount);
+    co_await deserialize(src, &dst->someOtherMap);
+    co_await deserialize(src, &dst->normalMap);
+    co_await deserialize(src, &dst->normals, tags::presized(dst->normalCount));
+    co_await deserialize(src, &dst->models);
 
     dst->modelExtras.clear();
     for (const BSPModelData_MM7 &model : dst->models) {
         BSPModelExtras_MM7 &extra = dst->modelExtras.emplace_back();
-        deserialize(src, &extra.vertices, tags::presized(model.numVertices));
-        deserialize(src, &extra.faces, tags::presized(model.numFaces));
-        deserialize(src, &extra.facesOrdering, tags::presized(model.numFaces));
-        deserialize(src, &extra.bspNodes, tags::presized(model.numNodes));
-        deserialize(src, &extra.faceTextures, tags::presized(model.numFaces));
+        co_await deserialize(src, &extra.vertices, tags::presized(model.numVertices));
+        co_await deserialize(src, &extra.faces, tags::presized(model.numFaces));
+        co_await deserialize(src, &extra.facesOrdering, tags::presized(model.numFaces));
+        co_await deserialize(src, &extra.bspNodes, tags::presized(model.numNodes));
+        co_await deserialize(src, &extra.faceTextures, tags::presized(model.numFaces));
     }
 
-    deserialize(src, &dst->decorations);
-    deserialize(src, &dst->decorationNames, tags::presized(dst->decorations.size()));
-    deserialize(src, &dst->decorationPidList);
-    deserialize(src, &dst->decorationMap);
-    deserialize(src, &dst->spawnPoints);
+    co_await deserialize(src, &dst->decorations);
+    co_await deserialize(src, &dst->decorationNames, tags::presized(dst->decorations.size()));
+    co_await deserialize(src, &dst->decorationPidList);
+    co_await deserialize(src, &dst->decorationMap);
+    co_await deserialize(src, &dst->spawnPoints);
+    co_return {};
 }
 
 void snapshot(const OutdoorLocation &src, OutdoorDelta_MM7 *dst) {
@@ -647,21 +650,22 @@ void serialize(const OutdoorDelta_MM7 &src, OutputStream *dst) {
     serialize(src.locationTime, dst);
 }
 
-void deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<OutdoorLocation_MM7> ctx) {
+Result<void> deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<OutdoorLocation_MM7> ctx) {
     size_t totalFaces = 0;
     for (const BSPModelData_MM7 &model : ctx->models)
         totalFaces += model.numFaces;
 
-    deserialize(src, &dst->header);
-    deserialize(src, &dst->fullyRevealedCells);
-    deserialize(src, &dst->partiallyRevealedCells);
-    deserialize(src, &dst->faceAttributes, tags::presized(totalFaces));
-    deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size()));
-    deserialize(src, &dst->actors);
-    deserialize(src, &dst->spriteObjects);
-    deserialize(src, &dst->chests);
-    deserialize(src, &dst->eventVariables);
-    deserialize(src, &dst->locationTime);
+    co_await deserialize(src, &dst->header);
+    co_await deserialize(src, &dst->fullyRevealedCells);
+    co_await deserialize(src, &dst->partiallyRevealedCells);
+    co_await deserialize(src, &dst->faceAttributes, tags::presized(totalFaces));
+    co_await deserialize(src, &dst->decorationFlags, tags::presized(ctx->decorations.size()));
+    co_await deserialize(src, &dst->actors);
+    co_await deserialize(src, &dst->spriteObjects);
+    co_await deserialize(src, &dst->chests);
+    co_await deserialize(src, &dst->eventVariables);
+    co_await deserialize(src, &dst->locationTime);
+    co_return {};
 }
 
 void snapshot(const SaveGame &src, SaveGame_MM7 *dst) {
@@ -758,35 +762,33 @@ void serialize(const SaveGame_MM7 &src, Blob *dst) {
     stream.close();
 }
 
-// TODO(captainurist): #exceptions Savegame loading is the next thing to port - a corrupt save should show an error
-//                     in the UI instead of taking the game down with it. Until then, `orThrow` keeps the old
-//                     behavior.
-void deserialize(const Blob &src, SaveGame_MM7 *dst) {
+Result<void> deserialize(const Blob &src, SaveGame_MM7 *dst) {
     LodReader lodReader;
-    lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES).orThrow();
+    co_await lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES);
 
-    deserialize(lodReader.read("header.bin").orThrow(), &dst->header);
-    deserialize(lodReader.read("party.bin").orThrow(), &dst->party);
-    deserialize(lodReader.read("clock.bin").orThrow(), &dst->eventTimer);
-    deserialize(lodReader.read("overlay.bin").orThrow(), &dst->overlays);
-    deserialize(lodReader.read("npcdata.bin").orThrow(), &dst->npcData);
-    deserialize(lodReader.read("npcgroup.bin").orThrow(), &dst->npcGroups);
+    co_await deserialize(co_await lodReader.read("header.bin"), &dst->header);
+    co_await deserialize(co_await lodReader.read("party.bin"), &dst->party);
+    co_await deserialize(co_await lodReader.read("clock.bin"), &dst->eventTimer);
+    co_await deserialize(co_await lodReader.read("overlay.bin"), &dst->overlays);
+    co_await deserialize(co_await lodReader.read("npcdata.bin"), &dst->npcData);
+    co_await deserialize(co_await lodReader.read("npcgroup.bin"), &dst->npcGroups);
 
     dst->mapDeltas.clear();
     for (const std::string &name : lodReader.ls())
         if (name.ends_with(".ddm") || name.ends_with(".dlv"))
-            dst->mapDeltas[name] = lodReader.read(name).orThrow();
+            dst->mapDeltas[name] = co_await lodReader.read(name);
 
     dst->lloydImages.clear();
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 5; j++) {
             std::string name = fmt::format("lloyd{}{}.pcx", i + 1, j + 1);
             if (lodReader.exists(name))
-                dst->lloydImages[{i, j}] = lodReader.read(name).orThrow();
+                dst->lloydImages[{i, j}] = co_await lodReader.read(name);
         }
     }
 
-    dst->thumbnail = lodReader.read("image.pcx").orThrow();
+    dst->thumbnail = co_await lodReader.read("image.pcx");
+    co_return {};
 }
 
 void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
@@ -794,11 +796,12 @@ void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst) {
     dst->thumbnail = Blob::share(src.thumbnail);
 }
 
-void deserialize(const Blob &src, SaveGameLite_MM7 *dst) {
+Result<void> deserialize(const Blob &src, SaveGameLite_MM7 *dst) {
     LodReader lodReader;
-    lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES).orThrow();
-    deserialize(lodReader.read("header.bin").orThrow(), &dst->header);
-    dst->thumbnail = lodReader.read("image.pcx").orThrow();
+    co_await lodReader.open(Blob::share(src), LOD_ALLOW_DUPLICATES);
+    co_await deserialize(co_await lodReader.read("header.bin"), &dst->header);
+    dst->thumbnail = co_await lodReader.read("image.pcx");
+    co_return {};
 }
 
 void reconstruct(const SpriteFrameTable_MM7 &src, SpriteFrameTable *dst) {
@@ -806,9 +809,10 @@ void reconstruct(const SpriteFrameTable_MM7 &src, SpriteFrameTable *dst) {
     reconstruct(src.eframes, &dst->pSpriteEFrames);
 }
 
-void deserialize(InputStream &src, SpriteFrameTable_MM7 *dst) {
-    deserialize(src, &dst->frameCount);
-    deserialize(src, &dst->eframeCount);
-    deserialize(src, &dst->frames, tags::presized(dst->frameCount));
-    deserialize(src, &dst->eframes, tags::presized(dst->eframeCount));
+Result<void> deserialize(InputStream &src, SpriteFrameTable_MM7 *dst) {
+    co_await deserialize(src, &dst->frameCount);
+    co_await deserialize(src, &dst->eframeCount);
+    co_await deserialize(src, &dst->frames, tags::presized(dst->frameCount));
+    co_await deserialize(src, &dst->eframes, tags::presized(dst->eframeCount));
+    co_return {};
 }

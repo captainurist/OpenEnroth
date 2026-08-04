@@ -31,7 +31,7 @@ Result<void> VidReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<VidEntry> entries;
-    MM_TRY_VOID(tryDeserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>)
+    MM_TRY_VOID(deserialize(stream, &entries, tags::each, tags::via<VidEntry_MM7>)
                     .withContext("File '{}' is not a valid VID", blob.displayPath()));
     std::ranges::sort(entries, std::ranges::less(), &VidEntry::offset);
 
@@ -101,7 +101,8 @@ bool vid::detect(const Blob &data) {
     BlobInputStream stream(data);
 
     uint32_t entryCount;
-    deserialize(stream, &entryCount);
+    if (!deserialize(stream, &entryCount))
+        return false;
     if (entryCount == 0)
         return false; // Empty vid file is not valid.
 
@@ -113,7 +114,8 @@ bool vid::detect(const Blob &data) {
     size_t lastOffset = 0;
     for (size_t i = 0, count = std::min<size_t>(entryCount, 16); i < count; i++) {
         VidEntry_MM7 entry;
-        deserialize(stream, &entry);
+        if (!deserialize(stream, &entry))
+            return false;
 
         if (entry.offset < headerSize)
             return false;

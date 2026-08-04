@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 
 set(LIBRARY_BINARY_SOURCES
-        BinaryExceptions.cpp)
+        BinaryErrors.cpp)
 
 set(LIBRARY_BINARY_HEADERS
         BinaryConcepts.h
-        BinaryExceptions.h
+        BinaryErrors.h
         BinarySerialization.h
         BinaryTags.h
         BlobSerialization.h

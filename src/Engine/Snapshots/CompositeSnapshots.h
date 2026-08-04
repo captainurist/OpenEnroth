@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
+
 #include <string>
 #include <vector>
 #include <tuple>
@@ -48,7 +50,7 @@ struct IndoorLocation_MM7 {
 };
 
 void reconstruct(const IndoorLocation_MM7 &src, IndoorLocation *dst);
-void deserialize(InputStream &src, IndoorLocation_MM7 *dst);
+Result<void> deserialize(InputStream &src, IndoorLocation_MM7 *dst);
 
 
 struct IndoorDelta_MM7 {
@@ -68,7 +70,7 @@ struct IndoorDelta_MM7 {
 void snapshot(const IndoorLocation &src, IndoorDelta_MM7 *dst);
 void reconstruct(const IndoorDelta_MM7 &src, IndoorLocation *dst);
 void serialize(const IndoorDelta_MM7 &src, OutputStream *dst);
-void deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx);
+Result<void> deserialize(InputStream &src, IndoorDelta_MM7 *dst, ContextTag<IndoorLocation_MM7> ctx);
 
 
 struct BSPModelExtras_MM7 {
@@ -107,7 +109,7 @@ struct OutdoorLocation_MM7 {
 
 void reconstruct(const OutdoorLocation_MM7 &src, OutdoorTerrain *dst);
 void reconstruct(const OutdoorLocation_MM7 &src, OutdoorLocation *dst);
-void deserialize(InputStream &src, OutdoorLocation_MM7 *dst);
+Result<void> deserialize(InputStream &src, OutdoorLocation_MM7 *dst);
 
 struct OutdoorDelta_MM7 {
     LocationHeader_MM7 header;
@@ -125,7 +127,7 @@ struct OutdoorDelta_MM7 {
 void snapshot(const OutdoorLocation &src, OutdoorDelta_MM7 *dst);
 void reconstruct(const OutdoorDelta_MM7 &src, OutdoorLocation *dst);
 void serialize(const OutdoorDelta_MM7 &src, OutputStream *dst);
-void deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<OutdoorLocation_MM7> ctx);
+Result<void> deserialize(InputStream &src, OutdoorDelta_MM7 *dst, ContextTag<OutdoorLocation_MM7> ctx);
 
 
 struct SaveGame_MM7 {
@@ -143,7 +145,7 @@ struct SaveGame_MM7 {
 void snapshot(const SaveGame &src, SaveGame_MM7 *dst);
 void reconstruct(const SaveGame_MM7 &src, SaveGame *dst);
 void serialize(const SaveGame_MM7 &src, Blob *dst);
-void deserialize(const Blob &src, SaveGame_MM7 *dst);
+Result<void> deserialize(const Blob &src, SaveGame_MM7 *dst);
 
 
 struct SaveGameLite_MM7 {
@@ -152,7 +154,7 @@ struct SaveGameLite_MM7 {
 };
 
 void reconstruct(const SaveGameLite_MM7 &src, SaveGameLite *dst);
-void deserialize(const Blob &src, SaveGameLite_MM7 *dst);
+Result<void> deserialize(const Blob &src, SaveGameLite_MM7 *dst);
 
 
 struct SpriteFrameTable_MM7 {
@@ -163,4 +165,4 @@ struct SpriteFrameTable_MM7 {
 };
 
 void reconstruct(const SpriteFrameTable_MM7 &src, SpriteFrameTable *dst);
-void deserialize(InputStream &src, SpriteFrameTable_MM7 *dst);
+Result<void> deserialize(InputStream &src, SpriteFrameTable_MM7 *dst);

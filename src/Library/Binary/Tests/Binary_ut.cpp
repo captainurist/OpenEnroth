@@ -23,20 +23,22 @@ UNIT_TEST(Binary, GarbageSizeThrowsInsteadOfBadAlloc) {
 
     BlobInputStream input(std::move(blob));
     std::vector<int> dst;
-    EXPECT_THROW_MESSAGE(deserialize(input, &dst), "expected");
+    Result<void> result = deserialize(input, &dst);
+    ASSERT_FALSE(result);
+    EXPECT_THAT(result.error().message(), testing::HasSubstr("expected"));
 }
 
 UNIT_TEST(Binary, TryDeserializeReportsShortBlob) {
     // A blob that's too short to hold the whole value comes back as an error, not an exception.
     uint64_t dst = 0;
-    Result<void> result = tryDeserialize(Blob::fromString("xx"), &dst);
+    Result<void> result = deserialize(Blob::fromString("xx"), &dst);
     ASSERT_FALSE(result);
     EXPECT_THAT(result.error().message(), testing::HasSubstr("expected 8 bytes"));
 }
 
 UNIT_TEST(Binary, TryDeserializeReportsLeftoverData) {
     uint32_t dst = 0;
-    Result<void> result = tryDeserialize(Blob::fromString("12345678"), &dst);
+    Result<void> result = deserialize(Blob::fromString("12345678"), &dst);
     ASSERT_FALSE(result);
     EXPECT_THAT(result.error().message(), testing::HasSubstr("bytes left"));
 }

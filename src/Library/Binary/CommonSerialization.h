@@ -10,7 +10,7 @@
 #include "BinaryFwd.h"
 #include "BinaryTags.h"
 #include "BinaryConcepts.h"
-#include "BinaryExceptions.h"
+#include "BinaryErrors.h"
 
 #include "Utility/Error/Result.h"
 #include "Utility/Streams/InputStream.h"
@@ -53,10 +53,11 @@ void serialize(const T &src, OutputStream *dst) {
 }
 
 template<class T> requires is_memcopy_serializable_v<T>
-void deserialize(InputStream &src, T *dst) {
+Result<void> deserialize(InputStream &src, T *dst) {
     size_t bytes = src.read(dst, sizeof(T));
-    if (bytes != sizeof(T))
-        throwBinarySerializationNoMoreDataError(bytes, sizeof(T), typeid(T).name());
+    if (bytes != sizeof(T)) [[unlikely]]
+        return binarySerializationNoMoreDataError(bytes, sizeof(T), typeid(T).name());
+    return {};
 }
 
 
@@ -64,17 +65,23 @@ void deserialize(InputStream &src, T *dst) {
 // std::span support - doesn't write size to the stream.
 //
 
-template<StdSpan Span, class T = typename Span::value_type>
-void deserialize(InputStream &src, Span *dst) {
-    if constexpr (is_memcopy_serializable_v<T>) {
-        size_t bytesExpected = dst->size() * sizeof(T);
-        size_t bytesRead = src.read(dst->data(), bytesExpected);
-        if (bytesRead != bytesExpected)
-            throwBinarySerializationNoMoreDataError(bytesRead % sizeof(T), sizeof(T), typeid(T).name());
-    } else {
-        for (T &element : *dst)
-            deserialize(src, &element);
-    }
+// Note that the memcopy and per-element paths below are separate overloads and not an `if constexpr` on purpose.
+// The looping paths propagate errors with `MM_TRY_VOID` and stay plain functions - they run per element, and
+// per-element code must never pay for a coroutine frame. See ExceptionFreeErrorHandling.md.
+template<StdSpan Span, class T = typename Span::value_type> requires is_memcopy_serializable_v<T>
+Result<void> deserialize(InputStream &src, Span *dst) {
+    size_t bytesExpected = dst->size() * sizeof(T);
+    size_t bytesRead = src.read(dst->data(), bytesExpected);
+    if (bytesRead != bytesExpected) [[unlikely]]
+        return binarySerializationNoMoreDataError(bytesRead % sizeof(T), sizeof(T), typeid(T).name());
+    return {};
+}
+
+template<StdSpan Span, class T = typename Span::value_type> requires (!is_memcopy_serializable_v<T>)
+Result<void> deserialize(InputStream &src, Span *dst) {
+    for (T &element : *dst)
+        MM_TRY_VOID(deserialize(src, &element));
+    return {};
 }
 
 template<StdSpan Span, class T = typename Span::value_type>
@@ -93,9 +100,10 @@ void serialize(const Span &src, OutputStream *dst) {
 //
 
 template<StdSpan Span, class... Tags>
-void deserialize(InputStream &src, Span *dst, EachTag, const Tags &... tags) {
+Result<void> deserialize(InputStream &src, Span *dst, EachTag, const Tags &... tags) {
     for (auto &element : *dst)
-        deserialize(src, &element, tags...);
+        MM_TRY_VOID(deserialize(src, &element, tags...));
+    return {};
 }
 
 template<StdSpan Span, class... Tags>
@@ -115,9 +123,9 @@ void serialize(const std::array<T, N> &src, OutputStream *dst, const Tags &... t
 }
 
 template<class T, size_t N, class... Tags>
-void deserialize(InputStream &src, std::array<T, N> *dst, const Tags &... tags) {
+Result<void> deserialize(InputStream &src, std::array<T, N> *dst, const Tags &... tags) {
     std::span span(*dst);
-    deserialize(src, &span, tags...);
+    return deserialize(src, &span, tags...);
 }
 
 
@@ -136,18 +144,18 @@ void serialize(const Src &src, OutputStream *dst, const Tags &... tags) {
 }
 
 template<ResizableContiguousContainer Dst, class... Tags>
-void deserialize(InputStream &src, Dst *dst, const Tags &... tags) {
+Result<void> deserialize(InputStream &src, Dst *dst, const Tags &... tags) {
     uint32_t size = 0;
-    deserialize(src, &size);
+    MM_TRY_VOID(deserialize(src, &size));
 
     // TODO(captainurist): can we do this better?
     // Best-effort check - number of records required can't be larger than the number of bytes in the stream.
-    if (size > src.size() - src.position())
-        throwBinarySerializationNoMoreDataError(src.size() - src.position(), size, typeid(typename Dst::value_type).name());
+    if (size > src.size() - src.position()) [[unlikely]]
+        return binarySerializationNoMoreDataError(src.size() - src.position(), size, typeid(typename Dst::value_type).name());
 
     dst->resize(size);
     std::span span(dst->data(), dst->size());
-    deserialize(src, &span, tags...);
+    return deserialize(src, &span, tags...);
 }
 
 template<ResizableContiguousContainer Src, class... Tags>
@@ -156,16 +164,16 @@ void serialize(const Src &src, OutputStream *dst, UnsizedTag, const Tags &... ta
 }
 
 template<ResizableContiguousContainer Dst, class... Tags>
-void deserialize(InputStream &src, Dst *dst, PresizedTag tag, const Tags &... tags) {
+Result<void> deserialize(InputStream &src, Dst *dst, PresizedTag tag, const Tags &... tags) {
     dst->resize(tag.size);
     std::span span(dst->data(), dst->size());
-    deserialize(src, &span, tags...);
+    return deserialize(src, &span, tags...);
 }
 
 template<ResizableContiguousContainer Dst, class... Tags>
-void deserialize(InputStream &src, Dst *dst, AppendTag, const Tags &... tags) {
+Result<void> deserialize(InputStream &src, Dst *dst, AppendTag, const Tags &... tags) {
     detail::AppendWrapper wrapper(dst);
-    deserialize(src, &wrapper, tags...);
+    return deserialize(src, &wrapper, tags...);
 }
 
 
@@ -173,28 +181,8 @@ void deserialize(InputStream &src, Dst *dst, AppendTag, const Tags &... tags) {
 // Serialization for null-terminated strings.
 //
 
-inline void deserialize(InputStream &src, std::string *dst, NullTerminatedTag) {
+inline Result<void> deserialize(InputStream &src, std::string *dst, NullTerminatedTag) {
     *dst = src.readUntil('\0');
+    return {};
 }
 
-
-//
-// Non-throwing deserialization entry point.
-//
-
-/**
- * Runs `deserialize`, converting the exception it might throw into an `Error`.
- *
- * The (de)serialization layer uses exceptions internally – see the "Error handling" section in HACKING.md for
- * where this is going. This function is the boundary: code above it works with `Result`s, and exceptions don't
- * travel any further up the stack.
- *
- * @param src                           Stream to deserialize from.
- * @param[out] dst                      Object to deserialize into. Left partially written on error.
- * @param tags                          Serialization tags.
- * @return                              Success, or the error that was encountered.
- */
-template<class Dst, class... Tags>
-Result<void> tryDeserialize(InputStream &src, Dst *dst, const Tags &... tags) {
-    return tryCatch([&] { deserialize(src, dst, tags...); });
-}

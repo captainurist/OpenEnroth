@@ -31,7 +31,7 @@ Result<void> SndReader::open(Blob blob) {
     BlobInputStream stream(blob);
 
     std::vector<SndEntry> entries;
-    MM_TRY_VOID(tryDeserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>)
+    MM_TRY_VOID(deserialize(stream, &entries, tags::each, tags::via<SndEntry_MM7>)
                     .withContext("File '{}' is not a valid SND", blob.displayPath()));
 
     std::unordered_map<std::string, SndEntry> files;
@@ -108,7 +108,8 @@ bool snd::detect(const Blob &data) {
     BlobInputStream stream(data);
 
     uint32_t entryCount;
-    deserialize(stream, &entryCount);
+    if (!deserialize(stream, &entryCount))
+        return false;
     if (entryCount == 0)
         return false; // Empty snd file is not valid.
 
@@ -119,7 +120,8 @@ bool snd::detect(const Blob &data) {
     // Just check up to 16 entries and we're good.
     for (size_t i = 0, count = std::min<size_t>(entryCount, 16); i < count; i++) {
         SndEntry_MM7 entry;
-        deserialize(stream, &entry);
+        if (!deserialize(stream, &entry))
+            return false;
 
         if (entry.offset < headerSize)
             return false;

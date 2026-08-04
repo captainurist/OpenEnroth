@@ -263,7 +263,7 @@ MonsterStats loadMonsterStats(ResourceManager *resourceManager) {
     Blob dmon = resourceManager->eventsData("dmonlist.bin").orThrow();
 
     pMonsterList = new MonsterList;
-    deserialize(dmon, pMonsterList);
+    deserialize(dmon, pMonsterList).orThrow();
 
     MonsterStats result;
     result.Initialize(resourceManager->eventsData("monsters.txt").orThrow());

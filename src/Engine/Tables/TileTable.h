@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
+
 #include <vector>
 #include <unordered_map>
 #include <utility>
@@ -35,7 +37,7 @@ class TileTable {
 
     void addTile(TileData tileData);
 
-    friend void deserialize(const Blob &src, TileTable *dst); // In TableSerialization.cpp.
+    friend Result<void> deserialize(const Blob &src, TileTable *dst); // In TableSerialization.cpp.
 
  private:
     std::vector<TileData> _tiles; // Tile by id.

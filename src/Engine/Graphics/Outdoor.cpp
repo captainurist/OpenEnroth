@@ -459,7 +459,7 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     OutdoorLocation_MM7 location;
     MM_TRY(Blob rawLocationBlob, pGames_LOD->read(odm_filename));
     MM_TRY(Blob locationBlob, lod::decodeMaybeCompressed(rawLocationBlob));
-    MM_TRY_VOID(tryDeserialize(locationBlob, &location));
+    MM_TRY_VOID(deserialize(locationBlob, &location));
     reconstruct(location, this);
 
     // ****************.ddm file*********************//
@@ -471,7 +471,7 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     OutdoorDelta_MM7 delta;
     MM_TRY(Blob deltaBlob, lod::decodeMaybeCompressed(pMapDeltas.at(ddm_filename)));
     if (deltaBlob) {
-        if (Result<void> deserialized = tryDeserialize(deltaBlob, &delta, tags::context(location))) {
+        if (Result<void> deserialized = deserialize(deltaBlob, &delta, tags::context(location))) {
             size_t totalFaces = 0;
             for (BSPModel &model : pBModels)
                 totalFaces += model.faces.size();
@@ -501,7 +501,7 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
     if (respawnInitial) {
         MM_TRY(Blob rawPristine, pGames_LOD->read(ddm_filename));
         MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
+        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
         *outdoors_was_respawned = true;
     } else if (respawnTimed) {
         auto header = delta.header;
@@ -509,7 +509,7 @@ Result<void> OutdoorLocation::Load(std::string_view filename, int days_played, i
         auto partiallyRevealedCells = delta.partiallyRevealedCells;
         MM_TRY(Blob rawPristine, pGames_LOD->read(ddm_filename));
         MM_TRY(Blob pristine, lod::decodeMaybeCompressed(rawPristine));
-        MM_TRY_VOID(tryDeserialize(pristine, &delta, tags::context(location)));
+        MM_TRY_VOID(deserialize(pristine, &delta, tags::context(location)));
         delta.header = header;
         delta.fullyRevealedCells = fullyRevealedCells;
         delta.partiallyRevealedCells = partiallyRevealedCells;

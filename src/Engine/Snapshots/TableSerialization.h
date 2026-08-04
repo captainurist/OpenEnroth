@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utility/Error/Result.h"
+
 #include "Utility/Memory/Blob.h"
 
 class DecorationList;
@@ -16,40 +18,40 @@ class TileTable;
 /**
  * @offset 0x00494C0F
  */
-void deserialize(const Blob &src, PortraitFrameTable *dst);
+Result<void> deserialize(const Blob &src, PortraitFrameTable *dst);
 
 /**
  * @offset 0x0045864C
  */
-void deserialize(const Blob &src, DecorationList *dst);
+Result<void> deserialize(const Blob &src, DecorationList *dst);
 
 /**
  * @offset 0x00495056
  */
-void deserialize(const Blob &src, IconFrameTable *dst);
+Result<void> deserialize(const Blob &src, IconFrameTable *dst);
 
 /**
  * @offset 0x004598AF
  */
-void deserialize(const Blob &src, MonsterList *dst);
+Result<void> deserialize(const Blob &src, MonsterList *dst);
 
-void deserialize(const Blob &src, ObjectList *dst);
+Result<void> deserialize(const Blob &src, ObjectList *dst);
 
 /**
  * @offset 0x00458E08
  */
-void deserialize(const Blob &src, OverlayList *dst);
+Result<void> deserialize(const Blob &src, OverlayList *dst);
 
 /**
  * @offset 0x0044D9D7
  */
-void deserialize(const Blob &src, SpriteFrameTable *dst);
+Result<void> deserialize(const Blob &src, SpriteFrameTable *dst);
 
-void deserialize(const Blob &src, TextureFrameTable *dst);
+Result<void> deserialize(const Blob &src, TextureFrameTable *dst);
 
-void deserialize(const Blob &src, SoundList *dst);
+Result<void> deserialize(const Blob &src, SoundList *dst);
 
 /**
  * @offset 0x00488000
  */
-void deserialize(const Blob &src, TileTable *dst);
+Result<void> deserialize(const Blob &src, TileTable *dst);
