@@ -92,6 +92,21 @@
 #include "GameMenu.h"
 #include "GameStates/GameFsmBuilder.h"
 
+/**
+ * @param config                        Game config to read `gameplay.starting_map` from.
+ * @return                              Map the party starts a new game on, Emerald Island if the configured name
+ *                                      doesn't name a map.
+ */
+static MapId startingMap(const GameConfig &config) {
+    std::string_view name = config.gameplay.StartingMap.value();
+    MapId result = pMapStats->GetMapInfo(name);
+    if (result == MAP_INVALID) {
+        logger->error("Invalid starting map '{}', starting on Emerald Island instead.", name);
+        return MAP_EMERALD_ISLAND;
+    }
+    return result;
+}
+
 Game::Game(PlatformApplication *application, std::shared_ptr<GameConfig> config) {
     _application = application;
     _config = config;
@@ -166,10 +181,7 @@ bool Game::loop() {
 
             pParty->pPickedItem.itemId = ITEM_NULL;
 
-            engine->_transitionMapId = pMapStats->GetMapInfo(_config->gameplay.StartingMap.value());
-
-            // TODO(Nik-RE-dev): should not be an assert but an exception or error message.
-            assert(engine->_transitionMapId != MAP_INVALID);
+            engine->_transitionMapId = startingMap(*_config);
 
             bFlashQuestBook = true;
             pMediaPlayer->PlayFullscreenMovie("Intro Post");
@@ -1681,9 +1693,7 @@ void Game::gameLoop() {
                 } else {
                     pParty->pos = Vec3f(12552, 1816, 193); // respawn on emerald isle
                     pParty->_viewYaw = 512;
-                    mapid = pMapStats->GetMapInfo(_config->gameplay.StartingMap.value());
-                    // TODO(Nik-RE-dev): should not be an assert but an exception or error message.
-                    assert(mapid != MAP_INVALID);
+                    mapid = startingMap(*_config);
                 }
                 pParty->uFallStartZ = pParty->pos.z;
                 pParty->_viewPitch = 0;
