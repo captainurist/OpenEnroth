@@ -91,9 +91,18 @@ std::unique_lock<std::recursive_mutex> get_dbghelp_lock();
 static std::string traceFromContext(const CONTEXT &crashContext, const void *exceptionAddress) {
     CONTEXT context = crashContext; // StackWalk64 walks by mutating it.
 
+    std::unique_lock<std::recursive_mutex> lock = cpptrace::detail::get_dbghelp_lock();
+
+    // The module lookup below, StackWalk64 and the symbol callbacks all need the symbol handler initialized
+    // for the handle they're passed, and cpptrace initializes a duplicate of it rather than this one. Failure
+    // means it was already initialized, which is just as good.
+    SymInitialize(GetCurrentProcess(), nullptr, TRUE);
+
     // A call through a bad pointer faults at the bad address, where there's nothing to walk from. The call
-    // pushed its return address first though, so pop it back into the pc and carry on from the caller.
-    if (exceptionAddress == nullptr) {
+    // pushed its return address first though, so pop it back into the pc and carry on from the caller. A bad
+    // address is one no module was loaded at, which covers null and anything else that isn't code - checking
+    // for null alone misses a jump to garbage, and then the garbage is reported as the top frame.
+    if (SymGetModuleBase64(GetCurrentProcess(), reinterpret_cast<DWORD64>(exceptionAddress)) == 0) {
 #if defined(_M_IX86)
         context.Eip = *reinterpret_cast<const DWORD *>(context.Esp);
         context.Esp += sizeof(DWORD);
@@ -120,13 +129,6 @@ static std::string traceFromContext(const CONTEXT &crashContext, const void *exc
 #else
 #   error "Unsupported windows architecture."
 #endif
-
-    std::unique_lock<std::recursive_mutex> lock = cpptrace::detail::get_dbghelp_lock();
-
-    // StackWalk64 and the symbol callbacks below need the symbol handler initialized for the handle they're
-    // passed, and cpptrace initializes a duplicate of it rather than this one. Failure means it was already
-    // initialized, which is just as good.
-    SymInitialize(GetCurrentProcess(), nullptr, TRUE);
 
     cpptrace::raw_trace raw;
     while (raw.frames.size() < detail::MAX_TRACE_DEPTH &&
