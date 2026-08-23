@@ -101,10 +101,12 @@ MM_NOINLINE int stackTraceNullCallFunction() {
 // purpose so the output lands in the CI log.
 #ifndef _WIN32
 #include <csignal>
+#include <cstdint>
+#include <unistd.h>
 #include <unwind.h>
 static _Unwind_Reason_Code probeFrame(struct _Unwind_Context *ctx, void *) {
     int ipBefore = 0;
-    _Unwind_Ptr ip = _Unwind_GetIPInfo(ctx, &ipBefore);
+    uintptr_t ip = _Unwind_GetIPInfo(ctx, &ipBefore); // _Unwind_Ptr is gcc-only, apple returns uintptr_t.
     std::fprintf(stderr, "PROBE ip=%#lx ipBefore=%d\n", static_cast<unsigned long>(ip), ipBefore);
     return _URC_NO_REASON;
 }
