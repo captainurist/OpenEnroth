@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <ranges>
@@ -96,6 +97,17 @@ MM_NOINLINE int stackTraceNullCallFunction() {
     return result + 1;
 }
 
+// Same as the null call, but to an address that's not null. On x86-64 a jump to a non-canonical address raises
+// a general protection fault, and the kernel reports si_addr as zero for those while the pc holds the target.
+// Detecting a bad call target by comparing the two is wrong there, and the null call can't show it because for
+// null they happen to be equal. This can. Arm delivers the same jump as SIGBUS with the two equal, so there it
+// just covers the other signal.
+MM_NOINLINE int stackTraceBadTargetCallFunction() {
+    int (*volatile nowhere)() = reinterpret_cast<int (*)()>(static_cast<uintptr_t>(0xdeadbeefdeadULL));
+    volatile int result = nowhere();
+    return result + 1;
+}
+
 UNIT_TEST(StackTrace, FunctionNamesAreResolved) {
     std::string trace = stackTraceMarkerFunction();
 
@@ -140,6 +152,16 @@ UNIT_TEST(StackTrace, NullFunctionCallIsTraced) {
         StackTraceOnCrash handler;
         stackTraceNullCallFunction();
     }, testing::AllOf(HasFrame(0, "stackTraceNullCallFunction"), testing::HasSubstr("main")));
+}
+
+UNIT_TEST(StackTrace, BadTargetCallIsTraced) {
+    // The only test that catches the faulting pc being compared to si_addr, see the function above.
+    EXPECT_DEATH({
+        GTEST_FLAG_SET(catch_exceptions, false);
+
+        StackTraceOnCrash handler;
+        stackTraceBadTargetCallFunction();
+    }, testing::AllOf(HasFrame(0, "stackTraceBadTargetCallFunction"), testing::HasSubstr("main")));
 }
 
 #ifdef _WIN32
