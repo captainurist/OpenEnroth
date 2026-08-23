@@ -66,7 +66,9 @@ MM_NOINLINE void stackTracePureCallFunction() {
 }
 
 MM_NOINLINE void stackTraceInvalidParameterFunction() {
+    volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones below.
     std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
+    keepFrame = 1;
 }
 
 // abort() and terminate() don't return, so at /O2 msvc turns a call to either into a jump, and the frame of
