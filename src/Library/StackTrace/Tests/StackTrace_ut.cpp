@@ -96,36 +96,6 @@ MM_NOINLINE int stackTraceNullCallFunction() {
     return result + 1;
 }
 
-// PROBE, do not merge: does the platform's _Unwind_Backtrace cross the signal trampoline, and does it flag the
-// interrupted frame with ipBefore? Prints one line per frame from inside a real SIGSEGV handler, then fails on
-// purpose so the output lands in the CI log.
-#ifndef _WIN32
-#include <csignal>
-#include <cstdint>
-#include <unistd.h>
-#include <unwind.h>
-static _Unwind_Reason_Code probeFrame(struct _Unwind_Context *ctx, void *) {
-    int ipBefore = 0;
-    uintptr_t ip = _Unwind_GetIPInfo(ctx, &ipBefore); // _Unwind_Ptr is gcc-only, apple returns uintptr_t.
-    std::fprintf(stderr, "PROBE ip=%#lx ipBefore=%d\n", static_cast<unsigned long>(ip), ipBefore);
-    return _URC_NO_REASON;
-}
-static void probeHandler(int, siginfo_t *, void *) {
-    _Unwind_Backtrace(probeFrame, nullptr);
-    std::fprintf(stderr, "PROBE end\n");
-    _exit(1);
-}
-UNIT_TEST(StackTrace, ProbeUnwindBacktraceAcrossSignal) {
-    EXPECT_DEATH({
-        struct sigaction sa {};
-        sa.sa_sigaction = probeHandler;
-        sa.sa_flags = SA_SIGINFO;
-        sigaction(SIGSEGV, &sa, nullptr);
-        stackTraceCrashingFunction();
-    }, "ZZ_PROBE_NO_MATCH_ZZ");
-}
-#endif
-
 UNIT_TEST(StackTrace, FunctionNamesAreResolved) {
     std::string trace = stackTraceMarkerFunction();
 

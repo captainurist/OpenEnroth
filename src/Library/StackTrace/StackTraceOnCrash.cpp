@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #ifndef __ANDROID__
 #   include <cpptrace/cpptrace.hpp>
@@ -20,7 +22,11 @@
 #elif !defined(__ANDROID__)
 #   include <unistd.h> // NOLINT: not a C++ system header.
 #   include <sys/ucontext.h> // NOLINT: not a C++ system header.
-#   include <libunwind.h> // NOLINT: not a C++ system header.
+#   ifdef __APPLE__
+#       include <libunwind.h> // NOLINT: not a C++ system header.
+#   else
+#       include <unwind.h> // NOLINT: not a C++ system header.
+#   endif
 #   include <csignal>
 #   include <cstring>
 #endif
@@ -212,9 +218,11 @@ static const int handledSignals[] = {
     SIGXFSZ, // File size limit exceeded.
 };
 
+#ifdef __APPLE__
+
 /**
  * Fills a libunwind context from the register state a signal was delivered with. Libunwind keeps its own
- * layout rather than the kernel's, so this is a register-by-register copy on every platform.
+ * layout rather than the kernel's, so this is a register-by-register copy.
  *
  * @param crashContext                  Register state the signal was delivered with.
  * @param[out] context                  Libunwind context to walk from.
@@ -222,55 +230,28 @@ static const int handledSignals[] = {
 static void fillUnwindContext(const ucontext_t &crashContext, unw_context_t *context) {
     std::memset(context, 0, sizeof(*context));
     uint64_t *regs = reinterpret_cast<uint64_t *>(context);
-#if defined(__aarch64__)
-    // x0-x28, fp, lr, sp, pc. Apple and linux name the fields differently and lay them out the same.
-#   if defined(__APPLE__)
     const auto &ss = crashContext.uc_mcontext->__ss;
-    for (int i = 0; i < 29; i++)
+#if defined(__aarch64__)
+    for (int i = 0; i < 29; i++) // x0-x28, fp, lr, sp, pc.
         regs[i] = ss.__x[i];
     regs[29] = ss.__fp;
     regs[30] = ss.__lr;
     regs[31] = ss.__sp;
     regs[32] = ss.__pc;
-#   else
-    for (int i = 0; i < 31; i++)
-        regs[i] = crashContext.uc_mcontext.regs[i];
-    regs[31] = crashContext.uc_mcontext.sp;
-    regs[32] = crashContext.uc_mcontext.pc;
-#   endif
 #elif defined(__x86_64__)
-    // rax, rbx, rcx, rdx, rdi, rsi, rbp, rsp, r8-r15, rip.
-#   if defined(__APPLE__)
-    const auto &ss = crashContext.uc_mcontext->__ss;
     const uint64_t order[] = {ss.__rax, ss.__rbx, ss.__rcx, ss.__rdx, ss.__rdi, ss.__rsi, ss.__rbp, ss.__rsp,
                               ss.__r8, ss.__r9, ss.__r10, ss.__r11, ss.__r12, ss.__r13, ss.__r14, ss.__r15,
                               ss.__rip};
-#   else
-    const auto &g = crashContext.uc_mcontext.gregs;
-    const uint64_t order[] = {g[REG_RAX], g[REG_RBX], g[REG_RCX], g[REG_RDX], g[REG_RDI], g[REG_RSI],
-                              g[REG_RBP], g[REG_RSP], g[REG_R8], g[REG_R9], g[REG_R10], g[REG_R11],
-                              g[REG_R12], g[REG_R13], g[REG_R14], g[REG_R15], g[REG_RIP]};
-#   endif
     std::memcpy(regs, order, sizeof(order));
-#elif defined(__i386__)
-    // eax, ebx, ecx, edx, edi, esi, ebp, esp, ss, eflags, eip. All 32-bit, so not the uint64_t view above.
-    const auto &g = crashContext.uc_mcontext.gregs;
-    const uint32_t order[] = {static_cast<uint32_t>(g[REG_EAX]), static_cast<uint32_t>(g[REG_EBX]),
-                              static_cast<uint32_t>(g[REG_ECX]), static_cast<uint32_t>(g[REG_EDX]),
-                              static_cast<uint32_t>(g[REG_EDI]), static_cast<uint32_t>(g[REG_ESI]),
-                              static_cast<uint32_t>(g[REG_EBP]), static_cast<uint32_t>(g[REG_ESP]),
-                              static_cast<uint32_t>(g[REG_SS]),  static_cast<uint32_t>(g[REG_EFL]),
-                              static_cast<uint32_t>(g[REG_EIP])};
-    std::memcpy(context, order, sizeof(order));
 #else
-#   error "Unsupported posix architecture."
+#   error "Unsupported apple architecture."
 #endif
 }
 
 /**
- * Walks the stack the signal interrupted rather than the handler's own. The walk starts from the register
- * state the crash left behind, so it names the faulting function first and carries on through its callers,
- * which walking from inside the handler can't do - nothing reliably unwinds across the signal trampoline.
+ * Walks the stack the signal interrupted, from the register state the crash left behind. The system unwinder
+ * drops the frame a signal fired in when it walks across the trampoline from inside the handler, so the walk
+ * is seeded with that frame's registers instead and never crosses the trampoline at all.
  *
  * A call through a bad pointer faults at the bad address, where there's nothing to walk from. The call pushed
  * its return address first though, so the pc is set back into that call and the walk carries on from there.
@@ -283,27 +264,18 @@ static std::string traceFromContext(const ucontext_t &crashContext, const void *
     unw_context_t context;
     fillUnwindContext(crashContext, &context);
 
-    // The patch has to go into the context, before the cursor exists. Setting the pc on a cursor doesn't make
-    // it look up the unwind info for the new pc, so the walk would stop after one frame.
-#if defined(__aarch64__) || defined(__x86_64__)
+    // The patch goes into the context before the cursor exists. Setting the pc on a cursor doesn't make it
+    // re-read the unwind info, and the walk would stop after one frame.
     uint64_t *regs = reinterpret_cast<uint64_t *>(&context);
-#endif
 #if defined(__aarch64__)
-    uint64_t &pcReg = regs[32];
-    if (pcReg == reinterpret_cast<uint64_t>(faultAddress))
-        pcReg = regs[30] - 1; // Back into the call that jumped here, that's the frame to name.
-#elif defined(__x86_64__)
-    uint64_t &pcReg = regs[16];
-    if (pcReg == reinterpret_cast<uint64_t>(faultAddress)) {
-        pcReg = *reinterpret_cast<const uint64_t *>(regs[7]) - 1; // Return address is at [rsp].
-        regs[7] += sizeof(uint64_t); // And it's been popped.
-    }
+    uint64_t &pc = regs[32];
+    if (pc == reinterpret_cast<uint64_t>(faultAddress))
+        pc = regs[30] - 1; // Back into the call that jumped here.
 #else
-    uint32_t *regs32 = reinterpret_cast<uint32_t *>(&context);
-    uint32_t &pcReg = regs32[10];
-    if (pcReg == reinterpret_cast<uintptr_t>(faultAddress)) {
-        pcReg = *reinterpret_cast<const uint32_t *>(regs32[7]) - 1; // Return address is at [esp].
-        regs32[7] += sizeof(uint32_t);
+    uint64_t &pc = regs[16];
+    if (pc == reinterpret_cast<uint64_t>(faultAddress)) {
+        pc = *reinterpret_cast<const uint64_t *>(regs[7]) - 1; // Return address is at [rsp].
+        regs[7] += sizeof(uint64_t); // And it's been popped.
     }
 #endif
 
@@ -311,15 +283,119 @@ static std::string traceFromContext(const ucontext_t &crashContext, const void *
     unw_init_local(&cursor, &context);
 
     cpptrace::raw_trace raw;
-    unw_word_t pc;
+    unw_word_t ip;
     do {
-        unw_get_reg(&cursor, UNW_REG_IP, &pc);
+        unw_get_reg(&cursor, UNW_REG_IP, &ip);
         // The first frame is the instruction itself, every later one is a return address one past its call.
-        raw.frames.push_back(raw.frames.empty() ? pc : pc - 1);
+        raw.frames.push_back(raw.frames.empty() ? ip : ip - 1);
     } while (raw.frames.size() < detail::MAX_TRACE_DEPTH && unw_step(&cursor) > 0);
 
     return raw.resolve().to_string();
 }
+
+#else // __APPLE__
+
+struct dwarf_eh_bases {
+    void *tbase, *dbase, *func;
+};
+extern "C" const void *_Unwind_Find_FDE(const void *pc, struct dwarf_eh_bases *bases); // Libgcc exports it.
+
+/**
+ * @param crashContext                  Register state the signal was delivered with.
+ * @return                              Program counter the signal was delivered at.
+ */
+static uintptr_t faultingProgramCounter(const ucontext_t &crashContext) {
+#if defined(__aarch64__)
+    return crashContext.uc_mcontext.pc;
+#elif defined(__x86_64__)
+    return crashContext.uc_mcontext.gregs[REG_RIP];
+#elif defined(__i386__)
+    return crashContext.uc_mcontext.gregs[REG_EIP];
+#elif defined(__arm__)
+    return crashContext.uc_mcontext.arm_pc;
+#else
+#   error "Unsupported posix architecture."
+#endif
+}
+
+/**
+ * Walks the frame pointer chain from the register state a signal was delivered with. This is for a call
+ * through a bad pointer, which faults at the bad address where the unwinder has nothing to go on. The call
+ * pushed its return address first, and the frame pointer still points at the caller's frame, so both are
+ * there to be read - which is why frame pointers are kept on every build.
+ *
+ * @param crashContext                  Register state the signal was delivered with.
+ * @return                              Frames starting with the call that jumped to the bad address.
+ */
+static std::vector<cpptrace::frame_ptr> walkFramePointers(const ucontext_t &crashContext) {
+    std::vector<cpptrace::frame_ptr> frames;
+#if defined(__aarch64__)
+    uintptr_t returnAddress = crashContext.uc_mcontext.regs[30]; // lr
+    uintptr_t fp = crashContext.uc_mcontext.regs[29];
+#elif defined(__x86_64__)
+    uintptr_t sp = crashContext.uc_mcontext.gregs[REG_RSP];
+    uintptr_t returnAddress = *reinterpret_cast<const uintptr_t *>(sp); // The call pushed it.
+    uintptr_t fp = crashContext.uc_mcontext.gregs[REG_RBP];
+#elif defined(__i386__)
+    uintptr_t sp = crashContext.uc_mcontext.gregs[REG_ESP];
+    uintptr_t returnAddress = *reinterpret_cast<const uintptr_t *>(sp);
+    uintptr_t fp = crashContext.uc_mcontext.gregs[REG_EBP];
+#elif defined(__arm__)
+    uintptr_t returnAddress = crashContext.uc_mcontext.arm_lr;
+    uintptr_t fp = crashContext.uc_mcontext.arm_fp;
+#endif
+    frames.push_back(returnAddress - 1); // Back into the call that jumped.
+    while (fp != 0 && frames.size() < detail::MAX_TRACE_DEPTH) {
+        const uintptr_t *frame = reinterpret_cast<const uintptr_t *>(fp); // [fp] = caller's fp, [fp + 1] = return.
+        if (frame[1] == 0)
+            break;
+        frames.push_back(frame[1] - 1);
+        fp = frame[0];
+    }
+    return frames;
+}
+
+/**
+ * Walks the stack from inside the handler, then trims it back to the frame the signal interrupted. The libgcc
+ * unwinder crosses the signal trampoline on its own and marks the interrupted frame as the one where the pc
+ * is the faulting instruction rather than a return address, so that mark is where the trace starts.
+ *
+ * A call through a bad pointer is the one case the unwinder can't handle - there's no unwind info at the bad
+ * address, so it stops there - and for that the frame pointer chain is walked by hand instead.
+ *
+ * @param crashContext                  Register state the signal was delivered with.
+ * @return                              Stack trace starting at the faulting frame, one frame per line.
+ */
+static std::string traceFromContext(const ucontext_t &crashContext) {
+    cpptrace::raw_trace raw;
+
+    dwarf_eh_bases bases;
+    if (!_Unwind_Find_FDE(reinterpret_cast<const void *>(faultingProgramCounter(crashContext)), &bases)) {
+        raw.frames = walkFramePointers(crashContext);
+        return raw.resolve().to_string();
+    }
+
+    struct Walk {
+        std::vector<cpptrace::frame_ptr> frames;
+        bool reachedFault = false;
+    } walk;
+    _Unwind_Backtrace([](struct _Unwind_Context *context, void *arg) {
+        Walk &walk = *static_cast<Walk *>(arg);
+        int isFault = 0;
+        uintptr_t ip = _Unwind_GetIPInfo(context, &isFault);
+        if (isFault)
+            walk.reachedFault = true;
+        if (!walk.reachedFault)
+            return _URC_NO_REASON; // Still inside the handler.
+        walk.frames.push_back(isFault ? ip : ip - 1);
+        return walk.frames.size() < detail::MAX_TRACE_DEPTH ? _URC_NO_REASON : _URC_END_OF_STACK;
+    }, &walk);
+
+    raw.frames = std::move(walk.frames);
+    return raw.resolve().to_string();
+}
+
+#endif // __APPLE__
 
 static void onSignal(int signal, siginfo_t *info, void *context) {
     // Only the first crash prints. A second thread raising a different signal while this one symbolizes
@@ -330,7 +406,11 @@ static void onSignal(int signal, siginfo_t *info, void *context) {
         char reason[128];
         std::snprintf(reason, sizeof(reason), "%s at %p", strsignal(info->si_signo), info->si_addr);
         printCrashHeader(reason);
+#ifdef __APPLE__
         printTrace(traceFromContext(*static_cast<ucontext_t *>(context), info->si_addr));
+#else
+        printTrace(traceFromContext(*static_cast<ucontext_t *>(context)));
+#endif
     }
 
     // Die of the original signal, so that a core dump still happens and whoever launched the process sees it
