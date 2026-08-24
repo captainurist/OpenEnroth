@@ -18,8 +18,8 @@
 
 /**
  * Matches when the frame numbered `index` names `function`. The regexes gtest's own death test matchers take
- * aren't portable - it uses two different engines across our platforms and they disagree on character classes
- * and on whether dot crosses a newline - so this matches with std::regex, which is one engine everywhere.
+ * aren't portable - gtest picks between two engines with different grammars depending on the platform. What
+ * std::regex implements is specified as one grammar for everyone, and the pattern keeps to its basics.
  */
 MATCHER_P2(HasFrame, index, function, "") {
     return std::regex_search(std::string(arg),
