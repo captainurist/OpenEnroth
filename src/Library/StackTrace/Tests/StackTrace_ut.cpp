@@ -49,7 +49,6 @@ MM_NOINLINE int stackTraceCrashingFunction() {
     return *nowhere;
 }
 
-#ifdef _WIN32
 /**
  * Calling a pure virtual from a constructor reaches the base vtable before the derived one is installed, which
  * is the one reliable way to hit the CRT's purecall handler. The call goes through a non-virtual member so
@@ -69,12 +68,6 @@ MM_NOINLINE void stackTracePureCallFunction() {
     StackTracePureCallDerived derived;
 }
 
-MM_NOINLINE void stackTraceInvalidParameterFunction() {
-    volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones below.
-    std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
-    keepFrame = 1;
-}
-
 /**
  * abort() and terminate() don't return, so at /O2 msvc turns a call to either into a jump, and the frame of
  * the function that made the call is gone before the handler ever runs. Touching a volatile afterwards gives
@@ -91,6 +84,13 @@ MM_NOINLINE void stackTraceAbortFunction() {
     std::abort();
     keepFrame = 1;
 }
+#ifdef _WIN32
+MM_NOINLINE void stackTraceInvalidParameterFunction() {
+    volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones below.
+    std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
+    keepFrame = 1;
+}
+
 #endif // _WIN32
 
 /**
@@ -205,10 +205,14 @@ UNIT_TEST(StackTrace, StackOverflowIsTraced) {
 }
 #endif // !_WIN32
 
+// The reason string is only asserted on windows, where a dedicated CRT hook prints it. On posix these crashes
+// all arrive as SIGABRT and go through the signal handler like any other, and what matters is that the trace
+// still names the function that started it, several frames below the abort machinery.
 #ifdef _WIN32
-// The four below each go through a different CRT hook, and each hook has its own way of being installed
-// and its own way of not working. What they share is the reason string, which is the only thing that tells
-// them apart in the output, so that's what each test asserts on top of the frame.
+#   define MM_TEST_CRT_REASON(REASON, FRAME) testing::AllOf(testing::HasSubstr(REASON), testing::HasSubstr(FRAME))
+#else
+#   define MM_TEST_CRT_REASON(REASON, FRAME) testing::HasSubstr(FRAME)
+#endif
 
 UNIT_TEST(StackTrace, AbortIsTraced) {
     EXPECT_DEATH({
@@ -216,7 +220,7 @@ UNIT_TEST(StackTrace, AbortIsTraced) {
 
         StackTraceOnCrash handler;
         stackTraceAbortFunction();
-    }, testing::AllOf(testing::HasSubstr("abort()"), testing::HasSubstr("stackTraceAbortFunction")));
+    }, MM_TEST_CRT_REASON("abort()", "stackTraceAbortFunction"));
 }
 
 UNIT_TEST(StackTrace, TerminateIsTraced) {
@@ -225,7 +229,7 @@ UNIT_TEST(StackTrace, TerminateIsTraced) {
 
         StackTraceOnCrash handler;
         stackTraceTerminateFunction();
-    }, testing::AllOf(testing::HasSubstr("std::terminate()"), testing::HasSubstr("stackTraceTerminateFunction")));
+    }, MM_TEST_CRT_REASON("std::terminate()", "stackTraceTerminateFunction"));
 }
 
 UNIT_TEST(StackTrace, PureVirtualCallIsTraced) {
@@ -234,10 +238,10 @@ UNIT_TEST(StackTrace, PureVirtualCallIsTraced) {
 
         StackTraceOnCrash handler;
         stackTracePureCallFunction();
-    }, testing::AllOf(testing::HasSubstr("pure virtual function call"),
-                      testing::HasSubstr("stackTracePureCallFunction")));
+    }, MM_TEST_CRT_REASON("pure virtual function call", "stackTracePureCallFunction"));
 }
 
+#ifdef _WIN32
 UNIT_TEST(StackTrace, InvalidParameterIsTraced) {
     EXPECT_DEATH({
         GTEST_FLAG_SET(catch_exceptions, false);
