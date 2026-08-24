@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
-#include <ranges>
 #include <string>
 #include <thread>
 
@@ -13,6 +12,7 @@
 
 #include "Utility/Attributes.h"
 #include "Utility/String/Format.h"
+#include "Utility/String/Split.h"
 
 #ifndef __ANDROID__ // Stack traces are not supported on android.
 
@@ -24,11 +24,9 @@
  */
 MATCHER_P2(HasFrame, index, function, "") {
     std::string prefix = fmt::format("#{} ", index);
-    for (auto part : std::views::split(std::string_view(arg), '\n')) {
-        std::string_view line(part.begin(), part.end());
+    for (std::string_view line : split(std::string_view(arg)).by('\n'))
         if (line.starts_with(prefix) && line.contains(function))
             return true;
-    }
     return false;
 }
 
