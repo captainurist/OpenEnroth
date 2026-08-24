@@ -18,6 +18,10 @@ Comments in production code should say how the present code works, and only wher
 
 Comments in tests are the opposite. State the bug that the test guards against, otherwise it's unclear why the test exists, and someone will eventually delete it as redundant.
 
+Explanations live where the logic lives. Why a detection works goes next to the detection, the bug a test guards goes on the test, and a helper that just crashes needs no essay.
+
+Every sentence in a comment must say something the code, the names, or the previous sentence don't already say. No pointers to other comments - state the fact or delete the sentence. If a call site needs a comment to be readable, fix the code instead - an enum parameter reads at the call site, a bool doesn't.
+
 When you do write about a past bug, spell out that it *was* a bug and name it. "We used to keep the old buffer" reads like a reasonable choice that happened to change. "This used to be a heap buffer overflow" doesn't.
 
 Put the `🤖 Human Needed` label on every pull request you open, once its CI is green. The label means a human has to look at the PR, and it's the only label you may ever add or remove - every other label belongs to the humans. Don't add it to a pull request that already carries any other label, a PR that a human has already triaged is in their pipeline anyway. Take the label off while you're working on review comments, and put it back when the ball is with the humans again.
