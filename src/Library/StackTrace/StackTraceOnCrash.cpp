@@ -37,7 +37,7 @@
 
 #ifdef __ANDROID__
 
-StackTraceOnCrash::StackTraceOnCrash(bool) {}
+StackTraceOnCrash::StackTraceOnCrash(CrashWait) {}
 
 #else
 
@@ -45,10 +45,10 @@ StackTraceOnCrash::StackTraceOnCrash(bool) {}
 // inside a handler re-enters it - and one trace is what's actually useful.
 static std::atomic_flag crashHandled = ATOMIC_FLAG_INIT;
 
-static bool waitForInputOnCrash = false;
+static CrashWait crashWait = CRASH_WAIT_NONE;
 
 static void waitForInputIfRequested() {
-    if (!waitForInputOnCrash)
+    if (crashWait != CRASH_WAIT_FOR_INPUT)
         return;
     fmt::println(stderr, "[Press any key to close this window]");
     std::fflush(stderr);
@@ -477,8 +477,8 @@ static void installHandlers() {
 
 #endif // _WIN32
 
-StackTraceOnCrash::StackTraceOnCrash(bool waitForInput) {
-    waitForInputOnCrash = waitForInput;
+StackTraceOnCrash::StackTraceOnCrash(CrashWait wait) {
+    crashWait = wait;
 
     // Symbols resolve lazily, so the first trace is the one that opens debug info and allocates. Better done
     // here than inside a handler, with the process already broken.

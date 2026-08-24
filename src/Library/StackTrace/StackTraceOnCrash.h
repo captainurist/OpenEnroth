@@ -13,12 +13,17 @@
  * locks, so a crash while another thread holds one of those hangs the process instead of killing it. Crashing
  * inside the allocator does the same.
  */
+// What the crash handlers do after printing a trace, right before the process dies.
+enum class CrashWait {
+    CRASH_WAIT_NONE, // Just die.
+    CRASH_WAIT_FOR_INPUT, // Wait for a key press. For a process that owns its console window, which closes with it.
+};
+using enum CrashWait;
+
 class StackTraceOnCrash {
  public:
     /**
- * @param waitForInputOnCrash           Wait for a key press after printing a crash trace. For when the
-                                        process owns its console window, which closes with it - a crash
-                                        launched from explorer would flash the trace and take it away.
+ * @param wait                          Whether to wait for a key press after printing a crash trace.
      */
-    explicit StackTraceOnCrash(bool waitForInputOnCrash = false);
+    explicit StackTraceOnCrash(CrashWait wait = CRASH_WAIT_NONE);
 };
