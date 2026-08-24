@@ -82,9 +82,10 @@ MM_NOINLINE void stackTraceAbortFunction() {
     std::abort();
     keepFrame = 1; // Same as in the terminate one above.
 }
+
 #ifdef _WIN32
 MM_NOINLINE void stackTraceInvalidParameterFunction() {
-    volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones below.
+    volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones above.
     std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
     keepFrame = 1;
 }
