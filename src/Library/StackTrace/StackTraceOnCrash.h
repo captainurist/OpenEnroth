@@ -15,5 +15,10 @@
  */
 class StackTraceOnCrash {
  public:
-    StackTraceOnCrash();
+    /**
+ * @param waitForInputOnCrash           Wait for a key press after printing a crash trace. For when the
+                                        process owns its console window, which closes with it - a crash
+                                        launched from explorer would flash the trace and take it away.
+     */
+    explicit StackTraceOnCrash(bool waitForInputOnCrash = false);
 };

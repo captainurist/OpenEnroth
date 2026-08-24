@@ -125,7 +125,13 @@ int runOpenEnroth(const OpenEnrothOptions &options) {
 
 int openEnrothMain(int argc, char **argv) {
     try {
+#ifdef _WINDOWS
+        // The game owns its console window when started from explorer, and it closes with the process - same
+        // reason as the pause in platformMain below.
+        StackTraceOnCrash st(true);
+#else
         StackTraceOnCrash st;
+#endif
         UnicodeCrt _(argc, argv);
         OpenEnrothOptions options = OpenEnrothOptions::parse(argc, argv);
         if (options.helpPrinted)
