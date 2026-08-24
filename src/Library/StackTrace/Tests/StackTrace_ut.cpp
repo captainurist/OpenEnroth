@@ -19,10 +19,8 @@
 /**
  * Matches when the frame numbered `index` names `function`. A regex can't do this portably - gtest uses two
  * different engines across our platforms and they disagree on character classes and on whether dot crosses a
- * newline - so this walks the lines instead.
- *
- * @param index                         Frame number to look at.
- * @param function                      Function name the frame has to contain.
+ * newline - so this walks the lines instead. `index` is the frame number to look at, and `function` is the
+ * name that frame has to contain.
  */
 MATCHER_P2(HasFrame, index, function, "") {
     std::string prefix = fmt::format("#{} ", index);
