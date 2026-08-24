@@ -101,18 +101,9 @@ MM_NOINLINE int stackTraceNullCallFunction() {
     return result + 1;
 }
 
-/**
- * Same as the null call, but to an address that's not null. On x86-64 a jump to a non-canonical address raises
- * a general protection fault, and the kernel reports si_addr as zero for those while the pc holds the target.
- * Detecting a bad call target by comparing the two is wrong there, and the null call can't show it because for
- * null they happen to be equal. Arm delivers the same jump as SIGBUS with the two equal, so there it just
- * covers the other signal.
- *
- * @return                              Never returns, the jump to garbage is what it's for.
- */
 MM_NOINLINE int stackTraceBadTargetCallFunction() {
     int (*volatile nowhere)() = reinterpret_cast<int (*)()>(static_cast<uintptr_t>(0xdeadbeefdeadULL));
-    volatile int result = nowhere();
+    volatile int result = nowhere(); // Same volatile dance as in the null call above.
     return result + 1;
 }
 
@@ -178,7 +169,9 @@ UNIT_TEST(StackTrace, NullFunctionCallIsTraced) {
 }
 
 UNIT_TEST(StackTrace, BadTargetCallIsTraced) {
-    // The only test that catches the faulting pc being compared to si_addr, see the function above.
+    // Guards against detecting a bad call target by comparing the pc to si_addr. On x86-64 a jump to a
+    // non-canonical address is a general protection fault with si_addr reported as zero, so that comparison
+    // only ever passed the null call, where the two happen to be equal.
     EXPECT_DEATH({
         GTEST_FLAG_SET(catch_exceptions, false);
 

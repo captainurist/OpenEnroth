@@ -104,8 +104,7 @@ static std::string traceFromContext(const CONTEXT &crashContext, const void *exc
 
     // A call through a bad pointer faults at the bad address, where there's nothing to walk from. The call
     // pushed its return address first though, so pop it back into the pc and carry on from the caller. A bad
-    // address is one no module was loaded at, which covers null and anything else that isn't code - checking
-    // for null alone misses a jump to garbage, and then the garbage is reported as the top frame.
+    // address is one no module was loaded at.
     if (SymGetModuleBase64(GetCurrentProcess(), reinterpret_cast<DWORD64>(exceptionAddress)) == 0) {
 #if defined(_M_IX86)
         context.Eip = *reinterpret_cast<const DWORD *>(context.Esp);
