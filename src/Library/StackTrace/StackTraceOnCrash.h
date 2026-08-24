@@ -23,7 +23,7 @@ using enum CrashWait;
 class StackTraceOnCrash {
  public:
     /**
- * @param wait                          Whether to wait for a key press after printing a crash trace.
+     * @param wait                      What to do after printing a crash trace.
      */
     explicit StackTraceOnCrash(CrashWait wait = CRASH_WAIT_NONE);
 };

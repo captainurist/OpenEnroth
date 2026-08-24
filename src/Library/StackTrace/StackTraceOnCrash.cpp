@@ -81,11 +81,11 @@ namespace cpptrace {
 inline namespace v1 {
 namespace detail {
 /**
- * Declared rather than included, because it lives in cpptrace's internals - a signature change there becomes
- * a link error here, which is the failure mode we want.
+ * Cpptrace serializes its own dbghelp calls behind this lock - dbghelp is single-threaded. Declared rather
+ * than included, because it lives in cpptrace's internals - a signature change there becomes a link error
+ * here, which is the failure mode we want.
  *
- * @return                              The lock cpptrace serializes its own dbghelp calls behind. Dbghelp is
-                                        single-threaded.
+ * @return                              The dbghelp lock.
  */
 std::unique_lock<std::recursive_mutex> get_dbghelp_lock();
 } // namespace detail
