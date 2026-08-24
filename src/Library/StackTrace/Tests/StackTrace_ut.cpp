@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
-#include <regex>
 #include <string>
 #include <thread>
 
@@ -13,17 +12,21 @@
 
 #include "Utility/Attributes.h"
 #include "Utility/String/Format.h"
+#include "Utility/String/Split.h"
 
 #ifndef __ANDROID__ // Stack traces are not supported on android.
 
 /**
  * Matches when the frame numbered `index` names `function`. The regexes gtest's own death test matchers take
- * aren't portable - gtest picks between two engines with different grammars depending on the platform. What
- * std::regex implements is specified as one grammar for everyone, and the pattern keeps to its basics.
+ * aren't portable - gtest picks between two engines with different grammars depending on the platform - so
+ * this walks the lines instead.
  */
 MATCHER_P2(HasFrame, index, function, "") {
-    return std::regex_search(std::string(arg),
-                             std::regex(fmt::format("(^|\n)#{} +\\S+ in [^\n]*{}", index, function)));
+    std::string prefix = fmt::format("#{} ", index);
+    for (std::string_view line : split(std::string_view(arg)).by('\n'))
+        if (line.starts_with(prefix) && line.contains(function))
+            return true;
+    return false;
 }
 
 /**
@@ -50,20 +53,24 @@ MM_NOINLINE int stackTraceCrashingFunction() {
 }
 
 /**
- * Calling a pure virtual from a constructor reaches the base vtable before the derived one is installed, which
- * is the one reliable way to hit the CRT's purecall handler. The call goes through a non-virtual member so
- * that the compiler can't see the dynamic type and devirtualize it into a direct call to a function with no
- * body. Not static for the same reason as above.
+ * Calling the pure virtual from the constructor reaches the base vtable before the derived one is installed,
+ * which is the one reliable way to end up in the pure call handler.
  */
 struct StackTracePureCallBase {
     StackTracePureCallBase() { callPureIndirectly(); }
     virtual void callPure() = 0;
-    void callPureIndirectly() { callPure(); }
+
+    MM_NOINLINE void callPureIndirectly() {
+        // An extra hop the compiler can't fold away. Inlined into the constructor, the call site would have a
+        // known dynamic type, and the call devirtualizes into a direct one to a function with no body.
+        callPure();
+    }
 };
 struct StackTracePureCallDerived : StackTracePureCallBase {
     virtual void callPure() override {}
 };
 
+// Not static because windows drops private symbols from a stripped pdb.
 MM_NOINLINE void stackTracePureCallFunction() {
     StackTracePureCallDerived derived;
 }
