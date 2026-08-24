@@ -52,10 +52,6 @@ MM_NOINLINE int stackTraceCrashingFunction() {
     return *nowhere;
 }
 
-/**
- * Calling the pure virtual from the constructor reaches the base vtable before the derived one is installed,
- * which is the one reliable way to end up in the pure call handler.
- */
 struct StackTracePureCallBase {
     StackTracePureCallBase() { callPureIndirectly(); }
     virtual void callPure() = 0;
