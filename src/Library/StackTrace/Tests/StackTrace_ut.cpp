@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
+#include <regex>
 #include <string>
 #include <thread>
 
@@ -12,22 +13,17 @@
 
 #include "Utility/Attributes.h"
 #include "Utility/String/Format.h"
-#include "Utility/String/Split.h"
 
 #ifndef __ANDROID__ // Stack traces are not supported on android.
 
 /**
- * Matches when the frame numbered `index` names `function`. A regex can't do this portably - gtest uses two
- * different engines across our platforms and they disagree on character classes and on whether dot crosses a
- * newline - so this walks the lines instead. `index` is the frame number to look at, and `function` is the
- * name that frame has to contain.
+ * Matches when the frame numbered `index` names `function`. The regexes gtest's own death test matchers take
+ * aren't portable - it uses two different engines across our platforms and they disagree on character classes
+ * and on whether dot crosses a newline - so this matches with std::regex, which is one engine everywhere.
  */
 MATCHER_P2(HasFrame, index, function, "") {
-    std::string prefix = fmt::format("#{} ", index);
-    for (std::string_view line : split(std::string_view(arg)).by('\n'))
-        if (line.starts_with(prefix) && line.contains(function))
-            return true;
-    return false;
+    return std::regex_search(std::string(arg),
+                             std::regex(fmt::format("(^|\n)#{} +\\S+ in [^\n]*{}", index, function)));
 }
 
 /**
