@@ -6,6 +6,8 @@ Build `check_style` target to check style. You *MUST* always check style after y
 
 Build `Run_UnitTest` and `Run_GameTest_Headless_Parallel` targets to test your changes. You *MUST* always run tests after your changes. If you can't find the game data - ask the user to help you locate it, *NEVER* silently skip game tests.
 
+Before every commit, re-read the diff's comments against the Comments section, as a separate pass with fresh eyes. You *MUST* do this - the review rounds exist for design questions, not for comment cleanup you could have caught yourself.
+
 *NEVER* amend a commit or rewrite pushed history unless explicitly asked to. Fixes go on top as new commits with their own messages, and squashing is the human's call, made when they're ready.
 
 Put the `🤖 Human Needed` label on every pull request you open, once its CI is green. The label means a human has to look at the PR, and it's the only label you may ever add or remove - every other label belongs to the humans. Don't add it to a pull request that already carries any other label, a PR that a human has already triaged is in their pipeline anyway. Take the label off while you're working on review comments, and put it back when the ball is with the humans again.
