@@ -198,6 +198,12 @@ static void __cdecl onInvalidParameter(const wchar_t *expression, const wchar_t 
 static void installHandlers() {
     SetUnhandledExceptionFilter(&onStructuredException);
 
+    // A stack overflow dispatches its exception on the stack that just ran out, and symbolizing needs tens of
+    // kilobytes, so ask windows to keep some committed for exception dispatch. Per-thread, like the posix
+    // alternate stack.
+    ULONG stackGuarantee = 128 * 1024;
+    SetThreadStackGuarantee(&stackGuarantee);
+
     // Drop the CRT's own abort message, we print a trace instead. _CALL_REPORTFAULT is left alone so that
     // abort() still gets a crash dump out of windows error reporting, the way a structured exception does.
     _set_abort_behavior(0, _WRITE_ABORT_MSG);

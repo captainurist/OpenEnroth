@@ -107,7 +107,6 @@ MM_NOINLINE int stackTraceBadTargetCallFunction() {
     return result + 1;
 }
 
-#ifndef _WIN32
 /**
  * Overflows the stack. The pad makes each frame big enough to get there fast, and feeding it into the return
  * value keeps the recursion from being folded into a loop.
@@ -120,7 +119,6 @@ MM_NOINLINE int stackTraceOverflowFunction(int depth) {
     pad[0] = static_cast<char>(depth);
     return pad[0] + stackTraceOverflowFunction(depth + 1);
 }
-#endif // !_WIN32
 
 UNIT_TEST(StackTrace, FunctionNamesAreResolved) {
     std::string trace = stackTraceMarkerFunction();
@@ -180,7 +178,6 @@ UNIT_TEST(StackTrace, BadTargetCallIsTraced) {
     }, testing::AllOf(HasFrame(0, "stackTraceBadTargetCallFunction"), testing::HasSubstr("main")));
 }
 
-#ifndef _WIN32
 UNIT_TEST(StackTrace, StackOverflowIsTraced) {
     // The handlers run on an alternate stack, and this is what checks it. Without one the handler itself
     // faults on the exhausted stack and the crash prints nothing at all.
@@ -191,7 +188,6 @@ UNIT_TEST(StackTrace, StackOverflowIsTraced) {
         stackTraceOverflowFunction(0);
     }, HasFrame(0, "stackTraceOverflowFunction"));
 }
-#endif // !_WIN32
 
 // The reason string is only asserted on windows, where a dedicated CRT hook prints it. On posix these crashes
 // all arrive as SIGABRT and go through the signal handler like any other, and what matters is that the trace
