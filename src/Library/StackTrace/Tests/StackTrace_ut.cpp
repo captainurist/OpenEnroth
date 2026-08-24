@@ -75,21 +75,16 @@ MM_NOINLINE void stackTracePureCallFunction() {
     StackTracePureCallDerived derived;
 }
 
-/**
- * abort() and terminate() don't return, so at /O2 msvc turns a call to either into a jump, and the frame of
- * the function that made the call is gone before the handler ever runs. Touching a volatile afterwards gives
- * the call something to return to, which keeps the frame. Same in the abort one below.
- */
 MM_NOINLINE void stackTraceTerminateFunction() {
     volatile int keepFrame = 0;
     std::terminate();
-    keepFrame = 1;
+    keepFrame = 1; // Or the noreturn call becomes a jump, and this frame is gone before the handler runs.
 }
 
 MM_NOINLINE void stackTraceAbortFunction() {
     volatile int keepFrame = 0;
     std::abort();
-    keepFrame = 1;
+    keepFrame = 1; // Same as in the terminate one above.
 }
 #ifdef _WIN32
 MM_NOINLINE void stackTraceInvalidParameterFunction() {
@@ -100,16 +95,9 @@ MM_NOINLINE void stackTraceInvalidParameterFunction() {
 
 #endif // _WIN32
 
-/**
- * A volatile null so that the compiler can't see the call target and turn it into a trap. The result is
- * used after the call rather than returned straight through, or clang tail-calls it and this frame is gone
- * by the time the jump faults, so the return address on the stack belongs to the caller.
- *
- * @return                              Never returns, calling null is what it's for.
- */
 MM_NOINLINE int stackTraceNullCallFunction() {
-    int (*volatile nowhere)() = nullptr;
-    volatile int result = nowhere();
+    int (*volatile nowhere)() = nullptr; // Volatile, or the compiler sees the target and emits a trap instead.
+    volatile int result = nowhere(); // Using the result keeps this out of tail position, which keeps the frame.
     return result + 1;
 }
 
