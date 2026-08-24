@@ -17,6 +17,7 @@ if (NOT OE_BUILD_PLATFORM STREQUAL "android")
     target_link_libraries(library_stack_trace PRIVATE cpptrace::cpptrace)
 endif ()
 
+# The crash handler walks the stack with StackWalk64.
 if (OE_BUILD_PLATFORM STREQUAL "windows")
     target_link_libraries(library_stack_trace PRIVATE dbghelp)
 endif ()
