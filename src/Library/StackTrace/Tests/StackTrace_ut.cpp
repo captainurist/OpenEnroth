@@ -116,8 +116,9 @@ MM_NOINLINE int stackTraceBadTargetCallFunction() {
  */
 MM_NOINLINE int stackTraceOverflowFunction(int depth) {
     volatile char pad[1024];
-    pad[0] = static_cast<char>(depth);
-    return pad[0] + stackTraceOverflowFunction(depth + 1);
+    pad[0] = static_cast<char>(depth); // Both ends are touched, or the compiler is free to shrink the array
+    pad[1023] = static_cast<char>(depth); // to the part that's used.
+    return pad[0] + pad[1023] + stackTraceOverflowFunction(depth + 1);
 }
 
 UNIT_TEST(StackTrace, FunctionNamesAreResolved) {
