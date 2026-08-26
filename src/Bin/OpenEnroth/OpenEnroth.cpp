@@ -124,8 +124,6 @@ int runOpenEnroth(const OpenEnrothOptions &options) {
 }
 
 #ifdef _WINDOWS
-// SDL on Windows creates a separate console window, and it closes with the process, so hold it until the
-// output has actually been read.
 static void waitForAnyKey() {
     printf("[Press any key to close this window]");
     getchar();
