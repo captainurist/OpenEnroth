@@ -187,6 +187,23 @@ UNIT_TEST(StackTrace, StackOverflowIsTraced) {
     }, HasFrame(0, "stackTraceOverflowFunction"));
 }
 
+UNIT_TEST(StackTrace, CrashCallbackRunsAfterTheTrace) {
+    // The callback is what holds a console window open after a crash, so it has to fire after the trace is
+    // printed. Matching on order and not just presence is what guards that.
+    auto callbackAfterTrace = testing::Truly([](const std::string &output) {
+        size_t tracePos = output.find("stackTraceCrashingFunction");
+        size_t callbackPos = output.find("crash callback ran");
+        return tracePos != std::string::npos && callbackPos != std::string::npos && tracePos < callbackPos;
+    });
+
+    EXPECT_DEATH({
+        GTEST_FLAG_SET(catch_exceptions, false);
+
+        StackTraceOnCrash handler([] { std::fputs("crash callback ran", stderr); });
+        stackTraceCrashingFunction();
+    }, callbackAfterTrace);
+}
+
 // The reason string is only asserted on windows, where a dedicated CRT hook prints it. On posix these crashes
 // all arrive as SIGABRT and go through the signal handler like any other, and what matters is that the trace
 // still names the function that started it, several frames below the abort machinery.

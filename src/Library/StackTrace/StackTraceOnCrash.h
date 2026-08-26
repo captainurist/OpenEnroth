@@ -13,17 +13,11 @@
  * locks, so a crash while another thread holds one of those hangs the process instead of killing it. Crashing
  * inside the allocator does the same.
  */
-// What the crash handlers do after printing a trace, right before the process dies.
-enum class CrashWait {
-    CRASH_WAIT_NONE, // Just die.
-    CRASH_WAIT_FOR_INPUT, // Wait for a key press. For a process that owns its console window, which closes with it.
-};
-using enum CrashWait;
-
 class StackTraceOnCrash {
  public:
     /**
-     * @param wait                      What to do after printing a crash trace.
+     * @param callback                  Called after the crash trace is printed, right before the process
+     *                                  dies. For holding a console window open until a key is pressed.
      */
-    explicit StackTraceOnCrash(CrashWait wait = CRASH_WAIT_NONE);
+    explicit StackTraceOnCrash(void (*callback)() = nullptr);
 };

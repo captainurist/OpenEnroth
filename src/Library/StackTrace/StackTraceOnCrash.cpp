@@ -37,7 +37,7 @@
 
 #ifdef __ANDROID__
 
-StackTraceOnCrash::StackTraceOnCrash(CrashWait) {}
+StackTraceOnCrash::StackTraceOnCrash(void (*)()) {}
 
 #else
 
@@ -45,14 +45,11 @@ StackTraceOnCrash::StackTraceOnCrash(CrashWait) {}
 // inside a handler re-enters it - and one trace is what's actually useful.
 static std::atomic_flag crashHandled = ATOMIC_FLAG_INIT;
 
-static CrashWait crashWait = CRASH_WAIT_NONE;
+static void (*crashCallback)() = nullptr;
 
-static void waitForInputIfRequested() {
-    if (crashWait != CRASH_WAIT_FOR_INPUT)
-        return;
-    fmt::println(stderr, "[Press any key to close this window]");
-    std::fflush(stderr);
-    (void) std::getchar();
+static void runCrashCallback() {
+    if (crashCallback)
+        crashCallback();
 }
 
 static void printCrashHeader(std::string_view reason) {
@@ -175,7 +172,7 @@ static LONG WINAPI onStructuredException(EXCEPTION_POINTERS *exceptionInfo) {
                       exceptionInfo->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionRecord->ExceptionAddress);
         printCrashHeader(reason);
         printTrace(traceFromContext(*exceptionInfo->ContextRecord, exceptionInfo->ExceptionRecord->ExceptionAddress));
-        waitForInputIfRequested();
+        runCrashCallback();
     }
 
     // Continuing the search hands the exception to windows error reporting, which is what writes the crash
@@ -186,7 +183,7 @@ static LONG WINAPI onStructuredException(EXCEPTION_POINTERS *exceptionInfo) {
 static void onAbort(int signal) {
     if (!crashHandled.test_and_set()) {
         printCrashTrace("abort()");
-        waitForInputIfRequested();
+        runCrashCallback();
     }
     // Returning is fine here, abort() goes on to terminate the process.
 }
@@ -194,7 +191,7 @@ static void onAbort(int signal) {
 static void onTerminate() {
     if (!crashHandled.test_and_set()) {
         printCrashTrace("std::terminate()");
-        waitForInputIfRequested();
+        runCrashCallback();
     }
     std::abort(); // Ends the process, as returning from a terminate handler is undefined behavior.
 }
@@ -202,7 +199,7 @@ static void onTerminate() {
 static void __cdecl onPureCall() {
     if (!crashHandled.test_and_set()) {
         printCrashTrace("pure virtual function call");
-        waitForInputIfRequested();
+        runCrashCallback();
     }
     std::abort(); // Ends the process, as a pure virtual call leaves nothing sane to continue with.
 }
@@ -211,7 +208,7 @@ static void __cdecl onInvalidParameter(const wchar_t *expression, const wchar_t 
                                        unsigned int line, uintptr_t reserved) {
     if (!crashHandled.test_and_set()) {
         printCrashTrace("invalid parameter passed to a CRT function");
-        waitForInputIfRequested();
+        runCrashCallback();
     }
     std::abort(); // Ends the process, as the CRT was handed garbage and can't carry on.
 }
@@ -440,11 +437,10 @@ static void onSignal(int signal, siginfo_t *info, void *context) {
         printCrashHeader(reason);
 #ifdef __APPLE__
         printTrace(traceFromContext(*static_cast<ucontext_t *>(context), info->si_addr));
-        waitForInputIfRequested();
 #else
         printTrace(traceFromContext(*static_cast<ucontext_t *>(context)));
-        waitForInputIfRequested();
 #endif
+        runCrashCallback();
     }
 
     // Die of the original signal, so that a core dump still happens and whoever launched the process sees it
@@ -479,8 +475,8 @@ static void installHandlers() {
 
 #endif // _WIN32
 
-StackTraceOnCrash::StackTraceOnCrash(CrashWait wait) {
-    crashWait = wait;
+StackTraceOnCrash::StackTraceOnCrash(void (*callback)()) {
+    crashCallback = callback;
 
     // Symbols resolve lazily, so the first trace is the one that opens debug info and allocates. Better done
     // here than inside a handler, with the process already broken.
