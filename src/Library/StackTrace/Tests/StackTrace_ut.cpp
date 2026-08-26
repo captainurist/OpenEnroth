@@ -16,6 +16,15 @@
 
 #ifndef __ANDROID__ // Stack traces are not supported on android.
 
+// On windows dedicated CRT hooks print the reasons asserted below. On posix there are no hooks - abort and
+// terminate arrive as SIGABRT with the abort machinery in the output, and a pure call is a plain crash - so
+// the posix side of each check probes for that instead.
+#ifdef _WINDOWS
+constexpr bool isWindows = true;
+#else
+constexpr bool isWindows = false;
+#endif
+
 /**
  * Matches when the frame numbered `index` names `function`. The regexes gtest's own death test matchers take
  * aren't portable - gtest picks between two engines with different grammars depending on the platform - so
@@ -196,15 +205,6 @@ UNIT_TEST(StackTrace, CrashCallbackRunsAfterTheTrace) {
         stackTraceCrashingFunction();
     }, callbackAfterTrace);
 }
-
-// On windows dedicated CRT hooks print the reasons asserted below. On posix there are no hooks - abort and
-// terminate arrive as SIGABRT with the abort machinery in the output, and a pure call is a plain crash - so
-// the posix side of each check probes for that instead.
-#ifdef _WINDOWS
-constexpr bool isWindows = true;
-#else
-constexpr bool isWindows = false;
-#endif
 
 UNIT_TEST(StackTrace, AbortIsTraced) {
     EXPECT_DEATH({
