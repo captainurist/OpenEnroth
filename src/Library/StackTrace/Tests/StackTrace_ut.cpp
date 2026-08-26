@@ -143,8 +143,7 @@ UNIT_TEST(StackTrace, CrashOnAnotherThreadIsTraced) {
         std::thread(stackTraceCrashingFunction).join();
     // A worker's stack ends at the thread entry, so main being absent is what says we traced the thread that
     // crashed rather than the one that installed the handlers.
-    }, testing::AllOf(HasFrame(0, "stackTraceCrashingFunction"),
-                      testing::Not(testing::HasSubstr("main"))));
+    }, testing::AllOf(HasFrame(0, "stackTraceCrashingFunction"), testing::Not(testing::HasSubstr("main"))));
 }
 
 UNIT_TEST(StackTrace, NullFunctionCallIsTraced) {
