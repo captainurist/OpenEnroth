@@ -133,7 +133,7 @@ static void waitForAnyKey() {
 int openEnrothMain(int argc, char **argv) {
     try {
 #ifdef _WINDOWS
-        StackTraceOnCrash st(waitForAnyKey);
+        StackTraceOnCrash st(&waitForAnyKey);
 #else
         StackTraceOnCrash st;
 #endif
