@@ -13,8 +13,8 @@ constexpr std::size_t MAX_TRACE_DEPTH = 128;
 } // namespace detail
 
 /**
- * @return                              Stack trace starting at this function, one frame per line. Returns a
- *                                      message saying so on platforms with no stack trace support.
+ * @return                              Stack trace starting at this function, one frame per line. On
+ *                                      platforms with no stack trace support, returns a message saying so.
  */
 std::string stackTraceToString();
 

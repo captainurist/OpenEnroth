@@ -261,7 +261,7 @@ static void fillUnwindContext(const ucontext_t &crashContext, unw_context_t *con
     uint64_t *regs = reinterpret_cast<uint64_t *>(context);
     const auto &ss = crashContext.uc_mcontext->__ss;
 #if defined(__aarch64__)
-    for (int i = 0; i < 29; i++) // x0-x28, fp, lr, sp, pc.
+    for (int i = 0; i < 29; i++) // x0-x28.
         regs[i] = ss.__x[i];
     regs[29] = ss.__fp;
     regs[30] = ss.__lr;

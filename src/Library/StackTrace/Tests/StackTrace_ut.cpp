@@ -29,12 +29,7 @@ MATCHER_P2(HasFrame, index, function, "") {
     return false;
 }
 
-/**
- * Not inlined so that it gets a frame of its own, and not static because windows drops private symbols from a
- * stripped pdb.
- *
- * @return                              Stack trace taken inside this function.
- */
+// Not inlined to keep a frame of its own, and not static because windows drops private symbols from a stripped pdb.
 MM_NOINLINE std::string stackTraceMarkerFunction() {
     std::string trace = stackTraceToString();
 
@@ -80,14 +75,14 @@ MM_NOINLINE void stackTraceTerminateFunction() {
 MM_NOINLINE void stackTraceAbortFunction() {
     volatile int keepFrame = 0;
     std::abort();
-    keepFrame = 1; // Same as in the terminate one above.
+    keepFrame = 1; // Or the noreturn call becomes a jump, and this frame is gone before the handler runs.
 }
 
 #ifdef _WINDOWS
 MM_NOINLINE void stackTraceInvalidParameterFunction() {
-    volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones above.
+    volatile int keepFrame = 0;
     std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
-    keepFrame = 1;
+    keepFrame = 1; // Or the call is in tail position, becomes a jump, and this frame is gone from the trace.
 }
 
 #endif // _WINDOWS
@@ -100,7 +95,7 @@ MM_NOINLINE int stackTraceNullCallFunction() {
 
 MM_NOINLINE int stackTraceBadTargetCallFunction() {
     int (*volatile nowhere)() = reinterpret_cast<int (*)()>(static_cast<uintptr_t>(0xdeadbeefdeadULL));
-    volatile int result = nowhere(); // Same volatile dance as in the null call above.
+    volatile int result = nowhere(); // Using the result keeps this out of tail position, which keeps the frame.
     return result + 1;
 }
 
@@ -250,6 +245,7 @@ UNIT_TEST(StackTrace, InvalidParameterIsTraced) {
     }, testing::AllOf(testing::HasSubstr("invalid parameter passed to a CRT function"),
                       testing::HasSubstr("stackTraceInvalidParameterFunction")));
 }
+
 #endif // _WINDOWS
 
 #endif // !__ANDROID__
