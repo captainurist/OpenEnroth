@@ -199,13 +199,13 @@ UNIT_TEST(StackTrace, CrashCallbackRunsAfterTheTrace) {
     }, callbackAfterTrace);
 }
 
-// The reason string is only asserted on windows, where a dedicated CRT hook prints it. On posix these crashes
-// all arrive as SIGABRT and go through the signal handler like any other, and what matters is that the trace
-// still names the function that started it, several frames below the abort machinery.
+// On windows dedicated CRT hooks print the reasons asserted below. On posix there are no hooks - abort and
+// terminate arrive as SIGABRT with the abort machinery in the output, and a pure call is a plain crash - so
+// the posix side of each check probes for that instead.
 #ifdef _WINDOWS
-#   define MM_TEST_CRT_REASON(REASON, FRAME) testing::AllOf(testing::HasSubstr(REASON), testing::HasSubstr(FRAME))
+constexpr bool isWindows = true;
 #else
-#   define MM_TEST_CRT_REASON(REASON, FRAME) testing::HasSubstr(FRAME)
+constexpr bool isWindows = false;
 #endif
 
 UNIT_TEST(StackTrace, AbortIsTraced) {
@@ -214,7 +214,8 @@ UNIT_TEST(StackTrace, AbortIsTraced) {
 
         StackTraceOnCrash handler;
         stackTraceAbortFunction();
-    }, MM_TEST_CRT_REASON("abort()", "stackTraceAbortFunction"));
+    }, testing::AllOf(testing::HasSubstr(isWindows ? "abort()" : "abort"),
+                      testing::HasSubstr("stackTraceAbortFunction")));
 }
 
 UNIT_TEST(StackTrace, TerminateIsTraced) {
@@ -223,7 +224,8 @@ UNIT_TEST(StackTrace, TerminateIsTraced) {
 
         StackTraceOnCrash handler;
         stackTraceTerminateFunction();
-    }, MM_TEST_CRT_REASON("std::terminate()", "stackTraceTerminateFunction"));
+    }, testing::AllOf(testing::HasSubstr(isWindows ? "std::terminate()" : "terminate"),
+                      testing::HasSubstr("stackTraceTerminateFunction")));
 }
 
 UNIT_TEST(StackTrace, PureVirtualCallIsTraced) {
@@ -232,7 +234,8 @@ UNIT_TEST(StackTrace, PureVirtualCallIsTraced) {
 
         StackTraceOnCrash handler;
         stackTracePureCallFunction();
-    }, MM_TEST_CRT_REASON("pure virtual function call", "stackTracePureCallFunction"));
+    }, testing::AllOf(testing::HasSubstr(isWindows ? "pure virtual function call" : "callPureIndirectly"),
+                      testing::HasSubstr("stackTracePureCallFunction")));
 }
 
 #ifdef _WINDOWS
