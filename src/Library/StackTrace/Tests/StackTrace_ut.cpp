@@ -29,7 +29,6 @@ MATCHER_P2(HasFrame, index, function, "") {
     return false;
 }
 
-// Not inlined to keep a frame of its own, and not static because windows drops private symbols from a stripped pdb.
 MM_NOINLINE std::string stackTraceMarkerFunction() {
     std::string trace = stackTraceToString();
 
