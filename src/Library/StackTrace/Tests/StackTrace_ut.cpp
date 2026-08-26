@@ -83,14 +83,14 @@ MM_NOINLINE void stackTraceAbortFunction() {
     keepFrame = 1; // Same as in the terminate one above.
 }
 
-#ifdef _WIN32
+#ifdef _WINDOWS
 MM_NOINLINE void stackTraceInvalidParameterFunction() {
     volatile int keepFrame = 0; // Same tail-call trap as the abort and terminate ones above.
     std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
     keepFrame = 1;
 }
 
-#endif // _WIN32
+#endif // _WINDOWS
 
 MM_NOINLINE int stackTraceNullCallFunction() {
     int (*volatile nowhere)() = nullptr; // Volatile, or the compiler sees the target and emits a trap instead.
@@ -207,7 +207,7 @@ UNIT_TEST(StackTrace, CrashCallbackRunsAfterTheTrace) {
 // The reason string is only asserted on windows, where a dedicated CRT hook prints it. On posix these crashes
 // all arrive as SIGABRT and go through the signal handler like any other, and what matters is that the trace
 // still names the function that started it, several frames below the abort machinery.
-#ifdef _WIN32
+#ifdef _WINDOWS
 #   define MM_TEST_CRT_REASON(REASON, FRAME) testing::AllOf(testing::HasSubstr(REASON), testing::HasSubstr(FRAME))
 #else
 #   define MM_TEST_CRT_REASON(REASON, FRAME) testing::HasSubstr(FRAME)
@@ -240,7 +240,7 @@ UNIT_TEST(StackTrace, PureVirtualCallIsTraced) {
     }, MM_TEST_CRT_REASON("pure virtual function call", "stackTracePureCallFunction"));
 }
 
-#ifdef _WIN32
+#ifdef _WINDOWS
 UNIT_TEST(StackTrace, InvalidParameterIsTraced) {
     EXPECT_DEATH({
         GTEST_FLAG_SET(catch_exceptions, false);
@@ -250,6 +250,6 @@ UNIT_TEST(StackTrace, InvalidParameterIsTraced) {
     }, testing::AllOf(testing::HasSubstr("invalid parameter passed to a CRT function"),
                       testing::HasSubstr("stackTraceInvalidParameterFunction")));
 }
-#endif // _WIN32
+#endif // _WINDOWS
 
 #endif // !__ANDROID__

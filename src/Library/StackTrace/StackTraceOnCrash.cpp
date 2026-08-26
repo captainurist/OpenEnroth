@@ -13,7 +13,7 @@
 #   include <cpptrace/cpptrace.hpp>
 #endif
 
-#ifdef _WIN32
+#ifdef _WINDOWS
 #   include <windows.h> // NOLINT: not a C system header.
 #   include <dbghelp.h> // NOLINT: not a C system header.
 #   include <csignal>
@@ -72,7 +72,7 @@ static void printCrashTrace(std::string_view reason) {
     printTrace(stackTraceToString());
 }
 
-#ifdef _WIN32
+#ifdef _WINDOWS
 
 namespace cpptrace {
 inline namespace v1 {
@@ -232,7 +232,7 @@ static void installHandlers() {
     _set_invalid_parameter_handler(&onInvalidParameter);
 }
 
-#else // _WIN32
+#else // _WINDOWS
 
 static const int handledSignals[] = {
     SIGABRT, // abort().
@@ -473,7 +473,7 @@ static void installHandlers() {
     }
 }
 
-#endif // _WIN32
+#endif // _WINDOWS
 
 StackTraceOnCrash::StackTraceOnCrash(void (*callback)()) {
     crashCallback = callback;
