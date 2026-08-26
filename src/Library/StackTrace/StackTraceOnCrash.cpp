@@ -115,7 +115,8 @@ static std::string traceFromContext(const CONTEXT &crashContext, const void *exc
     // A call through a bad pointer faults at the bad address, where there's nothing to walk from. The call
     // pushed its return address first though, so pop it back into the pc and carry on from the caller. A bad
     // address is one no module was loaded at.
-    if (SymGetModuleBase64(GetCurrentProcess(), reinterpret_cast<DWORD64>(exceptionAddress)) == 0) {
+    bool popped = SymGetModuleBase64(GetCurrentProcess(), reinterpret_cast<DWORD64>(exceptionAddress)) == 0;
+    if (popped) {
 #if defined(_M_IX86)
         context.Eip = *reinterpret_cast<const DWORD *>(context.Esp);
         context.Esp += sizeof(DWORD);
@@ -150,9 +151,10 @@ static std::string traceFromContext(const CONTEXT &crashContext, const void *exc
                        SymFunctionTableAccess64, SymGetModuleBase64, nullptr) &&
            frame.AddrPC.Offset != 0) {
         // Cpptrace resolves call sites, and a return address points one past the call. The first frame is
-        // the faulting instruction itself, so it's exact as is.
+        // the faulting instruction itself, so it's exact as is - unless it was popped above, then it's a
+        // return address like the rest.
         cpptrace::frame_ptr pc = static_cast<cpptrace::frame_ptr>(frame.AddrPC.Offset);
-        raw.frames.push_back(raw.frames.empty() ? pc : pc - 1);
+        raw.frames.push_back(raw.frames.empty() && !popped ? pc : pc - 1);
     }
     lock.unlock();
 
