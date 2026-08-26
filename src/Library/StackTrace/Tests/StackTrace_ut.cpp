@@ -92,7 +92,6 @@ MM_NOINLINE void stackTraceInvalidParameterFunction() {
     std::printf(nullptr); // Null format string is the canonical way to trip the invalid parameter handler.
     keepFrame = 1; // Or the call is in tail position, becomes a jump, and this frame is gone from the trace.
 }
-
 #endif // _WINDOWS
 
 MM_NOINLINE int stackTraceNullCallFunction() {
@@ -246,7 +245,6 @@ UNIT_TEST(StackTrace, InvalidParameterIsTraced) {
     }, testing::AllOf(testing::HasSubstr("invalid parameter passed to a CRT function"),
                       testing::HasSubstr("stackTraceInvalidParameterFunction")));
 }
-
 #endif // _WINDOWS
 
 #endif // !__ANDROID__
