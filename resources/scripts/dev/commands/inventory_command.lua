@@ -4,7 +4,7 @@ local addItemToInventory = function (itemId, characterIndex)
     if not characterIndex then
         characterIndex = Game.party.getActiveCharacter()
     else
-        characterIndex = tonumber(characterIndex)
+        characterIndex = tonumber(characterIndex) --[[@as integer]]
     end
 
     local item = Game.items.getItemInfo(itemId)
