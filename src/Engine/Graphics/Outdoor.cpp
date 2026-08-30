@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "Engine/Engine.h"
@@ -28,6 +29,7 @@
 #include "Engine/Objects/MonsterEnumFunctions.h"
 #include "Engine/OurMath.h"
 #include "Engine/Party.h"
+#include "Engine/PartyPlacement.h"
 #include "Engine/Snapshots/CompositeSnapshots.h"
 #include "Engine/SpellFxRenderer.h"
 #include "Engine/Tables/ItemTable.h"
@@ -56,9 +58,6 @@
 #include "Utility/Memory/FreeDeleter.h"
 #include "Utility/Math/TrigLut.h"
 #include "Utility/Exception.h"
-
-
-MapStartPoint uLevel_StartingPointType;
 
 OutdoorLocation *pOutdoor = nullptr;
 ODMRenderParams *pODMRenderParams = nullptr;
@@ -277,13 +276,13 @@ bool OutdoorLocation::Initialize(std::string_view filename, int days_played,
     return false;
 }
 
-MapId OutdoorLocation::getTravelDestination(int partyX, int partyY) {
+MapDestination OutdoorLocation::getTravelDestination(int partyX, int partyY) {
     int direction;
     MapId currentMap = engine->_currentLoadedMapId;
     MapId destinationMap;
 
     if (!isMapOutdoor(currentMap))
-        return MAP_INVALID;
+        return {};
 
     // Check which side of the map
     if (partyX < -maxPartyAxisDistance)
@@ -295,7 +294,7 @@ MapId OutdoorLocation::getTravelDestination(int partyX, int partyY) {
     else if (partyY > maxPartyAxisDistance)
         direction = 0; // north
     else
-        return MAP_INVALID;
+        return {};
 
     if (currentMap == MAP_AVLEE && direction == 3) {  // to Shoals
         bool wholePartyUnderwaterSuitEquipped = true;
@@ -308,25 +307,22 @@ MapId OutdoorLocation::getTravelDestination(int partyX, int partyY) {
 
         if (wholePartyUnderwaterSuitEquipped) {
             uDefaultTravelTime_ByFoot = 1;
-            uLevel_StartingPointType = MAP_START_POINT_EAST;
             pParty->uFlags &= ~(PARTY_FLAG_BURNING | PARTY_FLAG_STANDING_ON_WATER | PARTY_FLAG_WATER_DAMAGE);
-            return MAP_SHOALS;
+            return MapDestination(MAP_SHOALS, MAP_START_POINT_EAST);
         }
     } else if (currentMap == MAP_SHOALS && direction == 2) {  // from Shoals
         uDefaultTravelTime_ByFoot = 1;
-        uLevel_StartingPointType = MAP_START_POINT_WEST;
         pParty->uFlags &= ~(PARTY_FLAG_BURNING | PARTY_FLAG_STANDING_ON_WATER | PARTY_FLAG_WATER_DAMAGE);
-        return MAP_AVLEE;
+        return MapDestination(MAP_AVLEE, MAP_START_POINT_WEST);
     }
     destinationMap = footTravelDestinations[currentMap][direction];
     if (destinationMap == MAP_INVALID)
-        return MAP_INVALID;
+        return {};
 
     assert(destinationMap <= MAP_SHOALS);
 
     uDefaultTravelTime_ByFoot = footTravelTimes[currentMap][direction];
-    uLevel_StartingPointType = footTravelArrivalPoints[currentMap][direction];
-    return destinationMap;
+    return MapDestination(destinationMap, footTravelArrivalPoints[currentMap][direction]);
 }
 
 //----- (004892E6) --------------------------------------------------------
@@ -376,25 +372,25 @@ void OutdoorLocation::SetFog() {
     unsigned chance = vrng->random(100);
 
     if (chance < fog_probability_table[map_id].small_fog_chance) {
-        loc_time.weatherFlags |= MAP_WEATHER_FOGGY;
-        loc_time.fogWeakDistance = 4096;
-        loc_time.fogStrongDistance = 8192;
+        weather.flags |= MAP_WEATHER_FOGGY;
+        weather.fogWeakDistance = 4096;
+        weather.fogStrongDistance = 8192;
     } else if (chance <
                fog_probability_table[map_id].small_fog_chance +
                    fog_probability_table[map_id].average_fog_chance) {
-        loc_time.fogWeakDistance = 0;
-        loc_time.fogStrongDistance = 4096;
-        loc_time.weatherFlags |= MAP_WEATHER_FOGGY;
+        weather.fogWeakDistance = 0;
+        weather.fogStrongDistance = 4096;
+        weather.flags |= MAP_WEATHER_FOGGY;
     } else if (fog_probability_table[map_id].dense_fog_chance &&
                chance <
                    fog_probability_table[map_id].small_fog_chance +
                        fog_probability_table[map_id].average_fog_chance +
                        fog_probability_table[map_id].dense_fog_chance) {
-        loc_time.fogWeakDistance = 0;
-        loc_time.fogStrongDistance = 2048;
-        loc_time.weatherFlags |= MAP_WEATHER_FOGGY;
+        weather.fogWeakDistance = 0;
+        weather.fogStrongDistance = 2048;
+        weather.flags |= MAP_WEATHER_FOGGY;
     } else {
-        loc_time.weatherFlags &= ~MAP_WEATHER_FOGGY;
+        weather.flags &= ~MAP_WEATHER_FOGGY;
     }
 
     if (isMapUnderwater(map_id))
@@ -520,21 +516,21 @@ void OutdoorLocation::Load(std::string_view filename, int days_played, int respa
 
     // LABEL_150:
     if (pWeather->bRenderSnow) {  // Ritor1: it's include for snow
-        loc_time.skyTextureName = "sky19";
-    } else if (loc_time.lastVisitTime) {
-        if (loc_time.lastVisitTime.toDays() % 28 != pParty->uCurrentDayOfMonth) {
+        weather.skyTextureName = "sky19";
+    } else if (lastVisitTime) {
+        if (lastVisitTime.toDays() % 28 != pParty->uCurrentDayOfMonth) {
             int sky_to_use;
             if (vrng->random(100) >= 20)
                 sky_to_use = skyTexturesIds1[vrng->random(9)];
             else
                 sky_to_use = skyTexturesIds2[vrng->random(7)];
-            loc_time.skyTextureName = fmt::format("plansky{}", sky_to_use);
+            weather.skyTextureName = fmt::format("plansky{}", sky_to_use);
         }
     } else {
-        loc_time.skyTextureName = "plansky3";
+        weather.skyTextureName = "plansky3";
     }
 
-    this->sky_texture = assets->getBitmap(loc_time.skyTextureName);
+    this->sky_texture = assets->getBitmap(weather.skyTextureName);
 
     if (engine->config->graphics.SeasonsChange.value())
         pOutdoor->pTerrain.changeSeason(pParty->uCurrentMonth);
@@ -604,20 +600,6 @@ bool OutdoorLocation::PrepareDecorations() {
 
     pGameLoadingUI_ProgressBar->Progress();
     return true;
-}
-
-void OutdoorLocation::ArrangeSpriteObjects() {
-    if (!pSpriteObjects.empty()) {
-        for (int i = 0; i < (signed int)pSpriteObjects.size(); ++i) {
-            if (pSpriteObjects[i].uObjectDescID) {
-                if (!(pSpriteObjects[i].uAttributes & SPRITE_DROPPED_BY_PLAYER) && !pSpriteObjects[i].IsUnpickable()) {
-                    pSpriteObjects[i].vPosition.z = pOutdoor->pTerrain.heightByPos(pSpriteObjects[i].vPosition);
-                }
-                pSpriteObjects[i].containing_item.postGenerate(ITEM_SOURCE_MAP);
-            }
-        }
-    }
-    pGameLoadingUI_ProgressBar->Progress();
 }
 
 //----- (0047F2D3) --------------------------------------------------------
@@ -879,9 +861,9 @@ void ODM_UpdateUserInputAndOther() {
 
     if (pParty->pos.x < -maxPartyAxisDistance || pParty->pos.x > maxPartyAxisDistance ||
         pParty->pos.y < -maxPartyAxisDistance || pParty->pos.y > maxPartyAxisDistance) {
-        MapId mapid = pOutdoor->getTravelDestination(pParty->pos.x, pParty->pos.y);
+        MapDestination destination = pOutdoor->getTravelDestination(pParty->pos.x, pParty->pos.y);
         if (!engine->IsUnderwater() && (pParty->isAirborne() || (pParty->uFlags & (PARTY_FLAG_STANDING_ON_WATER | PARTY_FLAG_WATER_DAMAGE)) ||
-                             pParty->uFlags & PARTY_FLAG_BURNING || pParty->bFlying) || mapid == MAP_INVALID) {
+                             pParty->uFlags & PARTY_FLAG_BURNING || pParty->bFlying) || destination.map() == MAP_INVALID) {
             pParty->pos.x = std::clamp(pParty->pos.x, -maxPartyAxisDistance, maxPartyAxisDistance);
             pParty->pos.y = std::clamp(pParty->pos.y, -maxPartyAxisDistance, maxPartyAxisDistance);
         } else {
@@ -1585,8 +1567,8 @@ int GetCeilingHeight(int Party_X, signed int Party_Y, int Party_ZHeight, int *pF
 
 //----- (00464851) --------------------------------------------------------
 void OutdoorLocation::SetUnderwaterFog() {
-    loc_time.fogWeakDistance = 50;
-    loc_time.fogStrongDistance = 2000;
+    weather.fogWeakDistance = 50;
+    weather.fogStrongDistance = 2000;
     // day_fogrange_3 = 25000;
 }
 
@@ -1774,7 +1756,7 @@ static void loadAndPrepareODMInternal(MapId mapid) {
     map_info = &pMapStats->pInfos[mapid];
     respawn_interval = map_info->respawnIntervalDays;
 
-    pOutdoor->loc_time.weatherFlags &= ~MAP_WEATHER_FOGGY;
+    pOutdoor->weather.flags &= ~MAP_WEATHER_FOGGY;
     pOutdoor->Initialize(mapFilename, pParty->GetPlayingTime().toDays() + 1, respawn_interval, &outdoor_was_respawned);
 
     if (!(dword_6BE364_game_settings_1 & GAME_SETTINGS_LOADING_SAVEGAME_SKIP_RESPAWN)) {
@@ -1795,7 +1777,8 @@ static void loadAndPrepareODMInternal(MapId mapid) {
         RespawnGlobalDecorations();
     }
     pOutdoor->PrepareDecorations();
-    pOutdoor->ArrangeSpriteObjects();
+    arrangeSpriteObjects();
+    pGameLoadingUI_ProgressBar->Progress();
     pOutdoor->InitalizeActors(mapid);
     pWeather->Initialize();
     pCamera3D->_viewYaw = pParty->_viewYaw;
@@ -1811,8 +1794,10 @@ void loadAndPrepareODM(MapId mapid, bool bLoading) {
     uCurrentlyLoadedLevelType = LEVEL_OUTDOOR;
 
     loadAndPrepareODMInternal(mapid);
-    if (!bLoading)
-        TeleportToStartingPoint(uLevel_StartingPointType);
+    if (!bLoading) {
+        if (std::optional<PartyPlacement> placement = engine->_pendingTransition->resolvePlacement())
+            placeParty(*placement);
+    }
 
     viewparams->_443365();
     PlayLevelMusic();
@@ -1832,7 +1817,7 @@ Color GetLevelFogColor() {
         return colorTable.Eucalyptus;
     }
 
-    if (pOutdoor->loc_time.weatherFlags & MAP_WEATHER_FOGGY) {
+    if (pOutdoor->weather.flags & MAP_WEATHER_FOGGY) {
         if (pWeather->bNight) {  // night-time fog
             if (false) {
                 MM_ERROR("decompilation can be inaccurate, please send savegame to Nomad");
@@ -1875,35 +1860,3 @@ double OutdoorLocation::GetPolygonMaxZ(RenderVertexSoft *pVertex, unsigned int u
     return result;
 }
 
-// TODO(pskelton): move this - used both indoors and out
-void TeleportToStartingPoint(MapStartPoint point) {
-    DecorationId decID = pDecorationList->GetDecorIdByName(toString(point));
-
-    if (decID != DECORATION_NULL) {
-        for (size_t i = 0; i < pLevelDecorations.size(); ++i) {
-            if (pLevelDecorations[i].uDecorationDescID == decID) {
-                pParty->pos = pLevelDecorations[i].vPosition;
-                if (uCurrentlyLoadedLevelType == LEVEL_OUTDOOR) {
-                    // Spawn point in Harmondale from Barrow Downs is up in the sky, vanilla worked it around by
-                    // always placing the party on the ground.
-                    // TODO: (Chaosit) dummy variables created for the sake of passing pointers
-                    bool bOnWater = false;
-                    int bModelPid;
-                    pParty->pos.z = ODM_GetFloorLevel(pParty->pos, &bOnWater, &bModelPid);
-                } else {
-                    int face = -1;
-                    pParty->pos.z = BLV_GetFloorLevel(pParty->pos, pIndoor->GetSector(pParty->pos), &face);
-                }
-                pParty->velocity = Vec3f();
-                pParty->uFallStartZ = pParty->pos.z;
-                pParty->_viewYaw = pLevelDecorations[i]._yawAngle;
-                pParty->_viewPitch = 0;
-            }
-        }
-
-        if (engine->_teleportPoint.isValid()) {
-            engine->_teleportPoint.doTeleport(true);
-        }
-        engine->_teleportPoint.invalidate();
-    }
-}

@@ -10,13 +10,13 @@
 #include "Engine/mm7_data.h"
 #include "Engine/EngineIocContainer.h"
 #include "Engine/SpawnPoint.h"
+#include "Engine/Time/Time.h"
 
 #include "Library/Geometry/Rect.h"
 #include "Library/Geometry/Plane.h"
 #include "Library/Geometry/BBox.h"
 
 #include "LocationInfo.h"
-#include "LocationTime.h"
 #include "LocationFunctions.h"
 #include "FaceEnums.h"
 
@@ -249,7 +249,7 @@ struct IndoorLocation {
     std::vector<uint16_t> sectorLightData;
     std::vector<SpawnPoint> pSpawnPoints;
     LocationInfo dlv;
-    LocationTime stru1;
+    Time lastVisitTime;
     std::array<char, 875> _visible_outlines;
     char padding;
 
@@ -337,8 +337,9 @@ void FindBillboardsLightLevels_BLV();
  *                                      then this parameter is set to 0.
  * @param[out] pFaceID                  Id of the floor face on which the actor is standing, or `-1` if actor is outside
  *                                      the level boundaries. Pass `nullptr` to ignore.
- * @return                              Z coordinate for the floor at (X, Y), or `-30000` if actor is outside the
- *                                      level boundaries.
+ * @return                              Z coordinate for the floor at (X, Y), `-30000` if actor is outside the
+ *                                      level boundaries, or `-29000` if the position is inside a vertical portal
+ *                                      opening between sectors and there is no real floor underneath.
  */
 float GetIndoorFloorZ(const Vec3f &pos, int *pSectorID, int *pFaceID = nullptr);
 

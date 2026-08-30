@@ -1073,7 +1073,7 @@ GAME_TEST(Issues, Issue2453) {
     game.tick(2);
     game.pressGuiButton("GameMenu_SaveGame");
     game.tick(2);
-    game.pressGuiButton("SaveMenu_Slot0");
+    game.doubleClickGuiButton("SaveMenu_Slot0"); // Double click starts the name input.
     game.tick(2);
     game.pressAndReleaseKey(PlatformKey::KEY_DIGIT_0);
     game.tick(2);
@@ -1404,9 +1404,7 @@ GAME_TEST(Issues, Issue2551b) {
     ASSERT_EQ(saveMenu->slots().size(), 1); // ...which is not shown in the save menu, so it's just the new save slot.
 
     // And the menu is still fully functional.
-    game.pressGuiButton("SaveMenu_Slot0"); // Select the new save slot...
-    game.tick(2);
-    game.pressGuiButton("SaveMenu_Slot0"); // ...and click it again to start the name input.
+    game.doubleClickGuiButton("SaveMenu_Slot0"); // Double click the new save slot to start the name input.
     game.tick(2);
     game.pressAndReleaseKey(PlatformKey::KEY_A);
     game.tick(2);
@@ -1499,4 +1497,92 @@ GAME_TEST(Prs, Pr2626) {
     game.teleportTo(MAP_COLONY_ZOD, Vec3f(-1849, 6726, 934), 0);
     game.tick(2);
     EXPECT_EQ(pIndoor->GetSector(-1849, 6726.5f, 934), 23);
+}
+
+GAME_TEST(Prs, Pr2599) {
+    // Leaving the Hidden Tomb while looking up used to leave the party staring at the sky in Erathia. Every shipped
+    // MoveToMap carries pitch 0, and the original game applies a script's pitch only when it's non-zero, the view
+    // was leveled by the target map's party start decoration instead, and Erathia has none - only the four
+    // directional ones for foot travel. So this is vanilla behaviour, and we deliberately apply the script's pitch
+    // as is, like on every other arrival.
+    auto mapTape = tapes.map();
+    game.startNewGame();
+    game.teleportTo(MAP_HIDDEN_TOMB, Vec3f(-111, -25, 1), 0); // Just inside the entrance, facing the exit.
+    test.startTaping();
+    game.pressKey(PlatformKey::KEY_PAGEDOWN); // Look up.
+    game.tick(10);
+    game.releaseKey(PlatformKey::KEY_PAGEDOWN);
+    EXPECT_EQ(pParty->_viewPitch, 125);
+    game.pressKey(PlatformKey::KEY_UP);
+    game.tick(10);
+    game.releaseKey(PlatformKey::KEY_UP);
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick();
+    game.pressGuiButton("Transition_Yes");
+    game.tick();
+    game.skipLoadingScreen();
+    EXPECT_EQ(mapTape, tape(MAP_HIDDEN_TOMB, MAP_ERATHIA));
+    EXPECT_EQ(pParty->pos.x, 14207);
+    EXPECT_EQ(pParty->pos.y, -21526);
+    EXPECT_EQ(pParty->_viewYaw, 1536);
+    EXPECT_EQ(pParty->_viewPitch, 0);
+}
+
+GAME_TEST(Issues, Pr2635) {
+    // Loading a save and opening the save name editor take a real double click on a slot, and are not
+    // triggered by two ordinary clicks on it.
+    game.startNewGame();
+    game.tick(2);
+
+    // Save something to load back.
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick(2);
+    game.pressGuiButton("GameMenu_SaveGame");
+    game.tick(2);
+    game.doubleClickGuiButton("SaveMenu_Slot0");
+    game.tick(2);
+    game.pressAndReleaseKey(PlatformKey::KEY_A);
+    game.tick(2);
+    game.pressGuiButton("SaveMenu_Save");
+    game.tick(10);
+    ASSERT_TRUE(ufs->exists("saves/save000.mm7"));
+
+    // Open the load menu and check a row really is selected before anything is clicked.
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick(2);
+    game.pressGuiButton("GameMenu_LoadGame");
+    game.tick(3);
+    ASSERT_EQ(current_screen_type, SCREEN_LOADGAME);
+    ASSERT_TRUE(saveLoadMenu()->hasSelectedSlot()); // A row is selected before the player clicks anything...
+    ASSERT_EQ(saveLoadMenu()->selectedSlot().fileName, "save000.mm7"); // ...and it's the one Slot0 points at.
+
+    // Clicking the already selected row does nothing, however many times it's clicked slowly.
+    game.pressGuiButton("LoadMenu_Slot0");
+    game.tick(2);
+    EXPECT_EQ(current_screen_type, SCREEN_LOADGAME);
+    game.pressGuiButton("LoadMenu_Slot0");
+    game.tick(2);
+    EXPECT_EQ(current_screen_type, SCREEN_LOADGAME);
+
+    // A double click on it loads.
+    game.doubleClickGuiButton("LoadMenu_Slot0");
+    game.tick(2);
+    game.skipLoadingScreen();
+    game.tick(2);
+    EXPECT_EQ(current_screen_type, SCREEN_GAME);
+
+    // Same rule in the save menu - two slow clicks don't open the name input, a double click does.
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick(2);
+    game.pressGuiButton("GameMenu_SaveGame");
+    game.tick(2);
+    game.pressGuiButton("SaveMenu_Slot0");
+    game.tick(2);
+    game.pressGuiButton("SaveMenu_Slot0");
+    game.tick(2);
+    EXPECT_NE(saveLoadMenu()->keyboard_input_status, WINDOW_INPUT_IN_PROGRESS);
+
+    game.doubleClickGuiButton("SaveMenu_Slot0");
+    game.tick(2);
+    EXPECT_EQ(saveLoadMenu()->keyboard_input_status, WINDOW_INPUT_IN_PROGRESS);
 }

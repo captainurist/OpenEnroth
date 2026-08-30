@@ -6,12 +6,14 @@
 
 #include "Engine/SpawnPoint.h"
 #include "Engine/MapEnums.h"
+#include "Engine/PartyPlacement.h"
+#include "Engine/Time/Time.h"
 
 #include "Library/Color/Color.h"
 
 #include "BSPModel.h"
 #include "LocationInfo.h"
-#include "LocationTime.h"
+#include "MapWeather.h"
 #include "LocationFunctions.h"
 #include "OutdoorTerrain.h"
 
@@ -40,7 +42,6 @@ struct OutdoorLocation {
     bool IsMapCellFullyRevealed(signed int a2, signed int a3);
     bool IsMapCellPartiallyRevealed(signed int a2, signed int a3);
     bool PrepareDecorations();
-    void ArrangeSpriteObjects();
     bool InitalizeActors(MapId a1);
     double GetFogDensityByTime();
 
@@ -51,8 +52,15 @@ struct OutdoorLocation {
 
     /**
      * @offset 0x48902E
+     *
+     * @param partyX                    Party x position, out of bounds when foot travel is possible.
+     * @param partyY                    Party y position.
+     * @return                          Neighbouring map the party walks into, and the start point it arrives at.
+     *                                  Map is MAP_INVALID when there is nowhere to go.
      */
-    MapId getTravelDestination(int partyX, int partyY);
+    // TODO(captainurist): also sets uDefaultTravelTime_ByFoot and clears party flags as a side effect, and the travel
+    //                     dialog calls it every frame just to draw the map name. Split the lookup from the commit.
+    MapDestination getTravelDestination(int partyX, int partyY);
     void UpdateSunlightVectors();
     void UpdateFog();
     int getNumFoodRequiredToRestInCurrentPos(const Vec3f &pos);
@@ -83,7 +91,8 @@ struct OutdoorLocation {
     GraphicsImage *sky_texture = nullptr;        // signed int sSky_TextureID;
     std::vector<SpawnPoint> pSpawnPoints;
     LocationInfo ddm;
-    LocationTime loc_time;
+    Time lastVisitTime;
+    MapWeather weather;
     std::array<std::array<uint8_t, 11>, 88> uFullyRevealedCellOnMap;
                                           // 968         the inner array is 11
                                           // bytes long, because every bit is
@@ -115,6 +124,3 @@ void loadAndPrepareODM(MapId mapid, bool bLoading);
 Color GetLevelFogColor();
 
 void sub_481ED9_MessWithODMRenderParams();
-void TeleportToStartingPoint(MapStartPoint point);  // idb
-
-extern MapStartPoint uLevel_StartingPointType;

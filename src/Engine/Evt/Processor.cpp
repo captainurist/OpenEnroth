@@ -6,7 +6,9 @@
 #include "Engine/Engine.h"
 #include "Engine/Localization.h"
 #include "Engine/mm7_data.h"
+#include "Engine/Graphics/Indoor.h"
 #include "Engine/Graphics/LocationFunctions.h"
+#include "Engine/Graphics/Outdoor.h"
 #include "Engine/Objects/DecorationList.h"
 #include "Engine/Objects/Decoration.h"
 #include "Engine/Objects/SpriteObject.h"
@@ -89,7 +91,7 @@ static void registerTimerTriggers(EvtOpcode triggerType, std::vector<MapTimer> *
 
     // TODO(Nik-RE-dev): using time of last visit will help timers only slightly because each map leaving resets it.
     //                   To support fair timers they need to be saved directly.
-    Time levelLastVisit = currentLocationTime().lastVisitTime;
+    Time levelLastVisit = uCurrentlyLoadedLevelType == LEVEL_INDOOR ? pIndoor->lastVisitTime : pOutdoor->lastVisitTime;
 
     triggers->clear();
     for (EventTrigger &trigger : timerTriggers) {
@@ -150,8 +152,6 @@ void eventProcessor(int eventId, Pid targetObj, bool canShowMessages, int startS
         engine->_statusBar->nothingHere();
         return;
     }
-
-    dword_5B65C4_cancelEventProcessing = 0; // TODO: rename and contain in this module or better remove it altogether
 
     EvtInterpreter interpreter;
     MM_TRACE("Executing regular event starting from step {}", startStep);

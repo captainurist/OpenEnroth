@@ -92,11 +92,14 @@ Naming:
 * Exceptions to the rules above are STL-compatible interfaces, which should follow STL naming rules. So it's `value_type` for iterator value type, and `push_back` for a method that's adding an element to a container.
 
 Code formatting:
-* Lines are 120 columns wide. This applies to comments, and to all file types, not just C++. Don't wrap at 80!
+* Lines are at most 200 columns, `check_style` enforces it. Prefer ~120, but readability wins over the number: a long line is fine, ugly wrapping isn't. Applies to all file types, not just C++. Don't wrap at 80!
+* Comments stay within 120 columns, the 200 limit is for code. The exception is a trailing comment, it's part of the code line it's on and only needs to fit in 200 together with it.
 * `*` and `&` in type declarations should be preceded by a space. So it's `char *string`, and not `char* string`.
 * Sort method definitions in `.cpp` files in the same order as they appear in the `.h` file.
 * In header files, use an additional `private:` label before listing all class fields at the end of the class declaration.
 * Use `virtual` prefix for all virtual functions, even when `override` is also present.
+* When an `#else` or `#endif` is far enough from its `#if` that the two don't fit on screen together, repeat the condition there verbatim, e.g. `#endif // _WINDOWS`. In an `#elif` chain, repeat the condition of the last `#elif`.
+* Indent after the `#` inside a conditional, e.g. `#   define MM_FOO 1`, when the block is compact enough to read as preprocessor logic. A conditional wrapping ordinary code is left at column zero.
 
 Language features:
 * We use C++23. Prefer modern alternatives where appropriate, e.g. `contains()` instead of `find() != end()`.
