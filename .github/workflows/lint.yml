@@ -51,11 +51,12 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y libglu1-mesa-dev
 
-      # The prebuilt release, so no compiler is involved. Building it from source stopped working on 26.04's gcc.
+      # The prebuilt release, so no compiler is involved - building it from source stopped working on 26.04's gcc.
+      # It goes outside the checkout, the lua check takes the whole source tree as its workspace.
       - name: Install lua-language-server
         run: |
-          mkdir lua-language-server
-          curl -fsSL "https://github.com/LuaLS/lua-language-server/releases/download/${LLS_TAG}/lua-language-server-${LLS_TAG}-linux-x64.tar.gz" | tar -xz -C lua-language-server
+          mkdir "$RUNNER_TEMP/lua-language-server"
+          curl -fsSL "https://github.com/LuaLS/lua-language-server/releases/download/${LLS_TAG}/lua-language-server-${LLS_TAG}-linux-x64.tar.gz" | tar -xz -C "$RUNNER_TEMP/lua-language-server"
 
       - name: Install clang-tidy
         run: |
@@ -66,7 +67,7 @@ jobs:
       - name: Configure
         id: configure
         run: |
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DOE_LLS_COMMAND=./lua-language-server/bin/lua-language-server
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DOE_LLS_COMMAND="$RUNNER_TEMP/lua-language-server/bin/lua-language-server"
 
       # The remaining checks still run when an earlier one fails, so one push
       # reports every verdict.
