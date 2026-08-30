@@ -29,7 +29,7 @@ if(OE_BUILD_TESTS)
     add_library(test_library_stack_trace OBJECT ${TEST_LIBRARY_STACK_TRACE_SOURCES})
     target_link_libraries(test_library_stack_trace PUBLIC testing_unit library_stack_trace)
 
-    target_check_style(test_library_stack_trace)
+    target_check_cpp_style(test_library_stack_trace)
 
     target_link_libraries(OpenEnroth_UnitTest PUBLIC test_library_stack_trace)
 endif()
