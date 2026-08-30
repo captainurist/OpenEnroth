@@ -1,25 +1,25 @@
 # TODOs
 
-Every `TODO` in `src/` and `test/` as of `1d460fb7b41` (Reset particles on level load (#2563)), 697 in total.
+Every `TODO` in `src/` and `test/` as of `23f7cce94ce` (Move CI to ubuntu 26.04, drop the gcc-15 source build (#2659)). 697 were triaged at `1d460fb7b41`, the ones master resolved since are ticked, and the ones master added since were triaged on 2026-08-30.
 Each one was read in context and rated by how much work fixing it actually is.
 This file is a worklist - tick entries off as they land.
 
 The rating is a starting point, not a verdict. An entry rated easy can still turn out to hide a design
 question once you open the file, and a design one can turn out to have an obvious answer. Line numbers
-are as of `1d460fb7b41` and drift as the code changes; `git grep` for the TODO text if one does not match.
+are as of `1d460fb7b41`, or `23f7cce94ce` for the entries added on 2026-08-30, and drift as the code changes; `git grep` for the TODO text if one does not match.
 
 ## Counts
 
 | tier | count | what it means |
 |---|---:|---|
-| Trivial | 36 | Mechanical, minutes of work, no behavior risk. |
-| Easy | 166 | Localized fix in one file or function, clear what to do, low risk. |
+| Trivial | 40 | Mechanical, minutes of work, no behavior risk. |
+| Easy | 168 | Localized fix in one file or function, clear what to do, low risk. |
 | Stale | 7 | Already done or obsolete - the comment itself is the thing to delete. |
-| Medium | 184 | Clear goal, but touches several files or needs care and tests. |
-| Hard | 21 | Significant refactor or deep investigation. |
-| Design | 282 | Blocked on a decision, missing data, or original-game research. |
+| Medium | 190 | Clear goal, but touches several files or needs care and tests. |
+| Hard | 22 | Significant refactor or deep investigation. |
+| Design | 284 | Blocked on a decision, missing data, or original-game research. |
 | Unclear | 1 | Meaning could not be determined from the code. |
-| **total** | **697** | |
+| **total** | **712** | |
 
 By subsystem:
 
@@ -38,7 +38,7 @@ By subsystem:
 | `src/Bin` | 2 |
 | `test/Testing` | 2 |
 
-## Trivial (36)
+## Trivial (40)
 
 _Mechanical, minutes of work, no behavior risk._
 
@@ -46,6 +46,8 @@ _Mechanical, minutes of work, no behavior risk._
 
 - [x] **2685** - TODO(pskelton): translate comments to English
   - GameResultsApply is full of Russian comments (e.g. 'проверка построена ли башня'); mechanically translate them in place, no code change.
+- [ ] **421** - TODO(pskelton): hardcoded 640x480 screen bounds
+  - Only the two magic 639/479 comparisons in DrawSparks are left of the old "Hardcoded limit checks need changing" TODO (the 10/150 loop limits already use .size()); Arcomage already reads render->GetRenderDimensions() for card spacing (lines 1693/1807/1991), so bound the sparks by a Recti(0, 0, dims.w, dims.h).contains(pos) check or name the logical 640x480 canvas as a constant.
 
 ### `src/Engine/Evt/EvtInstruction.cpp`
 
@@ -86,6 +88,11 @@ _Mechanical, minutes of work, no behavior risk._
 
 - [x] **3** - TODO(pskelton): rename - lighting functions
   - Header half of the same rename as LightmapBuilder.cpp:3; the header only declares the light stacks and three lighting helpers, so renaming it to Lighting.h costs one CMakeLists edit and 10 include updates.
+
+### `src/Engine/Graphics/LocationInfo.h`
+
+- [ ] **4** - TODO(captainurist): this isn't graphics, it belongs in Engine/ rather than Engine/Graphics/.
+  - git mv to Engine/LocationInfo.h, fix the CMakeLists entry and the four includes (Indoor.h:19, LocationFunctions.h:5, Outdoor.h:15 use the relative "LocationInfo.h", Temple.cpp:13 the full path); fold it into the Map- rename in the line-3 entry if that lands first.
 
 ### `src/Engine/Graphics/LocationTime.h`
 
@@ -155,6 +162,11 @@ _Mechanical, minutes of work, no behavior risk._
 - [ ] **8** - TODO(pskelton): move me - to spellfxrendere.h?
   - Move the sphereVertPos and sphereVertInd definitions out of mm7_data.cpp into SpellFxRenderer.cpp — they are already declared in SpellFxRenderer.h:19-20 and used only by SpellFxRenderer.cpp:119-128.
 
+### `src/Engine/stru314.h`
+
+- [ ] **5** - TODO(captainurist): this is a facet plane plus a decal basis - rename the struct and its field_* members accordingly.
+  - Contained rename: the only users are stru314.cpp, DecalBuilder.cpp (static_FacePlane at 67, the FacetNormals parameter, field_10/field_1C at 119-125), the DecalBuilder.h forward declaration and signature, and two CMakeLists lines; e.g. DecalBasis { Vec3f normal, u, v; float dist; } with the file renamed to match, and the "facet normals face / wall / celings" trailing comment dropped.
+
 ### `src/GUI/GUIButton.h`
 
 - [x] **35** - TODO(Nik-RE-dev): rename properly. In most cases it is a hover hint for status bar.
@@ -189,7 +201,12 @@ _Mechanical, minutes of work, no behavior risk._
 - [ ] **693** - TODO(captainurist): encapsulate
   - Wrap the magic formula SoundId(type + 100 * (roomSoundId + 300)) in a named helper (e.g. `SoundId houseSoundId(HouseId, HouseSoundType)` or a method on the room descriptor) and reuse it for the duplicated `pAnimatedRooms[houseTable[h].uAnimationID].uRoomSoundId` guards in UITransition.cpp:164/177.
 
-## Easy (166)
+### `src/Utility/System/NativePath.h`
+
+- [ ] **37** - TODO(captainurist): fromWtf8 / toWtf8 are misnomers, the strings are WTF-8 on Windows only. Rename.
+  - Mechanical sed of 46 references in 12 files (NativePath.cpp/h, PathResolver, OpenEnroth.cpp, DirectoryFileSystem, the test binaries and five _ut files) once a name is picked, e.g. fromString/toString clash with the serialization vocabulary so something like fromPathString/toPathString or fromBytes/toBytes; the class docs already spell out the per-platform semantics, so trim the "named somewhat improperly" paragraph in the same change.
+
+## Easy (168)
 
 _Localized fix in one file or function, clear what to do, low risk._
 
@@ -226,8 +243,6 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/Arcomage/Arcomage.cpp`
 
-- [x] **408** - TODO(pskelton): Hardcoded limit checks need changing
-  - Replace the magic numbers in DrawSparks (10 effect slots, 150 sparks, 639/479 bounds) with named constants tied to the am_effects_array/effect_sparks array sizes and the 640x480 logical viewport (or render dimensions if resolution independence is wanted) — mechanical, contained to this file.
 - [x] **1191** - TODO(pskelton): was 1 - what was this meant to do? Check for dual key press??
   - The whole branch is dead: ARCO_MSG_FORCEQUIT is never produced anywhere in src, and ArcomageGame_InputMSG::field_4 is never assigned (declared 'unsused' in Arcomage.h:159), so field_4 == 129 can never hold. Delete the case (together with the Arcomage.h:136 unused-enum cleanup) instead of researching the original intent.
 - [ ] **2864** - TODO(pskelton): stop audio comment?
@@ -344,6 +359,8 @@ _Localized fix in one file or function, clear what to do, low risk._
   - ItemInteraction, CanInteractWithActor, InteractWithActor and DecorationInteraction are defined in Viewport.cpp:158-202 but declared nowhere; add their prototypes to Viewport.h and include it here, deleting the four inline `extern` declarations at lines 1403, 1414, 1415, 1427.
 - [ ] **1895** - TODO(pskelton): configurable thresholds for treasure
   - Replace the literal 20 and 60 in SpawnRandomTreasure with two new Int entries in GameConfig::Gameplay (same pattern as ChestTryPlaceItems / ArtifactLimit, with a 0..100 validator), keeping current values as defaults so RNG-sensitive game tests are unaffected.
+- [ ] **421** - TODO(captainurist): asserts are on in release builds, so the line below is unreachable. Work out whether every face can really be above the party here, and drop it if not.
+  - All-faces-above-the-party is not the way in: a negative CalcZDist goes to backupID, so pSectorID == 0 && backupID == 0 needs every candidate face to carry sectorId == 0, and foundFaces come from sectors 1.. (loop starts at i = 1) filtered to POLYGON_Floor/InBetweenFloorAndWall. Scan MM6/MM7/MM8 BLVs for floor faces with sectorId 0 listed in another sector's floorIds; if none, delete the dead fallback and keep the assert, otherwise turn assert+fallback into the same MM_WARNING + return-0 path the "No face found" branch uses.
 
 ### `src/Engine/Graphics/Indoor.h`
 
@@ -556,6 +573,11 @@ _Localized fix in one file or function, clear what to do, low risk._
 - [ ] **28** - doesn't belong here.
   - `read()` is a pure forwarder to _reader.read() with a single user (TileGenerator.cpp:93); delete it in favour of a `reader()` accessor on the cache.
 
+### `src/Engine/SaveLoad.cpp`
+
+- [ ] **113** - TODO(captainurist): the start point is a placeholder, the save carries the party's position and the loaders skip placement when loading. MapDestination has no way to say that.
+  - The _arrival variant already has a monostate meaning "don't move the party", only the constructors can't produce it together with a map (the two-arg ctors take a start point or a placement); add a factory like MapDestination::keepPlacement(MapId) in PartyPlacement.h, use it here, and leave the !bLoading guards in loadAndPrepareBLV/ODM (Indoor.cpp:1013, Outdoor.cpp:1798) alone since they also gate the view reset.
+
 ### `src/Engine/SpellFxRenderer.cpp`
 
 - [ ] **72** - TODO (mcgreentn): should we use an epsilon here?
@@ -602,6 +624,11 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 - [ ] **95** - TODO(captainurist): #time add unit tests.
   - Add src/Engine/Time/Tests/Duration_ut.cpp covering roundedUp/roundedDown, toCivilDuration/toLongCivilDuration and the from*/realtime* conversions, and wire it up in src/Engine/Time/CMakeLists.txt with the same OE_BUILD_TESTS block used by src/Engine/Spells/CMakeLists.txt.
+
+### `src/Engine/mm7text_ru.cpp`
+
+- [ ] **810** - TODO(captainurist): this is sus!
+  - The special-name lookup is contents.starts_with(candidate.name), so a ^P name that merely extends one of the four table rows gets the declined prefix plus an undeclined tail; check whether the DLL compared by prefix too (the fidelity rule for this file) and scan the Buka string tables for ^P contents longer than "Мэри Джо" / "Ли Энн" / "Врата в Бездну" / "Стены тумана", then either switch to an exact compare and drop the substr line, or replace the TODO with a comment saying the prefix match is the DLL's.
 
 ### `src/GUI/GUIEnums.h`
 
@@ -771,7 +798,7 @@ _Already done or obsolete - the comment itself is the thing to delete._
 - [ ] **3513** - TODO: invalidate all previously loaded textures and then load them again as they can be no longer alive on GPU (issue #199).
   - The two lines below it already do exactly this — `assets->releaseAllTextures()` drops every render id (AssetsManager.cpp:42-56) so textures are re-uploaded lazily, plus ReleaseTerrain/ReleaseBSP; the comment can be deleted (the remaining open point is the platform-testing TODO on the next line).
 
-## Medium (184)
+## Medium (190)
 
 _Clear goal, but touches several files or needs care and tests._
 
@@ -858,6 +885,8 @@ _Clear goal, but touches several files or needs care and tests._
   - The flicker term (ran - RAND_MAX*.4)/torchLightFlicker scales with the platform-dependent RAND_MAX macro (32767 on MSVC vs 2^31-1 on glibc) and is biased upward, so behavior differs per platform; fixing needs a deliberately designed flicker model plus visual verification (vrng, so traces are unaffected).
 - [ ] **615** - TODO(captainurist): on error in `open` we had this: Error(localization->str(LSTR_MIGHT_AND_MAGIC_VII_IS_HAVING_TROUBLE), localization->str(LSTR_REINSTALL_NECESSARY)); however, at this point localization isn't initialized yet, so this was a guaranteed crash. Implement proper user-facing error reporting!
   - Needs an error-reporting mechanism (platform message box with hardcoded English text) that works before localization and game data are loaded, plus wiring it into the LOD/resource open failure paths in MM7_LoadLods and startup.
+- [ ] **1460** - TODO(captainurist): six more sites set _pendingTransition and uGameState by hand, route them through here.
+  - The hand-rolled sites are Game.cpp:744-745 (foot travel), Game.cpp:832/841 (house NPC teleport), Game.cpp:912-914 (UIMSG_DD debug), EngineController.cpp:324-326, LloydsBook.cpp:198-200, TownPortalBook.cpp:170-171 and Transport.cpp:161-163, and they disagree on what goes with the transition: most set GAME_SETTINGS_SKIP_WORLD_UPDATE, some call onMapLeave(), EngineController and TownPortalBook don't autoSave() while startMapTransition autosaves whenever the map differs - so routing them through needs a flags/enum parameter or leaving the flag and onMapLeave at the call sites, plus a game-test pass (the EngineController one drives the tests).
 
 ### `src/Engine/EngineGlobals.h`
 
@@ -929,7 +958,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Engine/Graphics/Indoor.cpp`
 
-- [x] **443** - TODO(captainurist): code looks very similar to Camera3D::GetFacetOrientation
+- [ ] **436** - TODO(captainurist): code looks very similar to stru314::computeBasis
   - Camera3D::GetFacetOrientation (Camera.cpp:62) dispatches on the normal while _get_normals dispatches on polygonType, and their U/V outputs are swapped and differ in sign (outV.z = -1 vs +1), plus _get_normals applies FACE_FlipNormalU/V; unifying them (also with the third copy at PortalFunctions.cpp:169) needs sign reconciliation and visual verification.
 - [ ] **1250** - TODO(pskelton): Need to add check against terrain
   - Outdoor line-of-sight currently only tests bmodel faces; adding a ray march against pOutdoor->pTerrain's heightmap is new code that silently changes AI aggro and spell targeting on every outdoor map, so it needs its own tests and trace re-verification.
@@ -949,6 +978,11 @@ _Clear goal, but touches several files or needs care and tests._
 - [ ] **1676** - TODO(pskelton): common gravity code extract
   - There are 9 GetGravityStrength() call sites (Indoor.cpp:878/1654, Outdoor.cpp:1284/1294/1676/1685, SpriteObject.cpp:163/167/354/487) with inconsistent multipliers (-16, -8, -2, 1, 8) and differing float/int casts, so a shared helper first requires deciding whether those multipliers are intentional physics or porting artefacts.
 
+### `src/Engine/Graphics/Outdoor.h`
+
+- [ ] **61** - TODO(captainurist): also sets uDefaultTravelTime_ByFoot and clears party flags as a side effect, and the travel dialog calls it every frame just to draw the map name. Split the lookup from the commit.
+  - Three callers: Game.cpp:732 and Outdoor.cpp:864 decide whether to travel, GUIWindow_Travel::Update (UITransition.cpp:108) only wants the map name. Return the travel days alongside the destination (a small struct or a second out value) and move the uDefaultTravelTime_ByFoot write plus the BURNING/STANDING_ON_WATER/WATER_DAMAGE clears into the one site that commits (Game.cpp:745 before restAndHeal/getTravelTime); traces must stay identical since getTravelTime() reads the global.
+
 ### `src/Engine/Graphics/ParticleEngine.h`
 
 - [ ] **28** - TODO(pskelton): eliminate this one
@@ -956,7 +990,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Engine/Graphics/PortalFunctions.cpp`
 
-- [x] **169** - TODO(captainurist): code looks very similar to Camera3D::GetFacetOrientation
+- [ ] **169** - TODO(captainurist): code looks very similar to stru314::computeBasis
   - Deduplicating is not a straight swap: this switch classifies by pFace->polygonType and also produces the var_28/var_24 selector pair, whereas Camera3D::GetFacetOrientation classifies by normal magnitudes and has an extra 'other' branch - equivalence must be proven for all faces, and the same TODO also sits at Indoor.cpp:443.
 
 ### `src/Engine/Graphics/Renderer/BaseRenderer.cpp`
@@ -1096,6 +1130,12 @@ _Clear goal, but touches several files or needs care and tests._
 
 - [ ] **268** - TODO(Nik-RE-dev): use getCharacterIdInParty directly where this function is called.
   - Mechanical but broad: ~110 call sites of getCharacterIndex() across Engine/GUI would have to become pParty->getCharacterIdInParty(&character), and it is debatable whether removing the member accessor is even an improvement.
+- [ ] **77** - TODO(captainurist): evt script semantics, belongs in the Evt module. The callers outside it all go through VAR_Award or VAR_PlayerItemInHands and need their own entry points first.
+  - Step one is small: give Character a grantAward(Award) for the six SetVariable(VAR_Award) sites (Game.cpp:1656, TownHall.cpp:167, NPCTopics.cpp:255/733, UIHouses.cpp:356) plus the UIPopup.cpp:2158 VAR_AutoNotes call, and a takeItemInHands-style method for NPCTopics.cpp:395's AddVariable(VAR_PlayerItemInHands). Step two moves SetVariable (Character.cpp:3968-4552) into an Evt-side file together with the three siblings below - about 2000 lines that only touch public Character/Party state, so mechanical but big.
+- [ ] **81** - TODO(captainurist): evt script semantics, belongs in the Evt module, see SetVariable.
+  - AddVariable (Character.cpp:4580-5135) moves in the same change as line 77 once the NPCTopics.cpp:395 VAR_PlayerItemInHands caller has its own entry point; nothing else outside EvtInterpreter.cpp:329 calls it.
+- [ ] **85** - TODO(captainurist): evt script semantics, belongs in the Evt module. Only the interpreter calls this one.
+  - SubtractVariable (Character.cpp:5158-5682) has no callers outside EvtInterpreter.cpp:339/346, so it can move first as a free function in the Evt module with the doxygen @return kept; the identical TODO at line 92 covers CompareVariable (Character.cpp:3572-3968, callers EvtInterpreter.cpp:160/321) and goes with it.
 
 ### `src/Engine/Objects/Chest.cpp`
 
@@ -1250,7 +1290,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 - [ ] **203** - TODO(pskelton): this function may modify frameRect - extract out
   - DrawMessageBox clamps the caller's Recti& to screen and callers depend on the mutation afterwards (e.g. UIMessageScroll.cpp:33-42 lays out text using the adjusted rect), so splitting into a pure "fit rect to screen" helper plus a by-value draw means auditing all ~21 call sites in UIPopup.cpp/UIGameOver/UIPartyCreation/LoadStep2State.
-- [ ] **1025** - TODO(captainurist): Unload() un-pauses the event timer, which is not always the right thing to do. So we hack. Find a better way.
+- [ ] **1027** - TODO(captainurist): Unload() un-pauses the game timer, which is not always the right thing to do. So we hack. Find a better way.
   - The real fix is dropping `pEventTimer->setPaused(false)` from MPlayer::Unload (src/Media/MediaPlayer.cpp:933) and making the ~13 Unload call sites in Game.cpp/EvtInterpreter.cpp/Tavern.cpp manage the timer themselves, which requires checking movie/event timing in each case.
 
 ### `src/GUI/UI/Books/LloydsBook.cpp`
@@ -1368,6 +1408,11 @@ _Clear goal, but touches several files or needs care and tests._
 - [ ] **74** - This is not ideal, we might want to know ALL merged paths, e.g. see ScriptingSystem::_initPackageTable. But the API that we have here doesn't allow that.
   - Needs a new FileSystem interface method (e.g. virtual _displayPaths(path, std::vector<std::string>*) defaulting to _displayPath) implemented across the FS hierarchy before ScriptingSystem.cpp:84 can list every candidate path the way Lua's searchpath does.
 
+### `src/Library/Logger/LogEnums.h`
+
+- [ ] **29** - TODO(captainurist): drop this once the serialization lib is constinit-friendly.
+  - Blocked on a library change: MM_DEFINE_ENUM_SERIALIZATION_FUNCTIONS builds a static const EnumSerializer at dynamic-init time (EnumSerialization.h:51 documents the static-init-order hazard), so toString(LogLevel) can't run from the constinit FallbackLogSink. Making EnumSerializer constexpr-constructible (constexpr array of pairs instead of runtime maps, case-insensitive compare done at lookup) is the prerequisite, and 17 enum definition sites would be re-checked; then logLevelName and the LogEnums.cpp indirection go away.
+
 ### `src/Library/Platform/Interface/PlatformEnums.h`
 
 - [ ] **76** - this doesn't belong here
@@ -1446,7 +1491,7 @@ _Clear goal, but touches several files or needs care and tests._
 - [ ] **140** - TODO(captainurist): this should really happen somewhere in the main loop. When new game is started, or a save is loaded.
   - Moving engine->_messageQueue->clear() out of the test harness into the engine's new-game/load-game transitions in src/Application/Game.cpp (which already clears the queue in a dozen ad-hoc places) risks changing real gameplay message flow, so it needs the right hook in the game-state transition plus a full game-test run to confirm no trace regressions.
 
-## Hard (21)
+## Hard (22)
 
 _Significant refactor or deep investigation._
 
@@ -1517,6 +1562,11 @@ _Significant refactor or deep investigation._
 - [ ] **19** - TODO(captainurist): This is needed because we roll back time in tests. We're dancing around with 32_ticks to maintain trace compatibility. Think how to do this better.
   - Removing the fudge means changing how trace playback drives platform->tickCount() (recorded PaintEvent tickCounts go backwards on replay) or resetting the timer at trace start, and the exact 32_ticks value is what keeps existing recorded traces reproducible, so every trace would need re-verification.
 
+### `src/Engine/mm7text_ru.cpp`
+
+- [ ] **815** - TODO(captainurist): #2562 auto-decline regular names here. A big table of endings per grammatical case would probably do - names and monster nouns decline regularly enough.
+  - Deliberate improvement over the DLL (which printed regular ^P names undeclined, so Buka players saw "наносит удар Гоблин"): needs a Russian declension engine keyed on the six case letters, gender (already in the gender tables) and animacy, coverage checks against every ^P name in the Buka string tables, and tests. Issue #2562 itself is closed by the sprintfex port, this is the planned follow-up.
+
 ### `src/GUI/GUIWindow.cpp`
 
 - [ ] **205** - TODO(pskelton): Derived Messagebox types for different kinds of popup boxes
@@ -1552,7 +1602,7 @@ _Significant refactor or deep investigation._
 - [ ] **530** - TODO(captainurist): extend this to all encodings once ztd.text is fixed - decoding a single (odd) byte in the fixed-width UTF-16 / UTF-32 encodings reads out of bounds, and an unmapped byte in some multi-byte encodings may still hang.
   - The test edit is one line (replace the hand-written singleByteEncodings array with Segment(ENCODING_FIRST, ENCODING_LAST)), but it is gated on fixing decoder bugs inside the vendored thirdparty/ztd_text (OOB read on odd-length input for basic_utf16_*/basic_utf32_*, and a non-advancing decode loop for unmapped bytes in multi-byte encodings) - i.e. debugging a large third-party text library and carrying a local patch or upstream fix.
 
-## Design (282)
+## Design (284)
 
 _Blocked on a decision, missing data, or original-game research._
 
@@ -1747,7 +1797,7 @@ _Blocked on a decision, missing data, or original-game research._
   - The #if 0 code for EVENT_CanShowTopic_IsActorKilled in NPC mode mirrors the working EVENT_IsActorKilled handler, but the opcode never occurs in used MM7 data, so there is no way to test-enable it without first finding data (MM6/MM8/mods) that exercises it.
 - [ ] **190** - TODO(pskelton): Fix #1890 this should be a data mod
   - The hardcoded z-coordinate patch for d20.blv event 501 should move into game data, but the engine has no data-mod/patch mechanism for evt scripts yet, so this is blocked on that infrastructure decision (issue #1890).
-- [x] **202** - TODO(pskelton): Fix #2117 this should be a data mod - stop it overwriting the teleport point
+- [ ] **227** - TODO(pskelton): Fix #2117 this should be a data mod - the RandomGoTo targets fall through into each other, only the first one should run.
   - Hardcoded d25.blv/event-451 teleport-point workaround that should be expressed as a data fix; blocked on the same nonexistent data-mod mechanism (issue #2117).
 - [ ] **208** - TODO(pskelton): Fix #2117 this should be a data mod
   - Second half of the same d25.blv/event-451 workaround (rewriting ir.str to out06.odm); also blocked on data-mod infrastructure (issue #2117).
@@ -1876,7 +1926,7 @@ _Blocked on a decision, missing data, or original-game research._
 
 ### `src/Engine/Graphics/ParticleEngine.cpp`
 
-- [x] **125** - TODO(captainurist): checking pMiscTimer->isPaused(), then using pEventTimer->uTimeElapsed?
+- [ ] **125** - TODO(captainurist): checking animTimer->isPaused(), then using gameTimer->uTimeElapsed?
   - The line mixes two timers (pause gate from the animation timer, delta from the event timer) and picking either one changes when particles freeze in dialogues/turn-based mode - it needs a decision about intended vanilla semantics, not just an edit.
 
 ### `src/Engine/Graphics/Renderer/BaseRenderer.cpp`
@@ -2073,6 +2123,16 @@ _Blocked on a decision, missing data, or original-game research._
 - [ ] **121** - is there other flag values? Maybe just drop this enum.
   - Only PARTY_FLAGS_2_RUNNING is known and it is used in 8 places, but uFlags2 is round-tripped as a full int32 through the vanilla save (EntitySnapshots.cpp:589/704), so replacing the enum with a bool would silently drop unknown vanilla bits - it needs research into what MM7 actually stored in flags2.
 
+### `src/Engine/PartyPlacement.cpp`
+
+- [ ] **32** - TODO(pskelton): fix this with a data mod moving the spawn point onto the ground instead.
+  - Blocked on the same nonexistent data-mod mechanism as the #2117 entries, and it is broader than one decoration: placementForStartPoint snaps every outdoor start point to ODM_GetFloorLevel, so dropping the snap in favour of a data fix for the Barrow Downs -> Harmondale spawn first needs a scan of all outdoor start decorations in MM6/MM7/MM8 to confirm the rest already sit on the ground.
+
+### `src/Engine/PartyPlacement.h`
+
+- [ ] **22** - TODO(captainurist): pitch is assigned even when yaw is -1, so those teleporters do level the view. Every shipped MoveToMap record carries pitch 0, so the data can't tell us whether -1 was meant to keep both angles. Investigate.
+  - placeParty (PartyPlacement.cpp:82-84) keeps _viewYaw on -1 but always writes _viewPitch; whether the Erathian Sewers / Hall under the Hill in-map teleporters levelled the view in vanilla is original-binary research (the MoveToMap handler around 0x44xxxx), and either answer is a visible behaviour change that touches traces.
+
 ### `src/Engine/PriceCalculator.cpp`
 
 - [ ] **91** - blaster price is 0 and we can sell it for 1 gold because of the code below, but this is probably not how it should work
@@ -2153,7 +2213,7 @@ _Blocked on a decision, missing data, or original-game research._
   - Same missing patched-data-file infrastructure as the flag patch above, and additionally requires deciding how per-localization text overrides are shipped (the current replaceAll only fixes the English wording).
 - [ ] **854** - TODO(captainurist): wtf? Looks like a quick hack for some bug.
   - The `armageddon_timer > 417_ticks -> reset to 0` early-out is copied from vanilla; deciding whether it can go requires reverse-engineering why vanilla capped the timer (armageddon is started at 256_ticks in CastSpellInfo.cpp:2904, so the branch looks unreachable unless a save carries a larger value).
-- [x] **865** - TODO(pskelton): ignore if pEventTimer->uTimeElapsed is zero?
+- [ ] **865** - TODO(pskelton): ignore if gameTimer->uTimeElapsed is zero?
   - Whether armageddonForceCount should stop decrementing on zero-dt frames is a behavior question tied to the same frame-rate dependence as the TODO below, and any change alters recorded game-test traces.
 
 ### `src/Engine/Tables/AutonoteTable.cpp`
