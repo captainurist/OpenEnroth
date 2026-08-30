@@ -44,7 +44,7 @@ _Mechanical, minutes of work, no behavior risk._
 
 ### `src/Arcomage/Arcomage.cpp`
 
-- [ ] **2685** - TODO(pskelton): translate comments to English
+- [x] **2685** - TODO(pskelton): translate comments to English
   - GameResultsApply is full of Russian comments (e.g. 'проверка построена ли башня'); mechanically translate them in place, no code change.
 
 ### `src/Engine/Evt/EvtInstruction.cpp`
@@ -60,11 +60,11 @@ _Mechanical, minutes of work, no behavior risk._
 
 ### `src/Engine/Evt/EvtInterpreter.cpp`
 
-- [ ] **582** - TODO: seems unused
+- [x] **582** - TODO: seems unused
   - EVENT_SpecialJump is already confirmed absent from game data at EvtInstruction.cpp:1185 ("not present in used MM7 data"); replace the tentative comment with that definitive note and keep the assert(false).
-- [ ] **586** - TODO: seems unused
+- [x] **586** - TODO: seems unused
   - EVENT_IsTotalBountyHuntingAwardInRange is confirmed unused at EvtInstruction.cpp:1188; reword the comment to the definitive "not present in used MM7 data" note, keeping the assert.
-- [ ] **590** - TODO: seems unused
+- [x] **590** - TODO: seems unused
   - EVENT_IsNPCInParty is confirmed unused at EvtInstruction.cpp:1191; same fix - replace "seems unused" with the definitive note matching EvtInstruction.cpp.
 
 ### `src/Engine/Graphics/Camera.cpp`
@@ -74,80 +74,80 @@ _Mechanical, minutes of work, no behavior risk._
 
 ### `src/Engine/Graphics/Indoor.cpp`
 
-- [ ] **442** - TODO(pskelton): these arent face normals - they are texture shift vectors
+- [x] **442** - TODO(pskelton): these arent face normals - they are texture shift vectors
   - Pure rename: BLVFace::_get_normals has a single caller (Indoor.cpp:713) and one declaration (Indoor.h:93) — rename to something like getTextureAxes(outU, outV) and fix the comment.
 
 ### `src/Engine/Graphics/LightmapBuilder.cpp`
 
-- [ ] **3** - TODO(pskelton): rename - lighting functions
+- [x] **3** - TODO(pskelton): rename - lighting functions
   - Nothing in this file builds lightmaps any more (it holds GetActorTintColor, GetLightLevelAtPoint, the light stacks); git mv LightmapBuilder.cpp/.h to e.g. Lighting.cpp/.h and update the 10 #include sites plus src/Engine/Graphics/CMakeLists.txt.
 
 ### `src/Engine/Graphics/LightmapBuilder.h`
 
-- [ ] **3** - TODO(pskelton): rename - lighting functions
+- [x] **3** - TODO(pskelton): rename - lighting functions
   - Header half of the same rename as LightmapBuilder.cpp:3; the header only declares the light stacks and three lighting helpers, so renaming it to Lighting.h costs one CMakeLists edit and 10 include updates.
 
 ### `src/Engine/Graphics/LocationTime.h`
 
-- [ ] **8** - TODO(captainurist): rename to smth like MapTime.
+- [x] **8** - TODO(captainurist): rename to smth like MapTime.
   - Target name is already given: rename struct LocationTime to MapTime and the file to MapTime.h, touching ~11 files (Indoor.h/Outdoor.h members, LocationTime_MM7 snapshot pair, SaveLoad.cpp, Evt/Processor.cpp) with no behaviour change.
 
 ### `src/Engine/Graphics/Outdoor.cpp`
 
-- [ ] **1862** - TODO(pskelton): drop this
+- [x] **1862** - TODO(pskelton): drop this
   - sub_47C3D7_get_fog_specular has zero callers - the only two hits in the tree are its definition here and the declaration in Outdoor.h:116; delete both.
-- [ ] **1945** - TODO(pskelton): move this - used both indoors and out
+- [x] **1945** - TODO(pskelton): move this - used both indoors and out
   - TeleportToStartingPoint has exactly two callers (Outdoor.cpp:1820 and Indoor.cpp:1063); move the body plus the Outdoor.h:119 declaration into a level-neutral home such as src/Engine/TeleportPoint.cpp/.h and fix the two includes.
 
 ### `src/Engine/Objects/Character.cpp`
 
-- [ ] **3615** - TODO(_) change pValue to long long
+- [x] **3615** - TODO(_) change pValue to long long
   - experience is uint64_t and pValue is int, but line 3570 already asserts pValue >= 0 and the value originates from a 32-bit EVT script field (EvtInterpreter.cpp:138/301), so widening buys nothing; either add an explicit cast for clarity or just delete the comment.
 
 ### `src/Engine/Objects/Item.cpp`
 
-- [ ] **638** - TODO(captainurist): what is this code about? ^
+- [x] **638** - TODO(captainurist): what is this code about? ^
   - Item::IsRegularEnchanmentForAttribute has zero callers and a fully commented-out body that unconditionally returns false - delete the function (Item.cpp:632-640) together with its declaration at Item.h:42.
 
 ### `src/Engine/Objects/ItemEnums.h`
 
-- [ ] **1038** - TODO(captainurist): come up with a better name for this value.
+- [x] **1038** - TODO(captainurist): come up with a better name for this value.
   - ITEM_TYPE_NONE has only 4 references in the tree (its definition, the ITEM_TYPE_LAST alias, ItemTable.cpp:146 fallback, ItemEnumFunctions.h:265); rename to ITEM_TYPE_MISC (ores/quest items are 'miscellaneous', not 'none') with a global find/replace.
 
 ### `src/Engine/Objects/Monsters.cpp`
 
-- [ ] **513** - TODO(captainurist): get rid of magic numbers in txt deserialization.
+- [x] **513** - TODO(captainurist): get rid of magic numbers in txt deserialization.
   - 264 is exactly MONSTER_ULTRA_DRAGON_C (the last real monster; rows 265-276 in monsters.txt are the unused cat/chicken/dog/rat); replace the literal with `std::to_underlying(MONSTER_ULTRA_DRAGON_C)` or a named MONSTER_LAST_REAL alias in MonsterEnums.h.
 
 ### `src/Engine/Objects/SpriteObject.cpp`
 
-- [ ] **772** - TODO(Nik-RE-dev): unreachable, these cases does not process this sprite type
+- [x] **772** - TODO(Nik-RE-dev): unreachable, these cases does not process this sprite type
   - Confirmed dead: the case only covers the nine elemental bolts, and updateSpriteOnImpact() at line 766 has already rewritten object->spriteId to the impact sprite, so the comparison can never be true - delete lines 771-774 (the always-true twin check at line 811 deserves the same treatment).
 
 ### `src/Engine/Party.cpp`
 
-- [ ] **838** - drop unsigned
+- [x] **838** - drop unsigned
   - Change `GivePartyExp(unsigned int pEXPNum)` to `int` in Party.h:123 and Party.cpp:840 and drop the `static_cast<int>(pEXPNum)` at line 851; the existing `if (pEXPNum > 0)` already guards negatives, and all 5 call sites pass ints.
 
 ### `src/Engine/Spells/CastSpellInfo.cpp`
 
-- [ ] **996** - TODO(Nik-RE-dev): condition is always false
+- [x] **996** - TODO(Nik-RE-dev): condition is always false
   - j,k are in [-512,511] and originHeight-2500 is in [-2500,-1501], so the vector length is always >= 1501 > 1.0f; delete the if-branch and keep only the atan2 else-branch.
-- [ ] **1200** - TODO(Nik-RE-dev): condition is always false
+- [x] **1200** - TODO(Nik-RE-dev): condition is always false
   - Identical copy of the meteor-shower code for Starburst; same bounds argument, so delete the dead if-branch and keep the atan2 computation.
 
 ### `src/Engine/Tables/NPCTable.cpp`
 
-- [ ] **58** - TODO(Nik-RE-dev): move out of table back to Engine/Objects/NPC.cpp
+- [x] **58** - TODO(Nik-RE-dev): move out of table back to Engine/Objects/NPC.cpp
   - Move setNPCNamesOnLoad() to NPC.cpp as a free function alongside the other pNPCStats-based helpers (getNPCData, PartyHasDragon), qualifying the two member accesses as pNPCStats->pNPCData / pNPCStats->pNPCUnicNames; the only caller is Engine.cpp:560.
-- [ ] **78** - TODO(captainurist): just make this 1-based too?
+- [x] **78** - TODO(captainurist): just make this 1-based too?
   - pNPCUnicNames has exactly three uses, all in NPCTable.cpp: grow the array in NPCTable.h:128 from 500 to 501 and drop the `- 1` at lines 61, 77 and 78.
 
 ### `src/Engine/Time/Timer.h`
 
-- [ ] **51** - TODO(captainurist): pAnimTimer?
+- [x] **51** - TODO(captainurist): pAnimTimer?
   - Pure rename: pMiscTimer has 59 references and is only used for UI/portrait/icon animation (UIGame.cpp, UIPartyCreation.cpp, its own tick() at Game.cpp:1575 is commented "used for animations"), so sed it to pAnimTimer.
-- [ ] **54** - TODO(captainurist): pGameTimer?
+- [x] **54** - TODO(captainurist): pGameTimer?
   - Pure rename of the global driving game logic/physics dt: 119 references, mechanical sed of pEventTimer -> pGameTimer with no semantic change.
 
 ### `src/Engine/mm7_data.cpp`
@@ -157,27 +157,27 @@ _Mechanical, minutes of work, no behavior risk._
 
 ### `src/GUI/GUIButton.h`
 
-- [ ] **35** - TODO(Nik-RE-dev): rename properly. In most cases it is a hover hint for status bar.
+- [x] **35** - TODO(Nik-RE-dev): rename properly. In most cases it is a hover hint for status bar.
   - Rename the field to `label` (it is not only a hint — UIDialogue.cpp:292-313 draws it as the visible dialogue option text) across its 14 references in GUIWindow.cpp, UIGame.cpp, UIDialogue.cpp and UIHouses.cpp.
 
 ### `src/GUI/UI/NPCTopics.cpp`
 
-- [ ] **285** - TODO(pskelton) :: extract this common teleport to func
+- [x] **285** - TODO(pskelton) :: extract this common teleport to func
   - The identical 5-line block (pos = Vec3f(3849, 5770, 1); velocity = {}; uFallStartZ = 1; _viewYaw = 512; _viewPitch = 0) appears at lines 255-259 and 285-289 in the same file; hoist it into a file-local `static void teleportPartyToArena()` and call it from both.
 
 ### `src/GUI/UI/UIBooks.cpp`
 
-- [ ] **100** - TODO(pskelton): make a constant for this magic number
+- [x] **100** - TODO(pskelton): make a constant for this magic number
   - The 10 is a frame countdown for the pressed-button overlay; add e.g. `static constexpr int BOOK_BUTTON_CLICK_FRAMES = 10;` next to `_bookButtonClicked` in UIBooks.h and use it here and at the four `_bookButtonClicked == 10` comparisons in Books/AutonotesBook.cpp:205, JournalBook.cpp:85/89, MapBook.cpp:111, QuestBook.cpp:72/79.
 
 ### `src/GUI/UI/UIDialogue.cpp`
 
-- [ ] **189** - TODO(pskelton): nothing done with fame here?
+- [x] **189** - TODO(pskelton): nothing done with fame here?
   - Party::getPartyFame() (Party.cpp:369-377) only sums character experience and returns a value — no side effects — so the bare `pParty->getPartyFame();` statement is dead; delete the line (it is a leftover of the `#if 0`-ed fame gate above).
 
 ### `src/GUI/UI/UIGame.cpp`
 
-- [ ] **1716** - TODO(pskelton): this used to check if character had the spell activated - no longer required here ??
+- [x] **1716** - TODO(pskelton): this used to check if character had the spell activated - no longer required here ??
   - The question is answered by GUIWindow_Spellbook::openSpellbook (src/GUI/UI/UISpellbook.cpp:111-122): the button that sends UIMSG_Spellbook_ShowHightlightedSpellInfo is only created for spells with player.bHaveSpell (or debug.AllMagic), so the check is redundant - delete the comment.
 
 ### `src/GUI/UI/UIHouses.cpp`
@@ -195,9 +195,9 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/Application/Game.cpp`
 
-- [ ] **171** - TODO(Nik-RE-dev): should not be an assert but an exception or error message.
+- [x] **171** - TODO(Nik-RE-dev): should not be an assert but an exception or error message.
   - Replace the assert with `throw Exception("Invalid starting map '{}'", ...)` — the MAP_INVALID case only happens when gameplay.StartingMap config is bad, and Exception is already used for fatal startup errors (see GameStarter.cpp:172), so a localized one-line change.
-- [ ] **1685** - TODO(Nik-RE-dev): should not be an assert but an exception or error message.
+- [x] **1685** - TODO(Nik-RE-dev): should not be an assert but an exception or error message.
   - Same as line 171: replace the assert on the party-wipe respawn path with `throw Exception(...)` naming the invalid gameplay.StartingMap config value — one-line localized change.
 
 ### `src/Application/GameConfig.h`
@@ -207,11 +207,11 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/Application/GameTraceHandler.cpp`
 
-- [ ] **29** - TODO(captainurist): do this properly, trace00001.json, etc.
+- [x] **29** - TODO(captainurist): do this properly, trace00001.json, etc.
   - Localized: probe ufs for the first free traceNNNNN.json/traceNNNNN.mm7 pair (formatted with fmt) and write the recording there instead of the fixed trace.json/trace.mm7 names; all in this one lambda.
-- [ ] **56** - TODO(captainurist) : make configurable
+- [x] **56** - TODO(captainurist) : make configurable
   - Add a KeyConfigEntry (e.g. debug.TraceTriggerKey) to GameConfig and read it here instead of the hardcoded KEY_R; small plumbing to give GameTraceHandler config access (constructor arg or engine->config), and note the broader hotkey-system TODO in the header would subsume this.
-- [ ] **61** - TODO(captainurist) : make configurable
+- [x] **61** - TODO(captainurist) : make configurable
   - Same config entry as line 56 covers this: store the trigger key plus its Ctrl+Shift modifiers in one configurable binding and consult it in both isTriggerKey and isTriggerKeySequence.
 
 ### `src/Application/GameWindowHandler.cpp`
@@ -226,21 +226,21 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/Arcomage/Arcomage.cpp`
 
-- [ ] **408** - TODO(pskelton): Hardcoded limit checks need changing
+- [x] **408** - TODO(pskelton): Hardcoded limit checks need changing
   - Replace the magic numbers in DrawSparks (10 effect slots, 150 sparks, 639/479 bounds) with named constants tied to the am_effects_array/effect_sparks array sizes and the 640x480 logical viewport (or render dimensions if resolution independence is wanted) — mechanical, contained to this file.
-- [ ] **1191** - TODO(pskelton): was 1 - what was this meant to do? Check for dual key press??
+- [x] **1191** - TODO(pskelton): was 1 - what was this meant to do? Check for dual key press??
   - The whole branch is dead: ARCO_MSG_FORCEQUIT is never produced anywhere in src, and ArcomageGame_InputMSG::field_4 is never assigned (declared 'unsused' in Arcomage.h:159), so field_4 == 129 can never hold. Delete the case (together with the Arcomage.h:136 unused-enum cleanup) instead of researching the original intent.
 - [ ] **2864** - TODO(pskelton): stop audio comment?
   - The '// stop all audio' comment in PrepareArcomage has no code behind it. Check whether game music/sounds keep playing when Arcomage starts; if so add a pAudioPlayer stop/pause call here, otherwise delete the orphan comment and the TODO.
 
 ### `src/Arcomage/Arcomage.h`
 
-- [ ] **136** - TODO(pskelton): cleanup unused
+- [x] **136** - TODO(pskelton): cleanup unused
   - ARCO_MSG_LM_UP/RM_UP/LM_DOWN/RM_DOWN/SWITCH_FULLSCREEN are referenced nowhere, and ARCO_MSG_KEYDOWN/FORCEQUIT are only consumed but never produced; delete those enumerators, their dead consumers (Arcomage.cpp:883-886 and the FORCEQUIT case at 1190), and the unused field_4.
 
 ### `src/Engine/Data/HouseData.h`
 
-- [ ] **10** - TODO(captainurist): drop everything that's not used here.
+- [x] **10** - TODO(captainurist): drop everything that's not used here.
   - Grep each suspicious field (field_14, field_1E, field_32, _state, _rep, _per, uExitPicID, uAnimationID...), delete the unused ones together with their parse assignments in src/Engine/Tables/HouseTable.cpp; struct is only consumed via houseTable and PriceCalculator.
 
 ### `src/Engine/Engine.cpp`
@@ -251,11 +251,11 @@ _Localized fix in one file or function, clear what to do, low risk._
   - Hoist the outdoor-daytime check to the top of StackPartyTorchLight as an early-out; only care point is that the current code still stores TorchLightLastIntensity=0 and pushes a zero-distance light, so keep the lastIntensity reset.
 - [ ] **446** - TODO(captainurist): Right now we can have popups for monsters that are not reachable with a bow, and this is OK. However, such monsters also don't get a hint displayed on mouseover. Probably should fix this?
   - Make the mouseover-hint code path pick with pCamera3D->GetMouseInfoDepth() (as PickMouseInfoPopup does at Engine.cpp:448) instead of the RangedAttackDepth used by PickMouseNormal/PickMouseTarget; one call-site depth change, verifiable in game.
-- [ ] **551** - TODO(captainurist): drop?
+- [x] **551** - TODO(captainurist): drop?
   - floor_face_id feeds pressure-plate edge detection (Indoor.cpp:1539, Collisions.cpp:1008, Outdoor.cpp:987), so resetting it on map load prevents a stale id from the previous map suppressing a plate trigger; conclusion is likely 'keep the line, delete the TODO', confirmable by reading those three users and running game tests.
-- [ ] **566** - TODO(captainurist): shouldn't we also set uTreasureLevel = ITEM_TREASURE_LEVEL_INVALID?
+- [x] **566** - TODO(captainurist): shouldn't we also set uTreasureLevel = ITEM_TREASURE_LEVEL_INVALID?
   - Yes - loot generation gates on treasureLevel != ITEM_TREASURE_LEVEL_INVALID (Actor.cpp:207, 3561), so without it monsters on these no-loot maps can still drop items; add the line mirroring Actor.cpp:1761 and retrace any traces covering Breeding Zone / Walls of Mist.
-- [ ] **937** - TODO(pskelton): starts at 1?
+- [x] **937** - TODO(pskelton): starts at 1?
   - Faces are matched by cogNumber and sCogNumber==0 is already excluded by the guard, so starting the loop at 0 is safe and matches the outdoor branch; change it here and in the identical sub_44861E_set_texture_indoor loop (Engine.cpp:900), then run game tests.
 
 ### `src/Engine/Evt/EvtInstruction.cpp`
@@ -279,7 +279,7 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/Engine/Evt/Processor.cpp`
 
-- [ ] **154** - TODO: rename and contain in this module or better remove it altogether
+- [x] **154** - TODO: rename and contain in this module or better remove it altogether
   - dword_5B65C4_cancelEventProcessing has only 4 usage sites (EvtInterpreter.cpp:611, Character.cpp:5214/5648, plus this reset); rename it, move the definition from mm7_data.cpp/h into the Evt module with a declaration in Processor.h, and update the sites. Full removal would need Character::SubtractVariable to signal cancellation another way, but rename+contain alone satisfies the TODO.
 
 ### `src/Engine/Graphics/BspRenderer.cpp`
@@ -289,7 +289,7 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/Engine/Graphics/Camera.cpp`
 
-- [ ] **61** - TODO(captainurist): function belongs to stru314
+- [x] **61** - TODO(captainurist): function belongs to stru314
   - GetFacetOrientation is static with one external caller (DecalBuilder.cpp:71) that immediately stores results into stru314 fields; move it into stru314 (e.g. a method filling field_10/field_1C from Normal in stru314.h) and drop it from Camera3D.
 - [ ] **166** - TODO(pskelton): fov calcs only need recalculating on level change or if we add config option
   - Hoist the fov/projection block (halfFovTan, ViewPlaneDistPixels, fov_y_deg, screen center, aspect) out of the per-frame CreateViewMatrixAndProjectionScale into a recalc method invoked on level load/viewport change, or cache it keyed on level type; localized to Camera3D.
@@ -300,16 +300,16 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 - [ ] **465** - TODO: this doesn't respect ignore_ethereal parameter
   - Change the condition to skip ethereal faces only when ignore_ethereal is set (CollideBodyWithFace at line 101 already re-checks it), i.e. drop the unconditional mface.Ethereal() skip; the only caller passing false is SpriteObject.cpp:228, so verify projectile behavior with game tests.
-- [ ] **916** - TODO: whaaa?
+- [x] **916** - TODO: whaaa?
   - The `return` is the last statement path of the 5-attempt loop (loop ends at line 1025, function at 1026), so it is behaviourally identical to `break`; fix by replacing it with `break` plus the explanation already used for the identical actor-side check in ProcessActorCollisionsBLV (Collisions.cpp:631-632, "New pos is out of bounds, running more iterations won't help").
-- [ ] **932** - TODO(pskelton): common to odm/blv so extract
+- [x] **932** - TODO(pskelton): common to odm/blv so extract
   - Lines 933-949 are character-for-character identical to lines 1124-1140 in ProcessPartyCollisionsODM; extract a file-local `static Vec3f decorationSlideDirection()` returning newDirection and leave only `speed = dir * dot(dir, speed)` at each site.
-- [ ] **1123** - TODO(pskelton): common to odm/blv so extract
+- [x] **1123** - TODO(pskelton): common to odm/blv so extract
   - Same duplicated decoration-slide block as Collisions.cpp:932 (lines 1124-1140 vs 933-949); one shared helper removes both copies, with only the final assignment target (pParty->velocity vs *partyInputSpeed) differing.
 
 ### `src/Engine/Graphics/DecalBuilder.h`
 
-- [ ] **38** - TODO(captainurist): doesn't belong to this struct, should be moved out.
+- [x] **38** - TODO(captainurist): doesn't belong to this struct, should be moved out.
   - faceDist is a per-face scratch value written in ApplyBloodsplatDecalsToFace (DecalBuilder.cpp:198) and ApplyBloodSplatToTerrain (:235) and read once in BuildAndApplyDecals (:86); add a `std::array<float, 1024> splatDistsThisFace` parallel to DecalBuilder::WhichSplatsOnThisFace, write/read it there and delete the field plus its zeroing at :37.
 
 ### `src/Engine/Graphics/FaceEnums.h`
@@ -326,11 +326,11 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 - [ ] **205** - TODO(captainurist): using pEventTimer here is weird. This means that e.g. cleric in the haunted mansion is not animated in turn-based mode. Use misc timer?
   - One-line change to `pMiscTimer->time()`, which is already the timer used for decoration sprite animation in BaseRenderer::PrepareDecorationsRenderList_ODM (BaseRenderer.cpp:169); GetTexture() is only consumed by renderers plus the door texture-shift code at Indoor.cpp:736/742, so it is purely visual.
-- [ ] **379** - TODO(captainurist): we do get here sometimes (e.g. in dragon cave), increase limit?
+- [x] **379** - TODO(captainurist): we do get here sometimes (e.g. in dragon cave), increase limit?
   - Bump `int FoundFaceStore[5]` and the two `>= 5` guards (or switch to a small vector) in IndoorLocation::GetSector; low risk but it can change which sector is picked in the overflow case, so recorded game-test traces should be re-checked.
-- [ ] **942** - TODO(Nik-RE-dev): why there's logic for loading maps that are not listed in info?
+- [x] **942** - TODO(Nik-RE-dev): why there's logic for loading maps that are not listed in info?
   - The branch is dead: MAP_INVALID == 0 and isMapIndoor(MAP_INVALID) is false (MapEnumFunctions.h:15), so Engine.cpp:555 always routes MAP_INVALID to loadAndPrepareODM — replace this else-branch with an assert and drop the other `mapid == MAP_INVALID` checks at lines 954 and 1025.
-- [ ] **1015** - TODO(captainurist): merge with ArrangeSpriteObjects?
+- [x] **1015** - TODO(captainurist): merge with ArrangeSpriteObjects?
   - OutdoorLocation::ArrangeSpriteObjects (Outdoor.cpp:610-622) is this exact loop plus terrain-height snapping and a progress-bar tick; hoist the shared `postGenerate(ITEM_SOURCE_MAP)` loop into one free function taking a flag (or let the ODM version call it after snapping).
 - [ ] **1054** - TODO(captainurist): can drop this? Was loaded because light elementals can be summoned.
   - Delete the three lines: the ODM counterpart is already commented out as "no use for this" (Outdoor.cpp:681-684), and every summon path calls actor->PrepareSprites(0) itself (Actor.cpp:3245, 4183, 4332), which does the same pSpriteFrameTable->InitializeSprite work lazily.
@@ -375,7 +375,7 @@ _Localized fix in one file or function, clear what to do, low risk._
   - BILLBOARD_0X200 is write-only dead: it is set here and at BaseRenderer.cpp:238 and never tested anywhere (grep for the flag and for 0x200 confirms no reads), so delete both assignments and the enumerator in SpriteEnums.h:12.
 - [ ] **931** - TODO(pskelton): Pass party as param
   - Mechanical: change the signature to ODM_ProcessPartyActions(Party *party) (declared in Outdoor.h), replace the pParty uses inside the function body, and update the single caller; no behaviour change, though it is a large diff and is naturally done together with the split TODO above.
-- [ ] **1956** - TODO: (Chaosit) dummy variables created for the sake of passing pointers
+- [x] **1956** - TODO: (Chaosit) dummy variables created for the sake of passing pointers
   - Give ODM_GetFloorLevel's out-params defaults (bool *pIsOnWater = nullptr, int *faceId = nullptr) and null-guard the three writes at Outdoor.cpp:804/849/(final store); only Outdoor.cpp+Outdoor.h change and the dummy locals here disappear.
 
 ### `src/Engine/Graphics/ParticleEngine.cpp`
@@ -439,9 +439,9 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 - [ ] **1553** - TODO(captainurist): yaw/pitch angles are actually initialized to 0 despite the name!
   - AIDirection (Actor.h:34) has default member initializers, so doNotInitializeBecauseShouldBeRandom is always {0,0} and AI_Stand copies that into yawAngle/pitchAngle; either rename the variable to zeroDirection (4 mechanical uses, no behavior change) or, to honour the name, seed it with grng->random(TrigLUT.uIntegerDoublePi) - the rename is the safe resolution.
-- [ ] **2414** - TODO(captainurist): encapsulate monster level arithmetic properly.
+- [x] **2414** - TODO(captainurist): encapsulate monster level arithmetic properly.
   - Add a helper next to monsterTierForMonsterId in MonsterEnumFunctions.h, e.g. monsterIdForTypeAndTier(MonsterType, MonsterTier), and replace static_cast<MonsterId>(to_underlying(base) + extraSummonLevel - 1) with it.
-- [ ] **2419** - TODO(captainurist): encapsulate monster level arithmetic properly.
+- [x] **2419** - TODO(captainurist): encapsulate monster level arithmetic properly.
   - Same fix as the previous one: the +1/+2 tier bumps become monsterIdForTypeAndTier(monsterTypeForMonsterId(base), MONSTER_TIER_B/C) using the new helper in MonsterEnumFunctions.h.
 - [ ] **4316** - TODO(captainurist): MONSTER_ANGEL_A is monster #1, why do we even need this check?
   - The check exists because FindMonsterByInternalName returns MONSTER_INVALID (=0) for unknown names while pMonsterStats->infos is an IndexedArray starting at MONSTER_FIRST=1, so indexing would assert; replace the silent Angel substitution with a logger->warning plus `continue` to skip the bad spawn (the loop already uses continue at 4347), or at minimum document the reason.
@@ -693,7 +693,7 @@ _Localized fix in one file or function, clear what to do, low risk._
 
 ### `src/GUI/UI/UISaveLoad.cpp`
 
-- [ ] **183** - TODO(captainurist): #unicode might not be ascii
+- [x] **183** - TODO(captainurist): #unicode might not be ascii
   - The on-disk name is always written as "saves/autosave.mm7" by autoSave() (SaveLoad.cpp:230), so compare pFileList[i] against that shared constant instead of the localized LSTR_AUTOSAVE_MM7 string, which removes the encoding question entirely (LSTR_AUTOSAVE stays for the displayed name).
 
 ### `src/GUI/UI/UITransition.cpp`
@@ -779,7 +779,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 - [ ] **814** - TODO(Nik-RE-dev): need separate message type
   - Requires adding a new UIMSG enum value and making the sender side (the character-portrait buttons created in UISpell.cpp / handled through the enchant path in UICharacter.cpp and Character.cpp, all gated on the IsEnchantingInProgress global) post it instead of overloading UIMSG_CastSpell_TargetCharacter — touches several GUI files and the spell-targeting flow needs retesting.
-- [ ] **1107** - TODO: sometimes it is called twice, prevent that for now and investigate why later
+- [x] **1107** - TODO: sometimes it is called twice, prevent that for now and investigate why later
   - The TODO is the investigation itself: trace why UIMSG_Rest8Hour is sometimes enqueued twice (double posting from the rest UI button vs. keyboard path) before removing the defensive clear(); no obvious repro, so it needs message-queue debugging rather than a known fix.
 
 ### `src/Application/GameConfig.h`
@@ -797,7 +797,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Application/GameMenu.cpp`
 
-- [ ] **43** - TODO(Nik-RE-dev): drop variable and load game only on double click
+- [x] **43** - TODO(Nik-RE-dev): drop variable and load game only on double click
   - The click-then-click-again load flow via this static flag is shared between GameMenu.cpp and GUIWindow_Load::slotSelected in UISaveLoad.cpp (which also has an unused shadow member isLoadSlotClicked); switching to real double-click needs plumbing the double-click event into the save-slot list and retesting both the main-menu and in-game load screens.
 
 ### `src/Application/GameWindowHandler.cpp`
@@ -809,7 +809,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Application/Startup/GameStarter.cpp`
 
-- [ ] **172** - TODO(captainurist): Initialize should throw?
+- [x] **172** - TODO(captainurist): Initialize should throw?
   - Mechanical but multi-file: change Renderer::Initialize from bool to void-throwing across Renderer.h, BaseRenderer, NullRenderer and OpenGLRenderer (whose internals currently return false in several failure paths that would each need descriptive exceptions), plus this caller — aligns with the codebase's exception style but spans the renderer hierarchy.
 
 ### `src/Application/Startup/PathResolver.cpp`
@@ -929,7 +929,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Engine/Graphics/Indoor.cpp`
 
-- [ ] **443** - TODO(captainurist): code looks very similar to Camera3D::GetFacetOrientation
+- [x] **443** - TODO(captainurist): code looks very similar to Camera3D::GetFacetOrientation
   - Camera3D::GetFacetOrientation (Camera.cpp:62) dispatches on the normal while _get_normals dispatches on polygonType, and their U/V outputs are swapped and differ in sign (outV.z = -1 vs +1), plus _get_normals applies FACE_FlipNormalU/V; unifying them (also with the third copy at PortalFunctions.cpp:169) needs sign reconciliation and visual verification.
 - [ ] **1250** - TODO(pskelton): Need to add check against terrain
   - Outdoor line-of-sight currently only tests bmodel faces; adding a ray march against pOutdoor->pTerrain's heightmap is new code that silently changes AI aggro and spell targeting on every outdoor map, so it needs its own tests and trace re-verification.
@@ -956,7 +956,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Engine/Graphics/PortalFunctions.cpp`
 
-- [ ] **169** - TODO(captainurist): code looks very similar to Camera3D::GetFacetOrientation
+- [x] **169** - TODO(captainurist): code looks very similar to Camera3D::GetFacetOrientation
   - Deduplicating is not a straight swap: this switch classifies by pFace->polygonType and also produces the var_28/var_24 selector pair, whereas Camera3D::GetFacetOrientation classifies by normal magnitudes and has an extra 'other' branch - equivalence must be proven for all faces, and the same TODO also sits at Indoor.cpp:443.
 
 ### `src/Engine/Graphics/Renderer/BaseRenderer.cpp`
@@ -1050,7 +1050,7 @@ _Clear goal, but touches several files or needs care and tests._
 
 ### `src/Engine/Localization.h`
 
-- [ ] **30** - TODO(captainurist): there was also a call to sprintfex_internal after a call to vsprintf.
+- [x] **30** - TODO(captainurist): there was also a call to sprintfex_internal after a call to vsprintf.
   - sprintfex_internal still exists in mm7text_ru.cpp:659 but is dead code called from nowhere; re-enabling the Russian ^I/^L/^R/^P declension post-processing means porting that legacy char*/strcpy/assert/goto implementation (with its 8KB stack buffer and gender tables) to std::string and deciding where in format()/str() it hooks in, plus tests.
 
 ### `src/Engine/MapInfo.h`
@@ -1747,7 +1747,7 @@ _Blocked on a decision, missing data, or original-game research._
   - The #if 0 code for EVENT_CanShowTopic_IsActorKilled in NPC mode mirrors the working EVENT_IsActorKilled handler, but the opcode never occurs in used MM7 data, so there is no way to test-enable it without first finding data (MM6/MM8/mods) that exercises it.
 - [ ] **190** - TODO(pskelton): Fix #1890 this should be a data mod
   - The hardcoded z-coordinate patch for d20.blv event 501 should move into game data, but the engine has no data-mod/patch mechanism for evt scripts yet, so this is blocked on that infrastructure decision (issue #1890).
-- [ ] **202** - TODO(pskelton): Fix #2117 this should be a data mod - stop it overwriting the teleport point
+- [x] **202** - TODO(pskelton): Fix #2117 this should be a data mod - stop it overwriting the teleport point
   - Hardcoded d25.blv/event-451 teleport-point workaround that should be expressed as a data fix; blocked on the same nonexistent data-mod mechanism (issue #2117).
 - [ ] **208** - TODO(pskelton): Fix #2117 this should be a data mod
   - Second half of the same d25.blv/event-451 workaround (rewriting ir.str to out06.odm); also blocked on data-mod infrastructure (issue #2117).
@@ -1765,15 +1765,15 @@ _Blocked on a decision, missing data, or original-game research._
   - EVENT_ChangeGroup has plausible #if 0 code (retarget actor uGroup), but the opcode's parsing is also unimplemented (EvtInstruction.cpp:1142-1144, 'not present in used MM7 data'), so enabling it is blocked on format research and data that exercises it.
 - [ ] **532** - TODO: enconunter and process
   - Same situation as EVENT_ChangeGroup: EVENT_ChangeGroupAlly's #if 0 body looks sensible but its parser case is an empty TODO and the opcode never appears in used MM7 data, so it cannot be implemented and verified without external format research.
-- [ ] **562** - TODO: seems unused
+- [x] **562** - TODO: seems unused
   - EVENT_OnDateTimer is an assert(false) stub; the parser side already establishes it is not present in used MM7 data, so resolving the TODO means deciding whether MM6/MM8/mod support warrants implementing it (needs external format/behavior research) or keeping the assert.
-- [ ] **566** - TODO: seems unused
+- [x] **566** - TODO: seems unused
   - Same as EVENT_OnDateTimer: EVENT_EnableDateTimer is an assert(false) stub for an opcode absent from used MM7 data; implementing it requires MM6/MM8/GrayFace research, otherwise only the comment wording can be firmed up.
-- [ ] **570** - TODO: seems unused
+- [x] **570** - TODO: seems unused
   - EVENT_StopAnimation interpreter stub matching the unimplemented parser case at EvtInstruction.cpp:1176-1178; blocked on the same missing opcode-format/behavior research.
-- [ ] **574** - TODO: seems unused
+- [x] **574** - TODO: seems unused
   - EVENT_CheckItemsCount interpreter stub matching the unimplemented parser case at EvtInstruction.cpp:1179-1181; blocked on researching the opcode's format and semantics outside MM7 data.
-- [ ] **578** - TODO: seems unused
+- [x] **578** - TODO: seems unused
   - EVENT_RemoveItems interpreter stub matching the unimplemented parser case at EvtInstruction.cpp:1182-1184; blocked on the same missing-format research since no used MM7 data contains the opcode.
 
 ### `src/Engine/Graphics/BspRenderer.cpp`
@@ -1861,7 +1861,7 @@ _Blocked on a decision, missing data, or original-game research._
   - Exact duplicate of Indoor.cpp:1552 (same dturn expression); resolving both means agreeing on a Duration/angular-speed API and accepting the rounding change, so it is a library-design decision rather than a local edit.
 - [ ] **1698** - TODO(pskelton): this cancels out the above - is this intended
   - The armageddon panic block adds random x/y velocity in [-50,50), and the very next check zeroes horizontal velocity whenever lengthSqr < 400 (|v| < 20) on non-steep ground, so most panic impulses are discarded; deciding whether to reorder or gate the clamp needs a check of the original 0x47B0C9 behaviour and how visible actor panic should be.
-- [ ] **1778** - TODO(Nik-RE-dev): why there's logic for loading maps that are not listed in info?
+- [x] **1778** - TODO(Nik-RE-dev): why there's logic for loading maps that are not listed in info?
   - The MAP_INVALID branch feeds an empty filename into OutdoorLocation::Initialize, which then returns false without loading anything (and OutdoorLocation::CreateDebugLocation is itself dead code); MapStats::GetMapInfo really can return MAP_INVALID for an unknown save/transition map name, so removing the branch requires deciding what unknown-map error handling should be (assert vs. fallback).
 
 ### `src/Engine/Graphics/OutdoorTerrain.cpp`
@@ -1876,7 +1876,7 @@ _Blocked on a decision, missing data, or original-game research._
 
 ### `src/Engine/Graphics/ParticleEngine.cpp`
 
-- [ ] **125** - TODO(captainurist): checking pMiscTimer->isPaused(), then using pEventTimer->uTimeElapsed?
+- [x] **125** - TODO(captainurist): checking pMiscTimer->isPaused(), then using pEventTimer->uTimeElapsed?
   - The line mixes two timers (pause gate from the animation timer, delta from the event timer) and picking either one changes when particles freeze in dialogues/turn-based mode - it needs a decision about intended vanilla semantics, not just an edit.
 
 ### `src/Engine/Graphics/Renderer/BaseRenderer.cpp`
@@ -2153,7 +2153,7 @@ _Blocked on a decision, missing data, or original-game research._
   - Same missing patched-data-file infrastructure as the flag patch above, and additionally requires deciding how per-localization text overrides are shipped (the current replaceAll only fixes the English wording).
 - [ ] **854** - TODO(captainurist): wtf? Looks like a quick hack for some bug.
   - The `armageddon_timer > 417_ticks -> reset to 0` early-out is copied from vanilla; deciding whether it can go requires reverse-engineering why vanilla capped the timer (armageddon is started at 256_ticks in CastSpellInfo.cpp:2904, so the branch looks unreachable unless a save carries a larger value).
-- [ ] **865** - TODO(pskelton): ignore if pEventTimer->uTimeElapsed is zero?
+- [x] **865** - TODO(pskelton): ignore if pEventTimer->uTimeElapsed is zero?
   - Whether armageddonForceCount should stop decrementing on zero-dt frames is a behavior question tied to the same frame-rate dependence as the TODO below, and any change alters recorded game-test traces.
 
 ### `src/Engine/Tables/AutonoteTable.cpp`
@@ -2284,7 +2284,7 @@ _Blocked on a decision, missing data, or original-game research._
   - _transitionStringId is a raw HouseId used to index pTransitionStrings, whose 465 entries are indexed as MapId in UIHouses.cpp:709 and as a 1..11 special-message index below - and HouseId reaches 601, so this can even read out of bounds; resolving it needs the trans.txt keying to be established from the original game first.
 - [ ] **152** - TODO(Nik-RE-dev): if message is special then no video when entering indoor?
   - Asks whether the original game really skips OpenHouseMovie for the 11 special-message dungeons; answering requires checking original-game behaviour/disassembly, not a local code change.
-- [ ] **195** - TODO(captainurist): mm7 map names never starts with ' ', what is this check?
+- [x] **195** - TODO(captainurist): mm7 map names never starts with ' ', what is this check?
   - The `getTeleportMap().starts_with(' ')` guard is presumably an MM6-era or event-script marker convention; deciding whether it is dead requires auditing every setTeleportMap caller (events, savegames, MM6 data) rather than just reading this function.
 
 ### `src/Io/InputEnumFunctions.cpp`
