@@ -51,26 +51,11 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y libglu1-mesa-dev
 
-      - name: Restore cached lua-language-server
-        id: lls-cache
-        uses: actions/cache@v4
-        with:
-          path: 'lua-language-server/build/bin'
-          key: 'lls-cache-${{env.LLS_TAG}}-${{env.ImageOS}}-${{runner.arch}}'
-
-      - name: Checkout lua-language-server
-        if: steps.lls-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v3
-        with:
-          repository: 'LuaLS/lua-language-server'
-          path: 'lua-language-server'
-          ref: '3.9.1'
-
-      - name: Build lua-language-server
-        if: steps.lls-cache.outputs.cache-hit != 'true'
-        working-directory: lua-language-server
+      # The prebuilt release, so no compiler is involved. Building it from source stopped working on 26.04's gcc.
+      - name: Install lua-language-server
         run: |
-          ./make.sh
+          mkdir lua-language-server
+          curl -fsSL "https://github.com/LuaLS/lua-language-server/releases/download/${LLS_TAG}/lua-language-server-${LLS_TAG}-linux-x64.tar.gz" | tar -xz -C lua-language-server
 
       - name: Install clang-tidy
         run: |
@@ -81,7 +66,7 @@ jobs:
       - name: Configure
         id: configure
         run: |
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DOE_LLS_COMMAND=./lua-language-server/build/bin/lua-language-server
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DOE_LLS_COMMAND=./lua-language-server/bin/lua-language-server
 
       # The remaining checks still run when an earlier one fails, so one push
       # reports every verdict.
