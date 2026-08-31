@@ -18,7 +18,6 @@
 #include "Engine/Graphics/Renderer/Renderer.h"
 #include "Engine/Localization.h"
 #include "Engine/MapInfo.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Objects/Actor.h"
 #include "Engine/Objects/ObjectList.h"
 #include "Engine/Objects/SpriteObject.h"
@@ -55,6 +54,8 @@
 #include "GUI/UI/UIDialogue.h"
 #include "GUI/UI/Books/AutonotesBook.h"
 #include "GUI/UI/ItemGrid.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Logger/Logger.h"
 

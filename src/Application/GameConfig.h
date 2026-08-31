@@ -8,13 +8,13 @@
 
 #include "Engine/Graphics/Renderer/RendererEnums.h"
 
+#include "Core/Random/RandomEnums.h"
 #include "Core/Serialization/PlatformKeySerialization.h"
 #include "Core/Serialization/PlatformWindowModeSerialization.h"
 
 #include "Library/Config/Config.h"
 #include "Library/Color/Color.h"
 
-#include "Engine/Random/RandomEnums.h"
 #include "Library/Logger/LogEnums.h"
 
 #include "KeyConfigEntry.h"

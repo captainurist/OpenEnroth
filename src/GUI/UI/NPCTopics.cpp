@@ -22,7 +22,6 @@
 #include "Engine/Data/HouseEnumFunctions.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Evt/Processor.h"
-#include "Engine/Random/Random.h"
 
 #include "GUI/GUIWindow.h"
 #include "GUI/GUIMessageQueue.h"
@@ -30,6 +29,8 @@
 #include "GUI/UI/UIStatusBar.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/String/Ascii.h"
 

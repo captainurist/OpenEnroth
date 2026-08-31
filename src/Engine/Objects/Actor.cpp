@@ -26,7 +26,6 @@
 #include "Engine/OurMath.h"
 #include "Engine/Party.h"
 #include "Engine/SpellFxRenderer.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Spells/CastSpellInfo.h"
 #include "Engine/Spells/Spells.h"
 #include "Engine/AttackList.h"
@@ -40,6 +39,8 @@
 #include "GUI/UI/UIStatusBar.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Logger/Logger.h"
 

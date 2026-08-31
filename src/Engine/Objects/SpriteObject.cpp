@@ -14,8 +14,6 @@
 #include "Engine/AttackList.h"
 #include "Engine/MapInfo.h"
 
-#include "Engine/Random/Random.h"
-
 #include "Engine/Objects/Actor.h"
 #include "Engine/Objects/ObjectList.h"
 #include "Engine/Objects/Decoration.h"
@@ -35,6 +33,8 @@
 #include "Library/Logger/Logger.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/Math/TrigLut.h"
 

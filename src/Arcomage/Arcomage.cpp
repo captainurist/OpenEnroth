@@ -11,7 +11,6 @@
 #include "Engine/Graphics/Image.h"
 #include "Engine/Localization.h"
 #include "Engine/Party.h"
-#include "Engine/Random/Random.h"
 #include "Engine/AssetsManager.h"
 
 #include "GUI/GUIWindow.h"
@@ -20,6 +19,7 @@
 #include "Media/Audio/AudioPlayer.h"
 #include "Media/MediaPlayer.h"
 
+#include "Core/Random/Random.h"
 
 #include "Utility/IndexedArray.h"
 

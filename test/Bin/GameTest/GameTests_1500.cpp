@@ -12,12 +12,13 @@
 #include "Engine/Spells/CastSpellInfo.h"
 #include "Engine/Spells/Spells.h"
 #include "Engine/Engine.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Resources/EngineFileSystem.h"
 #include "Engine/mm7_data.h"
 #include "Engine/Party.h"
 #include "Engine/SaveLoad.h"
 #include "Engine/Objects/SpriteObject.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Random/SequentialRandomEngine.h"
 

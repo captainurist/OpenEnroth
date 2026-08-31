@@ -19,7 +19,6 @@
 #include "Engine/Objects/NPC.h"
 #include "Engine/Objects/CharacterEnumFunctions.h"
 #include "Engine/Objects/MonsterEnumFunctions.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Tables/PortraitFrameTable.h"
 #include "Engine/Spells/Spells.h"
@@ -45,6 +44,8 @@
 #include "GUI/UI/Houses/Shops.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Logger/Logger.h"
 

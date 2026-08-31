@@ -6,8 +6,8 @@
 #include <memory>
 
 #include "Engine/Components/Control/EngineController.h"
-#include "Engine/Random/Random.h"
 
+#include "Core/Random/Random.h"
 #include "Core/Trace/PaintEvent.h"
 
 #include "Library/Platform/Application/PlatformApplication.h"

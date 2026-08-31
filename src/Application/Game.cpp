@@ -42,7 +42,6 @@
 #include "Engine/Objects/CharacterEnumFunctions.h"
 #include "Engine/Party.h"
 #include "Engine/SaveLoad.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Spells/CastSpellInfo.h"
 #include "Engine/Spells/SpellEnumFunctions.h"
 #include "Engine/Timer.h"
@@ -82,6 +81,8 @@
 
 #include "Media/Audio/AudioPlayer.h"
 #include "Media/MediaPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Platform/Application/PlatformApplication.h"
 #include "Library/Logger/Logger.h"

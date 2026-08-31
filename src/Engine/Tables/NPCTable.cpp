@@ -9,7 +9,8 @@
 #include "Engine/Objects/MonsterEnumFunctions.h"
 #include "Engine/Objects/NPCEnumFunctions.h"
 #include "Engine/Resources/ResourceManager.h"
-#include "Engine/Random/Random.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Serialization/Serialization.h"
 

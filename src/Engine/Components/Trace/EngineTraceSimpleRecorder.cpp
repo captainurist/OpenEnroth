@@ -5,10 +5,9 @@
 #include <memory>
 #include <vector>
 
-#include "Engine/Random/Random.h"
-
-#include "Core/Trace/PaintEvent.h"
+#include "Core/Random/Random.h"
 #include "Core/Trace/EventTrace.h"
+#include "Core/Trace/PaintEvent.h"
 
 #include "Library/Platform/Application/PlatformApplication.h"
 

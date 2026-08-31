@@ -10,7 +10,6 @@
 #include "Engine/Graphics/Image.h"
 #include "Engine/Localization.h"
 #include "Engine/Party.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Tables/IconFrameTable.h"
 #include "Engine/TurnEngine/TurnEngine.h"
@@ -26,6 +25,8 @@
 #include "Io/KeyboardInputHandler.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Logger/Logger.h"
 

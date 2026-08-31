@@ -27,7 +27,7 @@
 
 #include "Io/Mouse.h"
 
-#include "Engine/Random/Random.h"
+#include "Core/Random/Random.h"
 
 static constexpr IndexedArray<MagicSchool, HOUSE_TYPE_FIRE_GUILD, HOUSE_TYPE_DARK_GUILD> guildSpellsSchool = {
     {HOUSE_TYPE_FIRE_GUILD,   MAGIC_SCHOOL_FIRE},

@@ -16,7 +16,8 @@
 #include "Engine/OurMath.h"
 #include "Engine/Party.h"
 #include "Engine/Engine.h"
-#include "Engine/Random/Random.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/Math/Float.h"
 #include "Utility/Math/TrigLut.h"

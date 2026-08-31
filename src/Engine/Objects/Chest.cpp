@@ -13,7 +13,6 @@
 #include "Engine/Graphics/Indoor.h"
 #include "Engine/Graphics/Image.h"
 #include "Engine/Localization.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Objects/Actor.h"
 #include "Engine/Objects/Item.h"
 #include "Engine/Objects/ObjectList.h"
@@ -31,6 +30,8 @@
 #include "Io/Mouse.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Logger/Logger.h"
 

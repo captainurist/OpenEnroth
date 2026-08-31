@@ -8,7 +8,7 @@
 
 #include "Engine/Components/Trace/EngineTraceEnums.h"
 
-#include "Engine/Random/RandomEnums.h"
+#include "Core/Random/RandomEnums.h"
 
 #include "TestTape.h"
 #include "TestCallObserver.h"

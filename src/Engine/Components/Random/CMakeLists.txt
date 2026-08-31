@@ -12,7 +12,7 @@ add_library(engine_components_random STATIC ${ENGINE_COMPONENTS_RANDOM_SOURCES} 
 target_check_style(engine_components_random)
 
 target_link_libraries(engine_components_random PUBLIC
-        engine_random
+        core_random
         library_random
         library_stack_trace
         library_platform_application)

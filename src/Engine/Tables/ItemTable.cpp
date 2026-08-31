@@ -11,7 +11,6 @@
 
 #include "Library/Serialization/Serialization.h"
 
-#include "Engine/Random/Random.h"
 #include "Engine/Objects/CharacterEnumFunctions.h"
 #include "Engine/Engine.h"
 #include "Engine/Resources/EngineFileSystem.h"
@@ -19,6 +18,8 @@
 #include "Engine/Resources/ResourceManager.h"
 
 #include "GUI/UI/UIHouses.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/LodFormats/LodFormats.h"
 #include "Library/Logger/Logger.h"

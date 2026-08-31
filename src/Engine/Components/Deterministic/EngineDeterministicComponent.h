@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "Engine/Random/RandomEnums.h"
+#include "Core/Random/RandomEnums.h"
 
 #include "Library/Platform/Proxy/ProxyPlatform.h"
 #include "Library/Platform/Proxy/ProxyOpenGLContext.h"

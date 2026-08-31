@@ -65,8 +65,8 @@ target_link_libraries(engine
         engine_tables
         engine_turn_engine
         engine_events
-        engine_random
         engine_resources
+        core_random
         core_time
         library_compression
         library_logger
@@ -94,7 +94,6 @@ add_subdirectory(Components)
 add_subdirectory(Evt)
 add_subdirectory(Graphics)
 add_subdirectory(Objects)
-add_subdirectory(Random)
 add_subdirectory(Resources)
 add_subdirectory(Snapshots)
 add_subdirectory(Spells)

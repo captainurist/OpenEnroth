@@ -16,7 +16,6 @@
 #include "Engine/Objects/SpriteObject.h"
 #include "Engine/Objects/NPC.h"
 #include "Engine/Objects/CharacterEnumFunctions.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Spells/SpellEnumFunctions.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Tables/IconFrameTable.h"
@@ -35,6 +34,7 @@
 
 #include "Media/Audio/AudioPlayer.h"
 
+#include "Core/Random/Random.h"
 #include "Core/Time/Time.h"
 
 #include "Library/Logger/Logger.h"

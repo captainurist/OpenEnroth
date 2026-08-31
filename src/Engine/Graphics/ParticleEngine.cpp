@@ -2,8 +2,9 @@
 
 #include "Engine/Graphics/Camera.h"
 #include "Engine/Graphics/Renderer/Renderer.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Timer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/Math/TrigLut.h"
 

@@ -9,9 +9,10 @@
 #include "Engine/Graphics/Renderer/Renderer.h"
 #include "Engine/Graphics/Image.h"
 #include "Engine/Tables/IconFrameTable.h"
-#include "Engine/Random/Random.h"
 
 #include "GUI/GUIWindow.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/IndexedArray.h"
 

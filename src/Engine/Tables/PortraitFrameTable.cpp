@@ -1,6 +1,6 @@
 #include "PortraitFrameTable.h"
 
-#include "Engine/Random/Random.h"
+#include "Core/Random/Random.h"
 
 PortraitFrameTable *pPortraitFrameTable = nullptr;
 

@@ -17,9 +17,9 @@
 #include "Engine/Objects/Actor.h"
 #include "Engine/Objects/SpriteObject.h"
 
-#include "Engine/Random/Random.h"
-
 #include "Engine/Tables/IconFrameTable.h"
+
+#include "Core/Random/Random.h"
 
 //----- (004A7063) --------------------------------------------------------
 Color ModulateColor(Color diffuse, float multiplier) {

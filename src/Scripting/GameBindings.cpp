@@ -10,13 +10,14 @@
 #include "Engine/Party.h"
 #include "Engine/Graphics/Renderer/Renderer.h"
 #include "Engine/Tables/ItemTable.h"
-#include "Engine/Random/Random.h"
 #include "Engine/mm7_data.h"
 #include "Library/Logger/Logger.h"
 #include "Media/Audio/AudioPlayer.h"
 #include "Media/Audio/SoundList.h"
 
 #include "GUI/GUIWindow.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/Exception.h"
 

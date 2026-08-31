@@ -1,7 +1,8 @@
 #include "TalkAnimation.h"
 
-#include "Engine/Random/Random.h"
 #include "Engine/Tables/PortraitFrameTable.h"
+
+#include "Core/Random/Random.h"
 
 static PortraitId randomTalkPortrait() {
     return vrng->randomSample({PORTRAIT_TALK, PORTRAIT_MOUTH_OPEN_WIDE, PORTRAIT_MOUTH_OPEN_A, PORTRAIT_MOUTH_OPEN_O});

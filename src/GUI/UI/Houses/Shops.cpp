@@ -17,7 +17,6 @@
 #include "Engine/Objects/Item.h"
 #include "Engine/Party.h"
 #include "Engine/PriceCalculator.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Tables/MerchantTable.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Data/AwardEnums.h"
@@ -31,6 +30,8 @@
 #include "Io/Mouse.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/IndexedArray.h"
 

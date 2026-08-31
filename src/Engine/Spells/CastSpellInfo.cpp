@@ -27,7 +27,6 @@
 #include "Engine/Tables/IconFrameTable.h"
 #include "Engine/Timer.h"
 #include "Engine/TurnEngine/TurnEngine.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Spells/Spells.h"
 #include "Engine/Spells/SpellEnumFunctions.h"
 
@@ -39,6 +38,8 @@
 #include "Io/Mouse.h"
 
 #include "Media/Audio/AudioPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Utility/Math/TrigLut.h"
 

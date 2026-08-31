@@ -43,7 +43,6 @@
 #include "Engine/Objects/MonsterEnumFunctions.h"
 #include "Engine/Party.h"
 #include "Engine/PartyPlacement.h"
-#include "Engine/Random/Random.h"
 #include "Engine/SaveLoad.h"
 #include "Engine/Snapshots/TableSerialization.h"
 #include "Engine/SpellFxRenderer.h"
@@ -84,6 +83,8 @@
 #include "Media/MediaPlayer.h"
 
 #include "Io/Mouse.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Logger/Logger.h"
 #include "Library/BuildInfo/BuildInfo.h"

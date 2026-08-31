@@ -17,7 +17,6 @@
 #include "Engine/Objects/Chest.h"
 #include "Engine/Objects/Actor.h"
 #include "Engine/PartyPlacement.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Spells/Spells.h"
 #include "Engine/Engine.h"
@@ -36,6 +35,8 @@
 #include "GUI/UI/UIBranchlessDialogue.h"
 #include "GUI/UI/UITransition.h"
 #include "GUI/UI/UIStatusBar.h"
+
+#include "Core/Random/Random.h"
 
 /**
  * @offset 0x4465DF

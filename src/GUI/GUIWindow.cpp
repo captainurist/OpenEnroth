@@ -17,7 +17,6 @@
 #include "Engine/Graphics/Viewport.h"
 #include "Engine/Graphics/Image.h"
 #include "Engine/Localization.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Objects/CharacterEnums.h"
 #include "Engine/Objects/CharacterEnumFunctions.h"
 #include "Engine/Party.h"
@@ -48,6 +47,8 @@
 
 #include "Media/Audio/AudioPlayer.h"
 #include "Media/MediaPlayer.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Serialization/EnumSerialization.h"
 #include "Library/Logger/Logger.h"

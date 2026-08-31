@@ -6,13 +6,13 @@
 
 #include "Engine/Engine.h"
 #include "Engine/Localization.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Objects/ItemEnchantment.h"
 #include "Engine/Objects/CharacterEnums.h"
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Tables/HouseTable.h"
 #include "Engine/Party.h"
 
+#include "Core/Random/Random.h"
 
 #include "Utility/MapAccess.h"
 

@@ -16,7 +16,6 @@
 #include "Engine/Tables/ItemTable.h"
 #include "Engine/Tables/HouseTable.h"
 #include "Engine/Evt/EvtProgram.h"
-#include "Engine/Random/Random.h"
 #include "Engine/Objects/DecorationEnums.h"
 #include "Engine/Objects/DecorationList.h"
 #include "Engine/Objects/Monsters.h"
@@ -28,6 +27,8 @@
 #include "Engine/mm7_data.h"
 
 #include "GUI/UI/Houses/TownHall.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Lod/LodReader.h"
 #include "Library/Serialization/EnumSerialization.h"

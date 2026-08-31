@@ -13,8 +13,6 @@
 #include "Engine/Objects/SpriteObject.h"
 #include "Engine/Objects/MonsterEnumFunctions.h"
 
-#include "Engine/Random/Random.h"
-
 #include "Engine/Tables/HostilityTable.h"
 #include "Engine/Tables/IconFrameTable.h"
 
@@ -22,6 +20,8 @@
 
 #include "Engine/Party.h"
 #include "Engine/AttackList.h"
+
+#include "Core/Random/Random.h"
 
 stru262_TurnBased *pTurnEngine = new stru262_TurnBased;
 

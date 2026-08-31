@@ -1,7 +1,8 @@
 #include "Testing/Game/GameTest.h"
 
-#include "Engine/Random/Random.h"
 #include "Engine/Spells/Spells.h"
+
+#include "Core/Random/Random.h"
 
 #include "Library/Random/MersenneTwisterRandomEngine.h"
 
