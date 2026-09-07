@@ -6367,12 +6367,12 @@ void Character::_42ECB5_CharacterAttacksActor() {
         shotting_laser = true;
         pushSpellOrRangedAttack(SPELL_BLASTER_PROJECTILE,
                                 pParty->activeCharacterIndex() - 1, CombinedSkillValue::none(), 0,
-                                pParty->activeCharacterIndex() + 8); // TODO(captainurist): +8???
+                                pParty->activeCharacterIndex() | 8);
     } else if (wand_item_id != ITEM_NULL) {
         shooting_wand = true;
 
         pushSpellOrRangedAttack(spellForWand(wand_item_id),
-                                pParty->activeCharacterIndex() - 1, WANDS_SKILL_VALUE, 0, pParty->activeCharacterIndex() + 8);
+                                pParty->activeCharacterIndex() - 1, WANDS_SKILL_VALUE, 0, pParty->activeCharacterIndex() | 8);
 
         // reduce wand charges
         if (!--main_hand->numCharges && engine->config->gameplay.DestroyDischargedWands.value()) {
