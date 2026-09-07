@@ -71,7 +71,7 @@ struct CastSpellInfo {
     int targetInventoryIndex = -1; // Target inventory item index (in Character::pInventoryItemList) in target
                                    // character's inventory, if any.
 
-    int castSource = 0; // 0 for regular casts, otherwise 1-based caster index with bit 3 set for wands and blasters.
+    int castSource = 0; // 1-based caster index for quick casts, the same index plus 8 for wand and blaster shots, 0 otherwise.
 };
 
 /**
@@ -86,14 +86,14 @@ struct CastSpellInfo {
  * listed in ON_CAST_CastingInProgress and this flag will be removed
  * in event queue if correct target is picked.
  *
- * @offset 0x0042777D
- *
  * @param spell                         Spell id.
  * @param casterIndex                   Zero-based index of a character casting the spell.
  * @param skill_value                   Skill value that the spell is cast with.
  * @param flags                         Spell flags. Can be empty or have several flags.
- * @param castSource                    0 for regular casts, 1-based caster index for quick casts, or that index with bit 3
- *                                      set for wands and blasters. Nonzero values skip requesting the actor-only picker.
+ * @param castSource                    1-based caster index for quick casts, the same index plus 8 for wand and
+ *                                      blaster shots, 0 otherwise. Nonzero values skip the actor picker for
+ *                                      single-actor spells.
+ * @offset 0x0042777D
  */
 void pushSpellOrRangedAttack(SpellId spell,
                              int casterIndex,

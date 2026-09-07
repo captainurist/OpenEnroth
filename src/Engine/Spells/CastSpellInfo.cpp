@@ -2936,14 +2936,14 @@ void CastSpellInfoHelpers::castSpell() {
  * Add spell or skill into spell queue.
  * Spells from this queue will be cast in event queue processing.
  *
- * @offset 0x00427DA0
- *
  * @param uSpellID                      Spell id.
  * @param casterIndex                   Zero-based index of the caster.
  * @param skill_level                   Skill value to use for casting.
  * @param uFlags                        Spell flags.
- * @param castSource                    Encoded casting source stored with the queued spell.
+ * @param castSource                    1-based caster index for quick casts, the same index plus 8 for wand and
+ *                                      blaster shots, 0 otherwise.
  * @return                              Queue slot index, or size_t(-1) if the queue is full.
+ * @offset 0x00427DA0
  */
 static size_t pushCastSpellInfo(SpellId uSpellID,
                                 int casterIndex,
