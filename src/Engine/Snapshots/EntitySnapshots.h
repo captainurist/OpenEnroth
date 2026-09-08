@@ -962,7 +962,10 @@ struct SpriteObject_MM7 {
     Vec3i position;
     Vec3s velocity;
     uint16_t yawAngle;
-    uint16_t preloadedSoundSlot; // Slot of the caster's preloaded spell sound in the original engine, unused in OE.
+    uint16_t preloadedSoundSlot; // Vanilla plays the impact sound from this slot of the caster's sound cache plus 4,
+                                 // 1-4 for quick spells and 9-12 for wands and blasters, and treats bit 3 like the
+                                 // unpickable flag on level load. 0 loads the sample on demand like spellbook casts do.
+                                 // OE writes 0, and every sprite that could carry bit 3 is unpickable anyway.
     uint16_t uAttributes;
     int16_t uSectorID;
     uint16_t uTimeSinceCreated;
