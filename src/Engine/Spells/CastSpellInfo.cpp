@@ -69,7 +69,6 @@ static void initSpellSprite(SpriteObject *spritePtr,
     spritePtr->spell_skill = spellMastery;
     spritePtr->uObjectDescID = pObjectList->ObjectIDByItemID(spritePtr->spriteId);
     spritePtr->spell_caster_pid = Pid(OBJECT_Character, pCastSpell->casterCharacterIndex);
-    spritePtr->uSoundID = pCastSpell->castSource;
 }
 
 /**
@@ -2940,16 +2939,13 @@ void CastSpellInfoHelpers::castSpell() {
  * @param casterIndex                   Zero-based index of the caster.
  * @param skill_level                   Skill value to use for casting.
  * @param uFlags                        Spell flags.
- * @param castSource                    1-based caster index for quick casts, the same index with bit 3 set for wand and
- *                                      blaster shots, 0 otherwise.
  * @return                              Queue slot index, or size_t(-1) if the queue is full.
  * @offset 0x00427DA0
  */
 static size_t pushCastSpellInfo(SpellId uSpellID,
                                 int casterIndex,
                                 CombinedSkillValue skill_level,
-                                SpellCastFlags uFlags,
-                                int castSource) {
+                                SpellCastFlags uFlags) {
     for (size_t i = 0; i < pCastSpellInfo.size(); i++) {
         if (pCastSpellInfo[i].uSpellID == SPELL_NONE) {
             pCastSpellInfo[i].uSpellID = uSpellID;
@@ -2960,7 +2956,6 @@ static size_t pushCastSpellInfo(SpellId uSpellID,
             pCastSpellInfo[i].targetPid = Pid();
             pCastSpellInfo[i].flags = uFlags;
             pCastSpellInfo[i].overrideSkillValue = skill_level;
-            pCastSpellInfo[i].castSource = castSource;
             return i;
         }
     }
@@ -2994,8 +2989,7 @@ void CastSpellInfoHelpers::cancelSpellCastInProgress() {
 void pushSpellOrRangedAttack(SpellId spell,
                              int casterIndex,
                              CombinedSkillValue skill_value,
-                             SpellCastFlags flags,
-                             int castSource) {
+                             SpellCastFlags flags) {
     if (pParty->bTurnBasedModeOn) {
         if (pTurnEngine->turn_stage == TE_WAIT ||
             pTurnEngine->turn_stage == TE_MOVEMENT) {
@@ -3053,11 +3047,8 @@ void pushSpellOrRangedAttack(SpellId spell,
             case SPELL_MIND_ENSLAVE:
             case SPELL_LIGHT_PARALYZE:
             case SPELL_DARK_CONTROL_UNDEAD:
-                if (!castSource) {
-                    // These spells are targeted when cast from the spellbook or a scroll. Quick casts and wands
-                    // resolve the target from the cursor or the closest actor instead.
+                if (!(flags & ON_CAST_AutoTarget))
                     flags |= ON_CAST_TargetedActor;
-                }
                 break;
 
             case SPELL_EARTH_TELEKINESIS:
@@ -3139,7 +3130,7 @@ void pushSpellOrRangedAttack(SpellId spell,
 
     CastSpellInfoHelpers::cancelSpellCastInProgress();
 
-    int result = pushCastSpellInfo(spell, casterIndex, skill_value, flags, castSource);
+    int result = pushCastSpellInfo(spell, casterIndex, skill_value, flags);
 
     // TODO: if no more place for spells in queue then spell is just ignored?
     //       Need assert?
@@ -3185,15 +3176,15 @@ void pushTempleSpell(SpellId spell) {
     CombinedSkillValue skill_value = CombinedSkillValue(pParty->uCurrentDayOfMonth % 7 + 1, MASTERY_MASTER);
 
     pushSpellOrRangedAttack(spell, pParty->activeCharacterIndex() - 1, skill_value,
-                            ON_CAST_TargetIsParty | ON_CAST_NoRecoverySpell, 0);
+                            ON_CAST_TargetIsParty | ON_CAST_NoRecoverySpell);
 }
 
 void pushNPCSpell(SpellId spell) {
-    pushSpellOrRangedAttack(spell, 0, SCROLL_OR_NPC_SPELL_SKILL_VALUE, 0, 0);
+    pushSpellOrRangedAttack(spell, 0, SCROLL_OR_NPC_SPELL_SKILL_VALUE, 0);
 }
 
 void pushScrollSpell(SpellId spell, int casterIndex) {
-    pushSpellOrRangedAttack(spell, casterIndex, SCROLL_OR_NPC_SPELL_SKILL_VALUE, ON_CAST_CastViaScroll, 0);
+    pushSpellOrRangedAttack(spell, casterIndex, SCROLL_OR_NPC_SPELL_SKILL_VALUE, ON_CAST_CastViaScroll);
 }
 
 void spellTargetPicked(Pid targetPid, int targetCharacterIndex) {

@@ -42,6 +42,8 @@ enum class SpellCastFlag : uint16_t {
     ON_CAST_TargetedEnchantment = 0x0080,      // Targeted spell, target is item in inventory
     ON_CAST_TargetedActorOrCharacter = 0x0100, // Targeted spell, target either actor or character
     ON_CAST_TargetedHireling = 0x0200,         // Targeted spell, target is hireling
+    ON_CAST_AutoTarget = 0x0400,               // Quick spell key or weapon shot, the target is taken from the cursor
+                                               // or the closest actor instead of a picker.
 
     // Cumulative flags indicating that spell is targeted
     ON_CAST_CastingInProgress =
@@ -70,8 +72,6 @@ struct CastSpellInfo {
     Pid targetPid; // Target pid, if any.
     int targetInventoryIndex = -1; // Target inventory item index (in Character::pInventoryItemList) in target
                                    // character's inventory, if any.
-
-    int castSource = 0; // 1-based caster index for quick casts, the same index with bit 3 set for wand and blaster shots, 0 otherwise.
 };
 
 /**
@@ -90,16 +90,12 @@ struct CastSpellInfo {
  * @param casterIndex                   Zero-based index of a character casting the spell.
  * @param skill_value                   Skill value that the spell is cast with.
  * @param flags                         Spell flags. Can be empty or have several flags.
- * @param castSource                    1-based caster index for quick casts, the same index with bit 3 set for wand and
- *                                      blaster shots, 0 otherwise. Nonzero values skip the actor picker for
- *                                      single-actor spells.
  * @offset 0x0042777D
  */
 void pushSpellOrRangedAttack(SpellId spell,
                              int casterIndex,
                              CombinedSkillValue skill_value,
-                             SpellCastFlags flags,
-                             int castSource);
+                             SpellCastFlags flags);
 
 /**
  * Register spell cast on party with temple donation.

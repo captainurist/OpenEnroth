@@ -962,7 +962,7 @@ struct SpriteObject_MM7 {
     Vec3i position;
     Vec3s velocity;
     uint16_t yawAngle;
-    uint16_t uSoundID;
+    uint16_t preloadedSoundSlot; // Slot of the caster's preloaded spell sound in the original engine, unused in OE.
     uint16_t uAttributes;
     int16_t uSectorID;
     uint16_t uTimeSinceCreated;
