@@ -30,6 +30,7 @@
 #include "Engine/Objects/ObjectList.h"
 #include "Engine/Objects/SpriteObject.h"
 #include "Engine/Tables/ItemTable.h"
+#include "Engine/OurMath.h"
 #include "Engine/Party.h"
 #include "Engine/PartyPlacement.h"
 #include "Engine/Snapshots/CompositeSnapshots.h"
@@ -1648,7 +1649,7 @@ void BLV_ProcessPartyActions() {  // could this be combined with odm process act
         // Start sound processing only when actual movement is performed to avoid stopping sounds on high FPS
         if (gameTimer->dt()) {
             // TODO(Nik-RE-dev): use calculated velocity of party and walk/run flags instead of delta
-            int walkDelta = (oldPos - pParty->pos).length();
+            int walkDelta = integer_sqrt((oldPos - pParty->pos).lengthSqr());
 
             if (walkDelta < 2) {
                 // mute the walking sound when stopping
@@ -1720,7 +1721,8 @@ int CalcDistPointToLine(int x1, int y1, int x2, int y2, int x3, int y3) {
     // calculates distance from point x3y3 to line x1y1->x2y2
 
     signed int result;
-    result = Vec2i(x2 - x1, y2 - y1).length();
+    // calc line length
+    result = integer_sqrt(std::abs(x2 - x1) * std::abs(x2 - x1) + std::abs(y2 - y1) * std::abs(y2 - y1));
 
     // orthogonal projection from line to point
     if (result)
@@ -1764,9 +1766,10 @@ int SpawnEncounterMonsters(MapInfo *map_info, int enc_index) {
 
             // check spawn point is not in a model
             for (BSPModel &model : pOutdoor->pBModels) {
-                dist_y = enc_spawn_point.position.y - model.boundingCenter.y;
-                dist_x = enc_spawn_point.position.x - model.boundingCenter.x;
-                if (Vec2i(dist_x, dist_y).octagonalLength() < model.boundingRadius + 256) {
+                dist_y = std::abs(enc_spawn_point.position.y - model.boundingCenter.y);
+                dist_x = std::abs(enc_spawn_point.position.x - model.boundingCenter.x);
+                if (int_get_vector_length(dist_x, dist_y, 0) <
+                    model.boundingRadius + 256) {
                     not_in_model = 1;
                     break;
                 }

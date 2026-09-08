@@ -11,6 +11,8 @@
 
 #include "Utility/Memory/Blob.h"
 
+// TODO(captainurist): this should go to Core/, not Library/,
+
 struct EventTraceCharacterState {
     int hp = 0;
     int mp = 0;

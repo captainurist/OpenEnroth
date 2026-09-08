@@ -32,6 +32,7 @@
 #include "Engine/Objects/ObjectList.h"
 #include "Engine/Objects/SpriteObject.h"
 #include "Engine/Objects/NPC.h"
+#include "Engine/OurMath.h"
 #include "Engine/Party.h"
 #include "Engine/Spells/Spells.h"
 #include "Engine/Tables/IconFrameTable.h"
@@ -673,8 +674,9 @@ std::string GameUI_GetMinimapHintText() {
             result = pMapStats->pInfos[engine->_currentLoadedMapId].name;
     } else {
         for (BSPModel &model : pOutdoor->pBModels) {
-            v7 = Vec2i((int)model.boundingCenter.x - global_coord_X,
-                       (int)model.boundingCenter.y - global_coord_Y).octagonalLength();
+            v7 = int_get_vector_length(
+                std::abs((int)model.boundingCenter.x - global_coord_X),
+                std::abs((int)model.boundingCenter.y - global_coord_Y), 0);
             if (v7 < 2 * model.boundingRadius) {
                 for (BLVFace &face : model.faces) {
                     if (face.eventId) {

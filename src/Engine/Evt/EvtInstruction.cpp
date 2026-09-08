@@ -884,7 +884,9 @@ static Enum narrowToEnum(Int value, std::string_view what) {
 }
 
 EvtInstruction EvtInstruction::parse(InputStream &stream, size_t size) {
-    EvtInstruction ir = {};  // A zeroed member may be unset or may be a real 0, the two are not distinguishable here.
+    // TODO(yoctozepto): zeroing-out the struct to prevent values from previous events from lingering;
+    //                   this makes it slightly easier to spot uninitialised members but, since the 0s may have a proper meaning, not always;
+    EvtInstruction ir = {};
 
     ir.step = fromStream<uint8_t>(stream);
     ir.opcode = EvtOpcode(fromStream<uint8_t>(stream));

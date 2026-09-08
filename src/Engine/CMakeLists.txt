@@ -11,6 +11,7 @@ set(ENGINE_SOURCES
         Localization.cpp
         MapEnums.cpp
         MapInfo.cpp
+        OurMath.cpp
         Party.cpp
         PartyEnums.cpp
         PartyPlacement.cpp
@@ -36,6 +37,7 @@ set(ENGINE_HEADERS
         Localization.h
         MapEnums.h
         MapInfo.h
+        OurMath.h
         Party.h
         PartyEnums.h
         PartyPlacement.h
