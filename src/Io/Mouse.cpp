@@ -58,7 +58,7 @@ void Io::Mouse::SetCursorImage(std::string_view name) {
         platform->setCursorShown(true);
         this->cursor_img = nullptr;
     } else { // Cursor is item or another bitmap.
-        this->cursor_img = assets->getImage_ColorKey(name, colorTable.Black /*colorTable.TealMask*/);
+        this->cursor_img = assets->getIcon(name);
         this->AllocCursorSystemMem();
         this->_arrowCursor = false;
     }
@@ -91,7 +91,7 @@ void Io::Mouse::Initialize() {
     this->pCursorBitmap_sysmem = nullptr;
     this->pCursorBitmap2_sysmem = nullptr;
 
-    SetCursorImage("MICON3");
+    // SetCursorImage("MICON3"); // Doesn't exist in game data
     SetCursorImage("MICON2");
     SetCursorImage("MICON1");
 }
@@ -116,7 +116,7 @@ void Io::Mouse::DrawCursor() {
             render->DrawTextureNew(pos.x / 640., pos.y / 480., this->cursor_img);
         } else if (_mouseLook) {
             platform->setCursorShown(false);
-            auto pointer = assets->getImage_ColorKey("MICON2", colorTable.Black /*colorTable.TealMask*/);
+            auto pointer = assets->getIcon("MICON2");
             int x = pViewport->viewportCenterX - pointer->width() / 2;
             int y = pViewport->viewportCenterY - pointer->height() / 2;
             render->DrawTextureNew(x / 640., y / 480., pointer);
@@ -178,7 +178,7 @@ void Io::Mouse::DrawPickedItem() {
     if (pParty->pPickedItem.itemId == ITEM_NULL)
         return;
 
-    GraphicsImage *pTexture = assets->getImage_Alpha(pParty->pPickedItem.GetIconName());
+    GraphicsImage *pTexture = assets->getIcon(pParty->pPickedItem.GetIconName());
     if (!pTexture) return;
 
     Pointi mousePos = this->position();

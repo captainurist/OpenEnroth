@@ -40,7 +40,7 @@ void GameOver_Setup() {
 void CreateWinnerCertificate() {
     render->Present();
     render->BeginScene2D();
-    GraphicsImage *background = assets->getImage_PCXFromIconsLOD("winbg.pcx");
+    GraphicsImage *background = assets->getIcon("winbg.pcx");
     render->DrawTextureNew(0, 0, background);
 
     GUIWindow *tempwindow_SpeakInHouse = new GUIWindow(WINDOW_Unknown, { 0, 0 }, render->GetRenderDimensions());
@@ -119,7 +119,7 @@ void CreateWinnerCertificate() {
 
     RgbaImage pixels = render->MakeFullScreenshot();
     ufs->write("MM7_Win.Pcx", pcx::encode(pixels));
-    assets->winnerCert = GraphicsImage::Create(std::move(pixels));
+    assets->winnerCert = GraphicsImage::Create("", std::move(pixels));
 
     background->Release();
     background = nullptr;

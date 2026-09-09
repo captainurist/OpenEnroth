@@ -23,13 +23,13 @@ GUIWindow_QuestBook::GUIWindow_QuestBook() {
     pChildBooksOverlay = new GUIWindow_BooksButtonOverlay({493, 355}, {0, 0}, pBtn_Quests);
     bFlashQuestBook = false;
 
-    ui_book_quests_background = assets->getImage_Solid("sbquiknot");
-    ui_book_quest_div_bar = assets->getImage_Alpha("divbar");
+    ui_book_quests_background = assets->getIcon("sbquiknot");
+    ui_book_quest_div_bar = assets->getIcon("divbar");
 
-    ui_book_button1_on = assets->getImage_Alpha("tab-an-6b");
-    ui_book_button2_on = assets->getImage_Alpha("tab-an-7b");
-    ui_book_button1_off = assets->getImage_Alpha("tab-an-6a");
-    ui_book_button2_off = assets->getImage_Alpha("tab-an-7a");
+    ui_book_button1_on = assets->getIcon("tab-an-6b");
+    ui_book_button2_on = assets->getIcon("tab-an-7b");
+    ui_book_button1_off = assets->getIcon("tab-an-6a");
+    ui_book_button2_off = assets->getIcon("tab-an-7a");
 
     pBtn_Book_1 = CreateButton({pViewport->viewportTL_X + 398, pViewport->viewportTL_Y + 1}, ui_book_button1_on->size(), 1, 0,
                                UIMSG_ClickBooksBtn, std::to_underlying(BOOK_PREV_PAGE), INPUT_ACTION_DIALOG_LEFT, localization->str(LSTR_SCROLL_UP), {ui_book_button1_on});

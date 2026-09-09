@@ -79,12 +79,12 @@ void ItemTable::Initialize(ResourceManager *resourceManager) {
 
     char *lineContent;
 
-    LoadPotions(resourceManager->eventsData("potion.txt"));
-    LoadPotionNotes(resourceManager->eventsData("potnotes.txt"));
+    LoadPotions(resourceManager->event("potion.txt"));
+    LoadPotionNotes(resourceManager->event("potnotes.txt"));
 
     std::string txtRaw;
 
-    txtRaw = resourceManager->eventsData("stditems.txt").string_view();
+    txtRaw = resourceManager->event("stditems.txt").string_view();
     strtok(txtRaw.data(), "\r");
     strtokSkipLines(3);
     // Standard Bonuses by Group
@@ -111,7 +111,7 @@ void ItemTable::Initialize(ResourceManager *resourceManager) {
         standardEnchantmentRangeByTreasureLevel[i] = Segment(atoi(tokens[2]), atoi(tokens[3]));
     }
 
-    txtRaw = resourceManager->eventsData("spcitems.txt").string_view();
+    txtRaw = resourceManager->event("spcitems.txt").string_view();
     strtok(txtRaw.data(), "\r");
     strtokSkipLines(3);
     for (ItemEnchantment i : specialEnchantments.indices()) {
@@ -138,7 +138,7 @@ void ItemTable::Initialize(ResourceManager *resourceManager) {
         specialEnchantments[i].iTreasureLevel = (tolower(tokens[15][0]) - 'a') | mask;
     }
 
-    txtRaw = resourceManager->eventsData("items.txt").string_view();
+    txtRaw = resourceManager->event("items.txt").string_view();
     strtok(txtRaw.data(), "\r");
     strtokSkipLines(1);
     for (size_t line = 0; line < 799; line++) {
@@ -206,7 +206,7 @@ void ItemTable::Initialize(ResourceManager *resourceManager) {
         items[item_counter].description = removeQuotes(tokens[16]);
     }
 
-    txtRaw = resourceManager->eventsData("rnditems.txt").string_view();
+    txtRaw = resourceManager->event("rnditems.txt").string_view();
     strtok(txtRaw.data(), "\r");
     strtokSkipLines(3);
     for(size_t line = 0; line < 618; line++) {

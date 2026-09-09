@@ -13,7 +13,7 @@ FsmAction LoadStep2State::enter() {
     // So, this assignment might be removed after the Party Creation becomes part of the FSM
     dword_6BE364_game_settings_1 |= GAME_SETTINGS_4000;
 
-    _fullscreenTexture = assets->getImage_PCXFromIconsLOD("mm6title.pcx");
+    _fullscreenTexture = assets->getIcon("mm6title.pcx");
     _isFirstPass = true;
     return FsmAction::none();
 }

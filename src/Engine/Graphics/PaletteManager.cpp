@@ -12,6 +12,12 @@
 
 #include "Utility/String/Format.h"
 
+static Palette createGrayscalePalette() {
+    Palette result;
+    for (int i = 0; i < 256; i++)
+        result.colors[i] = Color(i, i, i, 255);
+    return result;
+}
 
 PaletteManager *pPaletteManager = new PaletteManager;
 
@@ -28,7 +34,8 @@ void PaletteManager::load(LodTextureCache *lod) {
 
         LodImage *texture = lod->loadTexture(paletteName, false);
         if (texture) {
-            _palettes.emplace_back(createLoadedPalette(texture->palette));
+            desaturate(&texture->palette);
+            _palettes.emplace_back(texture->palette);
         } else {
             _palettes.emplace_back(createGrayscalePalette());
         }
@@ -39,19 +46,17 @@ std::span<Color> PaletteManager::paletteData() {
     return {_palettes[0].colors.data(), _palettes.size() * _palettes[0].colors.size()};
 }
 
-Palette PaletteManager::createGrayscalePalette() {
-    Palette result;
-    for (int i = 0; i < 256; i++)
-        result.colors[i] = Color(i, i, i, 255);
-    return result;
-}
-
-Palette PaletteManager::createLoadedPalette(const Palette &palette) {
+void PaletteManager::desaturate(Palette *palette) {
     float xs = engine->config->graphics.Saturation.value();
     float xv = engine->config->graphics.Lightness.value();
 
-    Palette result;
-    for (size_t i = 0; i < 256; i++)
-        result.colors[i] = palette.colors[i].toHsvColorf().adjusted(0, xs, xv).toColor();
-    return result;
+    for (Color &color : palette->colors)
+        color = color.toHsvColorf().adjusted(0, xs, xv).toColor();
+}
+
+void PaletteManager::desaturate(RgbaImage *image) {
+    float xs = engine->config->graphics.Saturation.value();
+    float xv = engine->config->graphics.Lightness.value();
+    for (Color &pixel : image->pixels())
+        pixel = pixel.toHsvColorf().adjusted(0, xs, xv).toColor();
 }

@@ -15,6 +15,7 @@ set(ENGINE_TABLES_SOURCES
         NPCTable.cpp
         PortraitFrameTable.cpp
         QuestTable.cpp
+        ResourceMaskTable.cpp
         TextureFrameTable.cpp
         TileTable.cpp
         TransitionTable.cpp)
@@ -34,6 +35,7 @@ set(ENGINE_TABLES_HEADERS
         NPCTable.h
         PortraitFrameTable.h
         QuestTable.h
+        ResourceMaskTable.h
         TextureFrameTable.h
         TileTable.h
         TransitionTable.h)

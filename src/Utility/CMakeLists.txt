@@ -19,6 +19,7 @@ set(UTILITY_SOURCES
         String/Wrap.cpp)
 
 set(UTILITY_HEADERS
+        ArrayAccess.h
         Embedded.h
         Exception.h
         Flags.h

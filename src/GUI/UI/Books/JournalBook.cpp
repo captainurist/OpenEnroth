@@ -26,12 +26,12 @@ GUIWindow_JournalBook::GUIWindow_JournalBook() {
 
     GUIWindow journal_window;
 
-    ui_book_journal_background = assets->getImage_ColorKey("sbplayrnot");
+    ui_book_journal_background = assets->getIcon("sbplayrnot");
 
-    ui_book_button1_on = assets->getImage_Alpha("tab-an-6b");
-    ui_book_button2_on = assets->getImage_Alpha("tab-an-7b");
-    ui_book_button1_off = assets->getImage_Alpha("tab-an-6a");
-    ui_book_button2_off = assets->getImage_Alpha("tab-an-7a");
+    ui_book_button1_on = assets->getIcon("tab-an-6b");
+    ui_book_button2_on = assets->getIcon("tab-an-7b");
+    ui_book_button1_off = assets->getIcon("tab-an-6a");
+    ui_book_button2_off = assets->getIcon("tab-an-7a");
 
     pBtn_Book_1 = CreateButton({pViewport->viewportTL_X + 398, pViewport->viewportTL_Y + 1}, ui_book_button1_on->size(), 1, 0,
                                UIMSG_ClickBooksBtn, std::to_underlying(BOOK_PREV_PAGE), INPUT_ACTION_DIALOG_LEFT, localization->str(LSTR_SCROLL_UP), {ui_book_button1_on});

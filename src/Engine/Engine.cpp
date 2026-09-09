@@ -665,34 +665,34 @@ void Engine::MM7_Initialize() {
     localization->initialize();
 
     pSpriteFrameTable = new SpriteFrameTable;
-    deserialize(engine->resources()->eventsData("dsft.bin"), pSpriteFrameTable);
+    deserialize(engine->resources()->event("dsft.bin"), pSpriteFrameTable);
 
     pTextureFrameTable = new TextureFrameTable;
-    deserialize(engine->resources()->eventsData("dtft.bin"), pTextureFrameTable);
+    deserialize(engine->resources()->event("dtft.bin"), pTextureFrameTable);
 
     pTileTable = new TileTable;
-    deserialize(engine->resources()->eventsData("dtile.bin"), pTileTable);
+    deserialize(engine->resources()->event("dtile.bin"), pTileTable);
 
     pPortraitFrameTable = new PortraitFrameTable;
-    deserialize(engine->resources()->eventsData("dpft.bin"), pPortraitFrameTable);
+    deserialize(engine->resources()->event("dpft.bin"), pPortraitFrameTable);
 
     pIconsFrameTable = new IconFrameTable;
-    deserialize(engine->resources()->eventsData("dift.bin"), pIconsFrameTable);
+    deserialize(engine->resources()->event("dift.bin"), pIconsFrameTable);
 
     pDecorationList = new DecorationList;
-    deserialize(engine->resources()->eventsData("ddeclist.bin"), pDecorationList);
+    deserialize(engine->resources()->event("ddeclist.bin"), pDecorationList);
 
     pObjectList = new ObjectList;
-    deserialize(engine->resources()->eventsData("dobjlist.bin"), pObjectList);
+    deserialize(engine->resources()->event("dobjlist.bin"), pObjectList);
 
     pMonsterList = new MonsterList;
-    deserialize(engine->resources()->eventsData("dmonlist.bin"), pMonsterList);
+    deserialize(engine->resources()->event("dmonlist.bin"), pMonsterList);
 
     pOverlayList = new OverlayList;
-    deserialize(engine->resources()->eventsData("doverlay.bin"), pOverlayList);
+    deserialize(engine->resources()->event("doverlay.bin"), pOverlayList);
 
     pSoundList = new SoundList;
-    deserialize(engine->resources()->eventsData("dsounds.bin"), pSoundList);
+    deserialize(engine->resources()->event("dsounds.bin"), pSoundList);
 
     if (!config->debug.NoSound.value())
         pAudioPlayer->Initialize();
@@ -712,25 +712,25 @@ void Engine::SecondaryInitialization() {
     mouse->Initialize();
 
     pMapStats = new MapStats();
-    pMapStats->Initialize(engine->resources()->eventsData("MapStats.txt"));
+    pMapStats->Initialize(engine->resources()->event("MapStats.txt"));
 
     pMonsterStats = new MonsterStats();
-    pMonsterStats->Initialize(engine->resources()->eventsData("monsters.txt"));
-    pMonsterStats->InitializePlacements(engine->resources()->eventsData("placemon.txt"));
+    pMonsterStats->Initialize(engine->resources()->event("monsters.txt"));
+    pMonsterStats->InitializePlacements(engine->resources()->event("placemon.txt"));
 
     pSpellStats = new SpellStats();
-    pSpellStats->Initialize(engine->resources()->eventsData("spells.txt"));
+    pSpellStats->Initialize(engine->resources()->event("spells.txt"));
 
     pFactionTable = new FactionTable();
-    pFactionTable->Initialize(engine->resources()->eventsData("hostile.txt"));
+    pFactionTable->Initialize(engine->resources()->event("hostile.txt"));
 
     pHistoryTable = new HistoryTable();
-    pHistoryTable->Initialize(engine->resources()->eventsData("history.txt"));
+    pHistoryTable->Initialize(engine->resources()->event("history.txt"));
 
     pItemTable = new ItemTable();
     pItemTable->Initialize(engine->resources());
 
-    initializeHouses(engine->resources()->eventsData("2dEvents.txt"));
+    initializeHouses(engine->resources()->event("2dEvents.txt"));
 
     //pPaletteManager->SetMistColor(128, 128, 128);
     //pPaletteManager->RecalculateAll();
@@ -764,15 +764,15 @@ void Engine::SecondaryInitialization() {
     pNPCStats = new NPCStats();
     pNPCStats->Initialize(engine->resources());
 
-    initializeQuests(engine->resources()->eventsData("quests.txt"));
-    initializeAutonotes(engine->resources()->eventsData("autonote.txt"));
-    initializeAwards(engine->resources()->eventsData("awards.txt"));
-    initializeTransitions(engine->resources()->eventsData("trans.txt"));
-    initializeMerchants(engine->resources()->eventsData("merchant.txt"));
-    initializeMessageScrolls(engine->resources()->eventsData("scroll.txt"));
+    initializeQuests(engine->resources()->event("quests.txt"));
+    initializeAutonotes(engine->resources()->event("autonote.txt"));
+    initializeAwards(engine->resources()->event("awards.txt"));
+    initializeTransitions(engine->resources()->event("trans.txt"));
+    initializeMerchants(engine->resources()->event("merchant.txt"));
+    initializeMessageScrolls(engine->resources()->event("scroll.txt"));
     initializeChests();
 
-    engine->_globalEventMap = EvtProgram::load(engine->resources()->eventsData("global.evt"));
+    engine->_globalEventMap = EvtProgram::load(engine->resources()->event("global.evt"));
 
     pBitmaps_LOD->reserveLoadedTextures();
     pSprites_LOD->reserveLoadedSprites();
@@ -1469,9 +1469,9 @@ void loadMapEventsAndStrings(MapId mapid) {
     std::string mapName = pMapStats->pInfos[mapid].fileName;
     std::string mapNameWithoutExt = mapName.substr(0, mapName.rfind('.'));
 
-    initLevelStrings(engine->resources()->eventsData(fmt::format("{}.str", mapNameWithoutExt)));
+    initLevelStrings(engine->resources()->event(fmt::format("{}.str", mapNameWithoutExt)));
 
-    engine->_localEventMap = EvtProgram::load(engine->resources()->eventsData(fmt::format("{}.evt", mapNameWithoutExt)));
+    engine->_localEventMap = EvtProgram::load(engine->resources()->event(fmt::format("{}.evt", mapNameWithoutExt)));
 }
 
 bool _44100D_should_alter_right_panel() {

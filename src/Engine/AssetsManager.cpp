@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Engine.h"
 #include "Engine/Graphics/ImageLoader.h"
 #include "Engine/Graphics/Image.h"
 #include "Engine/Resources/LodTextureCache.h"
@@ -11,6 +12,7 @@
 #include "GUI/GUIFont.h"
 
 #include "Library/Logger/Logger.h"
+#include "Resources/ResourceManager.h"
 
 #include "Utility/String/Ascii.h"
 
@@ -68,56 +70,17 @@ bool AssetsManager::releaseImage(std::string_view name) {
     return true;
 }
 
-GraphicsImage *AssetsManager::getImage_Paletted(std::string_view name) {
+GraphicsImage *AssetsManager::getIcon(std::string_view name) {
     std::string filename = ascii::toLower(name);
 
     auto i = images.find(filename);
     if (i == images.end()) {
-        auto image = GraphicsImage::Create(std::make_unique<Paletted_Img_Loader>(pIcons_LOD, filename));
-        images[filename] = image;
-        return image;
-    }
-
-    return i->second;
-}
-
-
-GraphicsImage *AssetsManager::getImage_ColorKey(std::string_view name, Color colorkey) {
-    std::string filename = ascii::toLower(name);
-
-    auto i = images.find(filename);
-    if (i == images.end()) {
-        auto image = GraphicsImage::Create(std::make_unique<ColorKey_LOD_Loader>(pIcons_LOD, filename, colorkey));
-        images[filename] = image;
-        return image;
-    }
-
-    return i->second;
-}
-
-
-
-GraphicsImage *AssetsManager::getImage_Solid(std::string_view name) {
-    std::string filename = ascii::toLower(name);
-
-    auto i = images.find(filename);
-    if (i == images.end()) {
-        auto image = GraphicsImage::Create(std::make_unique<Image16bit_LOD_Loader>(pIcons_LOD, filename));
-        images[filename] = image;
-        return image;
-    }
-
-    return i->second;
-}
-
-GraphicsImage *AssetsManager::getImage_Alpha(std::string_view name) {
-    std::string filename = ascii::toLower(name);
-
-    auto i = images.find(filename);
-    if (i == images.end()) {
-        auto image = GraphicsImage::Create(std::make_unique<Alpha_LOD_Loader>(pIcons_LOD, filename));
-        images[filename] = image;
-        return image;
+        RgbaImage image = engine->resources()->icon(name);
+        if (!image)
+            return nullptr;
+        GraphicsImage *result = GraphicsImage::Create(name, std::move(image));
+        images[filename] = result;
+        return result;
     }
 
     return i->second;
@@ -136,32 +99,22 @@ GraphicsImage *AssetsManager::getImage_Buff(std::string_view name) {
     return i->second;
 }
 
-GraphicsImage *AssetsManager::getImage_PCXFromIconsLOD(std::string_view name) {
-    std::string filename = ascii::toLower(name);
-
-    auto i = images.find(filename);
-    if (i == images.end()) {
-        auto image = GraphicsImage::Create(std::make_unique<PCX_LOD_Compressed_Loader>(pIcons_LOD, filename));
-        images[filename] = image;
-        return image;
-    }
-
-    return i->second;
-}
-
 GraphicsImage *AssetsManager::getBitmap(std::string_view name, bool generated) {
     std::string filename = ascii::toLower(name);
 
     auto i = bitmaps.find(filename);
     if (i == bitmaps.end()) {
-        GraphicsImage *image = nullptr;
+        RgbaImage image;
         if (generated) {
-            image = GraphicsImage::Create(std::make_unique<Bitmaps_GEN_Loader>(filename));
+            image = engine->resources()->generated(name);
         } else {
-            image = GraphicsImage::Create(std::make_unique<Bitmaps_LOD_Loader>(pBitmaps_LOD, filename));
+            image = engine->resources()->bitmap(name);
         }
-        bitmaps[filename] = image;
-        return image;
+        if (!image)
+            return nullptr;
+        GraphicsImage *result = GraphicsImage::Create(name, std::move(image));
+        images[filename] = result;
+        return result;
     }
 
     return i->second;
@@ -185,9 +138,12 @@ GraphicsImage *AssetsManager::getSprite(std::string_view name) {
 
     auto i = sprites.find(filename);
     if (i == sprites.end()) {
-        auto image = GraphicsImage::Create(std::make_unique<Sprites_LOD_Loader>(pSprites_LOD, filename));
-        sprites[filename] = image;
-        return image;
+        RgbaImage image = engine->resources()->sprite(name);
+        if (!image)
+            return nullptr;
+        GraphicsImage *result = GraphicsImage::Create(name, std::move(image));
+        images[filename] = result;
+        return result;
     }
 
     return i->second;

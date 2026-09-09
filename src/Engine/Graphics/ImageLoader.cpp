@@ -54,60 +54,6 @@ static Palette MakePaletteColorKey(const Palette &palette, Color key) {
     return result;
 }
 
-bool Paletted_Img_Loader::Load(RgbaImage *rgbaImage) {
-    LodImage *tex = lod->loadTexture(resource_name);
-    if (tex == nullptr)
-        return false;
-
-    *rgbaImage = makeRgbaImage(tex->image, tex->palette);
-
-    return true;
-}
-
-bool ColorKey_LOD_Loader::Load(RgbaImage *rgbaImage) {
-    LodImage *tex = lod->loadTexture(resource_name);
-    if (tex == nullptr)
-        return false;
-
-    Palette palette;
-    if (tex->zeroIsTransparent) {
-        palette = MakePaletteAlpha(tex->palette);
-    } else {
-        palette = MakePaletteColorKey(tex->palette, colorkey);
-    }
-
-    *rgbaImage = makeRgbaImage(tex->image, palette);
-
-    return true;
-}
-
-bool Image16bit_LOD_Loader::Load(RgbaImage *rgbaImage) {
-    LodImage *tex = lod->loadTexture(resource_name);
-    if (tex == nullptr)
-        return false;
-
-    Palette palette;
-    if (tex->zeroIsTransparent) {
-        palette = MakePaletteAlpha(tex->palette);
-    } else {
-        palette = tex->palette;
-    }
-
-    *rgbaImage = makeRgbaImage(tex->image, palette);
-
-    return true;
-}
-
-bool Alpha_LOD_Loader::Load(RgbaImage *rgbaImage) {
-    LodImage *tex = lod->loadTexture(resource_name);
-    if (tex == nullptr)
-        return false;
-
-    *rgbaImage = makeRgbaImage(tex->image, MakePaletteAlpha(tex->palette));
-
-    return true;
-}
-
 bool Buff_LOD_Loader::Load(RgbaImage *rgbaImage) {
     LodImage *tex = lod->loadTexture(resource_name);
     if (tex == nullptr)
@@ -173,16 +119,6 @@ bool PCX_LOD_Raw_Loader::Load(RgbaImage *rgbaImage) {
     return InternalLoad(data, rgbaImage);
 }
 
-bool PCX_LOD_Compressed_Loader::Load(RgbaImage *rgbaImage) {
-    Blob pcx_data = blob_func();
-    if (!pcx_data) {
-        logger->warning("Unable to load {}", resource_name);
-        return false;
-    }
-
-    return InternalLoad(pcx_data, rgbaImage);
-}
-
 static Color ProcessTransparentPixel(const GrayscaleImage &image, const Palette &palette, size_t x, size_t y) {
     size_t count = 0;
     size_t r = 0, g = 0, b = 0;
@@ -235,7 +171,8 @@ bool Bitmaps_LOD_Loader::Load(RgbaImage *rgbaImage) {
     size_t h = tex->image.height();
 
     // Desaturate bitmaps
-    Palette palette = PaletteManager::createLoadedPalette(tex->palette);
+    Palette palette = tex->palette;
+    PaletteManager::desaturate(&palette);
 
     if (!transparentTextures.contains(this->resource_name)) {
         *rgbaImage = makeRgbaImage(tex->image, palette);

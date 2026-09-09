@@ -344,7 +344,7 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
     if (inspect_item->itemId == ITEM_NULL)
         return;
 
-    auto inspect_item_image = assets->getImage_ColorKey(inspect_item->GetIconName());
+    auto inspect_item_image = assets->getIcon(inspect_item->GetIconName());
 
     iteminfo_window.sHint.clear();
     iteminfo_window.uFrameWidth = 384;
@@ -1816,7 +1816,7 @@ void GameUI_DrawNPCPopup(int _this) {  // PopupWindowForBenefitAndJoinText
                 render->DrawTextureNew(
                     (popup_window.uFrameX + 22) / 640.0f,
                     (popup_window.uFrameY + 36) / 480.0f,
-                    assets->getImage_ColorKey(tex_name));
+                    assets->getIcon(tex_name));
 
                 popup_window.DrawTitleText(assets->pFontArrus.get(), 0, 12, colorTable.PaleCanary, NameAndTitle(pNPC), 3);
                 popup_window.uFrameWidth -= 24;

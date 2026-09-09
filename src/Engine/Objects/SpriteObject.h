@@ -13,7 +13,9 @@
 
 class SpriteFrame;
 
-/*   72 */
+/**
+ *
+ */
 struct SpriteObject {
     inline bool attachedToActor() const {
         return uAttributes & SPRITE_ATTACHED_TO_HEAD;

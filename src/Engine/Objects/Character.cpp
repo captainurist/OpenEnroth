@@ -6156,7 +6156,7 @@ void Character::OnInventoryLeftClick() {
         int itemYOffset = mousePos.y + mouseOffset.y - 17 - (corner.y * 32);
 
         if (entry) {
-            auto tex = assets->getImage_Alpha(entry->GetIconName());
+            auto tex = assets->getIcon(entry->GetIconName());
             itemXOffset -= itemOffset(tex->width());
             itemYOffset -= itemOffset(tex->height());
         }
@@ -6804,7 +6804,7 @@ bool Character::setBeacon(int index, Duration duration) {
 
     LloydBeacon beacon;
 
-    beacon.image = GraphicsImage::Create(render->MakeViewportScreenshot(92, 68));
+    beacon.image = GraphicsImage::Create("", render->MakeViewportScreenshot(92, 68));
     beacon.uBeaconTime = pParty->GetPlayingTime() + duration;
     beacon._partyPos = pParty->pos;
     beacon._partyViewYaw = pParty->_viewYaw;

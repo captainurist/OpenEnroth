@@ -46,6 +46,10 @@ void TileGenerator::fillTable() {
     }
 }
 
+bool TileGenerator::hasTile(std::string_view name) {
+    return _tilesetVariantByName.contains(name);
+}
+
 void TileGenerator::ensureTile(std::string_view name) {
     assert(_tilesetVariantByName.contains(name));
 

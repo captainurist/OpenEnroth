@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 
+#include "Library/Image/Image.h"
 #include "Library/Image/Palette.h"
 
 class LodTextureCache;
@@ -17,8 +18,8 @@ class PaletteManager {
      */
     std::span<Color> paletteData();
 
-    static Palette createGrayscalePalette();
-    static Palette createLoadedPalette(const Palette &palette);
+    static void desaturate(Palette *palette);
+    static void desaturate(RgbaImage *image);
 
  private:
     std::vector<Palette> _palettes;

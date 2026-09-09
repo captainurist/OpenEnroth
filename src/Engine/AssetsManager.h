@@ -20,14 +20,8 @@ class AssetsManager {
     bool releaseSprite(std::string_view name);
     bool releaseBitmap(std::string_view name);
 
-    GraphicsImage *getImage_ColorKey(std::string_view name, Color colorkey = colorTable.TealMask);
-    GraphicsImage *getImage_Paletted(std::string_view name);
-    GraphicsImage *getImage_Solid(std::string_view name);
-    GraphicsImage *getImage_Alpha(std::string_view name);
+    GraphicsImage *getIcon(std::string_view name);
     GraphicsImage *getImage_Buff(std::string_view name);
-
-    GraphicsImage *getImage_PCXFromIconsLOD(std::string_view name);
-
     GraphicsImage *getBitmap(std::string_view name, bool generated = false);
     GraphicsImage *getSprite(std::string_view name);
 

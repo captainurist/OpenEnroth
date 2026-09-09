@@ -5,16 +5,17 @@
 #include <memory>
 #include <string>
 
-#include "Engine/Graphics/ImageLoader.h"
 #include "Engine/Graphics/Renderer/Renderer.h"
+#include "Engine/Graphics/ImageLoader.h"
 #include "Engine/AssetsManager.h"
 
 GraphicsImage::GraphicsImage(bool lazy_initialization): _lazyInitialization(lazy_initialization) {}
 
 GraphicsImage::~GraphicsImage() = default;
 
-GraphicsImage *GraphicsImage::Create(RgbaImage image) {
+GraphicsImage *GraphicsImage::Create(std::string_view name, RgbaImage image) {
     GraphicsImage *result = new GraphicsImage(false);
+    result->_name = name;
     result->_initialized = true;
     result->_rgbaImage = std::move(image);
     result->_renderId = render->CreateTexture(result->_rgbaImage);
@@ -23,7 +24,7 @@ GraphicsImage *GraphicsImage::Create(RgbaImage image) {
 
 GraphicsImage *GraphicsImage::Create(ssize_t width, ssize_t height) {
     assert(width > 0 && height > 0);
-    return Create(RgbaImage::solid(width, height, Color()));
+    return Create("", RgbaImage::solid(width, height, Color()));
 }
 
 GraphicsImage *GraphicsImage::Create(Sizei size) {

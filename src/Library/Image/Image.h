@@ -33,6 +33,8 @@ class ViewPointer {
     T *_ptr = nullptr;
 };
 
+// TODO(captainurist): I need to drop ssize_t and just use ints for sizes here.
+
 template<class T, class Storage>
 class ImageBase {
  public:
