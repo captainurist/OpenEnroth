@@ -66,6 +66,19 @@ bool Paletted_Img_Loader::Load(RgbaImage *rgbaImage, GrayscaleImage *indexedImag
     return true;
 }
 
+bool Grayscale_LOD_Loader::Load(RgbaImage *rgbaImage, GrayscaleImage *indexedImage, Palette *palette) {
+    LodImage *tex = lod->loadTexture(resource_name);
+    if (tex == nullptr)
+        return false;
+
+    // TODO(captainurist): no need to copy here.
+    *indexedImage = GrayscaleImage::copy(tex->image.width(), tex->image.height(), tex->image.pixels().data());
+    *palette = tex->palette;
+    *rgbaImage = toRgba(*indexedImage);
+
+    return true;
+}
+
 bool ColorKey_LOD_Loader::Load(RgbaImage *rgbaImage, GrayscaleImage *indexedImage, Palette *palette) {
     LodImage *tex = lod->loadTexture(resource_name);
     if (tex == nullptr)

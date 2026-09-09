@@ -1254,6 +1254,8 @@ void GameUI_DrawPartySpells() {
             render->TexturePixelRotateDraw(pPartySpellbuffsUI_XYs[i][0] / 640.,
                                            pPartySpellbuffsUI_XYs[i][1] / 480.,
                                            party_buff_icons[i],
+                                           party_buff_palettes,
+                                           i,
                                            pMiscTimer->time().realtimeMilliseconds() / 20 + 20 * pPartySpellbuffsUI_smthns[i]);
         }
     }

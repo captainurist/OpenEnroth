@@ -6,3 +6,5 @@
 RgbaImage makeRgbaImage(GrayscaleImageView indexedImage, const Palette &palette);
 
 RgbaImage flipVertically(RgbaImageView image);
+
+RgbaImage toRgba(GrayscaleImageView image);

@@ -26,3 +26,18 @@ RgbaImage flipVertically(RgbaImageView image) {
         memcpy(result[h - y - 1].data(), image[y].data(), image[y].size_bytes());
     return result;
 }
+
+RgbaImage toRgba(GrayscaleImageView image) {
+    if (!image)
+        return RgbaImage();
+
+    RgbaImage result = RgbaImage::uninitialized(image.width(), image.height());
+    auto srcPixels = image.pixels();
+    auto dstPixels = result.pixels();
+    assert(srcPixels.size() == dstPixels.size());
+
+    for (size_t i = 0, size = srcPixels.size(); i < size; i++)
+        dstPixels[i] = Color(srcPixels[i], srcPixels[i], srcPixels[i], 255);
+
+    return result;
+}

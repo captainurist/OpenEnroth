@@ -13,6 +13,141 @@
 class GUIWindow;
 class GraphicsImage;
 
+// So, functionality:
+// - draw text with word wrap in box.
+// - get height for width.
+// - draw center-justified text.
+
+// BUT layout engine doesn't even need to know anything about fonts. Layout engine just lays out boxes.
+//
+// Layout:
+//  hasHeightForWidth.
+//  heightForWidth => function(Box*, width).
+//  minWidth, minHeight.
+//  maxWidth, maxHeight.
+//  sizeHint.
+//  data -> void*.
+//  type() -> BoxType.
+//  parent()
+//  isDirty() => polish() / invalidate()
+//  children() - need to be here so that the tree is externally traversable.
+//  visible() - can hide an element & this is handled in a sane way
+//
+// LayoutBox:
+//  setMinWidth, setMaxWidth
+//  setMinHeigh, setMaxHeight
+//  setHeightForWidth
+//
+// Label is a LeafBox. maxWidth is when expanding makes no sense (text fits), minWidth is shortest word, minHeight is text height, maxHeight corresponds to ...
+// preferredSize is one-liner size.
+//
+// PinnedLayout:
+//  addChild(x, y, w, h, Box).
+//  children()
+//
+// MarginsLayout:
+//  margins()
+//  setMargins()
+//  child()
+//  setChild()
+//
+// LinearLayout:
+//  spacing()
+//  addChild(stretch, Box)
+//  addSpacer(stretch)
+//  - sizehint is sum of sizehints pretty much, stretch doesn't do anything.
+//
+// TableLayout:
+//  rows() cols()
+//  rowSpacing() colSpacing()
+//  addChild(x, y, Box)
+//
+// ScrollLayout:
+//  prefferedSize == content preferredSize
+//  minSize = 0
+//  offset / setOffset
+//  layout() lays out child at offset using child's prefSize?
+//  child()
+//
+// What tableBox does (inspiration here https://codebrowser.dev/qt5/qtbase/src/widgets/kernel/qlayoutengine.cpp.html#_Z9qGeomCalcR7QVectorI13QLayoutStructEiiiii).
+//  minWidth => get minWidth of all.
+//  minHeight => same.
+//  maxWidth => same.
+//  maxHeight => same.
+//  layout(geometry)
+//  - if we can fit minsize (we always can) but not prefsize =>
+//    - use the water-filling-the-mountain-range algo. Sort by prefsize-minsize, try to add first to all, then next.
+//      If can't add to all => add to ones that will get to prefsize (thus, not equally).
+//      If still have leftovers => add to all.
+//
+// Add geometry() (inside parent!) and layout(Recti) to Box => you have layout engine.
+// Yes it mixes up logic, data and output. But, whatever.
+//
+// Then, scroll boxes.
+//
+// VBOX
+//   Scroll
+//   HBOX
+//     Button
+//     Box
+//     Scroller
+//     Box
+//     Button
+//
+//
+// OK, now, Widgets.
+//
+// Widget : PlatformEventFilter
+//   Layout layout() - not inherited, data points back into Widget.
+//
+// EventPropagation:
+// MouseEvent:
+//   - do we have a mouse grabber?
+//     - yes? send to it.
+//       - maybe release mouse
+//     - no? go through layout hierarchy all the way down.
+//       - filters event? good, we're done.
+//         - grab mouse if it was a mouse press.
+//       - otherwise go to parent & repeat. data() gives widget.
+//
+// KeyboardEvent:
+//   - do we have a focus widget?
+//     - yes? send to it.
+//     - no? ignore.
+//
+// Gui::setFocusWidget(Widget*)
+// Gui::setMouseGrabber(Widget*)
+//
+// Button: Widget
+// onPressed = []
+//
+// Label: Widget <= all font shenanigans are here.
+//
+// Stretch for stretchable UI elements.
+//
+// Portrait:
+// onClick = []
+// onDoubleClick = []
+//
+// VScrollArea
+//
+
+// For the images / textures caching.
+// 1. Drop all the colorkey / xyz bullshit, move transparency keys and the need to interpolate to jsons.
+// 2. weak_ptr<Texture> in AssetsManager
+// 3. shared_ptr<Texture> in AssetsManager for shit that's always needed.
+// 4. Texture has rgba() and renderId() (optional). indexed() is not needed there's only one usage for it - in cycling enchantment images. These should just be atlassed & cached.
+//
+// shared_ptrs are stored in sprite frame tables, in renderer, maybe somewhere else. For now just store them in AssetManager, and add gc() method there.
+//
+// AssetsManager has Source: SOURCE_ICONS, SOURCE_SPRITES, SOURCE_XYZ, SOURCE_GENERATED
+//
+// Also we need to generate EVERYTHING on startup. No lazy generations plz, no name parsing and fake generating file systems.
+//
+// Step 1 - atlassing the animations.
+// Step 2 - dropping colorkey hardcode.
+// Step 3 - redoing assetmanager. Loose textures belong to GUI classes.
+
 /**
  * Some notes on markup characters supported by `GUIFont` functions.
  *

@@ -28,7 +28,6 @@ enum class Condition : uint32_t {
 };
 using enum Condition;
 
-// TODO(pskelton): #enum drop CHARACTER_SKILL_ at start?
 enum class CharacterSkillMastery {
     CHARACTER_SKILL_MASTERY_NONE = 0,
     CHARACTER_SKILL_MASTERY_NOVICE = 1,
@@ -72,6 +71,7 @@ enum class CharacterBuff {
 };
 using enum CharacterBuff;
 
+// SpeechId
 enum class CharacterSpeech {
     SPEECH_NONE = 0,
     SPEECH_KILL_WEAK_ENEMY = 1,
@@ -201,6 +201,8 @@ enum class Race {
 };
 using enum Race;
 
+// SkillAffinity
+// SKILL_AFFINITY_DENIED
 enum class ClassSkillAffinity : uint8_t {
     CLASS_SKILL_DENIED = 0,
     CLASS_SKILL_AVAILABLE = 1,
@@ -209,6 +211,8 @@ enum class ClassSkillAffinity : uint8_t {
 using enum ClassSkillAffinity;
 
 // TODO(pskelton): drop CHARACTER_ at start?
+// enum class Skill
+// SKILL_XYZ
 enum class CharacterSkillType : int8_t {
     CHARACTER_SKILL_INVALID = -1,
     CHARACTER_SKILL_STAFF = 0,
@@ -259,6 +263,7 @@ enum class CharacterSkillType : int8_t {
 };
 using enum CharacterSkillType;
 
+// enum class Class
 enum class CharacterClass : uint8_t {
     CLASS_KNIGHT = 0,
     CLASS_CAVALIER = 1,
@@ -371,6 +376,7 @@ enum class CharacterPortrait : uint16_t {
 };
 using enum CharacterPortrait;
 
+// enum class Sex
 enum class CharacterSex : uint8_t {
     SEX_MALE = 0,
     SEX_FEMALE = 1,
@@ -380,6 +386,7 @@ enum class CharacterSex : uint8_t {
 };
 using enum CharacterSex;
 
+// enum class Attribute
 enum class CharacterAttribute {
     ATTRIBUTE_MIGHT = 0,
     ATTRIBUTE_INTELLIGENCE = 1,

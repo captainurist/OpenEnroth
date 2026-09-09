@@ -1080,8 +1080,13 @@ static void LoadPartyBuffIcons() {
         //auto temp = assets->GetImage_Paletted(StringPrintf("isn-%02d", i + 1));
         //int booty = temp->GetHeight();
         //party_buff_icons[i] = assets->getImage_ColorKey(StringPrintf("isn-%02d", i + 1), colorTable.TealMask);
-        party_buff_icons[i] = assets->getImage_Paletted(fmt::format("isn-{:02}", i + 1));
+        party_buff_icons[i] = assets->getImage_Grayscale(fmt::format("isn-{:02}", i + 1));
     }
+
+    RgbaImage palettes = RgbaImage::uninitialized(256, 14);
+    for (unsigned i = 0; i < 14; ++i)
+        memcpy(palettes[i].data(), party_buff_icons[i]->palette().colors.data(), 256 * sizeof(Color));
+    party_buff_palettes = GraphicsImage::Create(std::move(palettes));
 
     uIconIdx_FlySpell = pIconsFrameTable->animationId("spell21");
     uIconIdx_WaterWalk = pIconsFrameTable->animationId("spell27");

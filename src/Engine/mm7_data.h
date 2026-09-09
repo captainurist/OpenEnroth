@@ -77,6 +77,7 @@ extern unsigned int uNumBlueFacesInBLVMinimap;
 extern std::array<uint16_t, 50> pBlueFacesInBLVMinimapIDs;
 
 extern std::array<GraphicsImage *, 14> party_buff_icons;
+extern GraphicsImage *party_buff_palettes;
 extern unsigned int uIconIdx_FlySpell;
 extern unsigned int uIconIdx_WaterWalk;
 

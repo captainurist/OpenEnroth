@@ -6062,8 +6062,8 @@ void DamageCharacterFromMonster(Pid uObjID, ActorAbility dmgSource, signed int t
             int dmgToReceive = actorPtr->_43B3E0_CalcDamage(dmgSource);
             SpriteId spriteType = spritefrom->uType;
 
-            if (spriteType == SPRITE_ARROW_PROJECTILE) {  // arrows
-                // GM unarmed 1% chance to evade attack per skill point
+            // GM unarmed gives 1% chance to evade attack per skill point, works only against arrows.
+            if (spriteType == SPRITE_ARROW_PROJECTILE) {
                 if (playerPtr->getActualSkillValue(CHARACTER_SKILL_UNARMED).mastery() >= CHARACTER_SKILL_MASTERY_GRANDMASTER &&
                     grng->random(100) < playerPtr->getActualSkillValue(CHARACTER_SKILL_UNARMED).level()) {
                     engine->_statusBar->setEvent(LSTR_S_EVADES_DAMAGE, playerPtr->name);
@@ -6072,10 +6072,10 @@ void DamageCharacterFromMonster(Pid uObjID, ActorAbility dmgSource, signed int t
                 }
             }
 
-            // TODO(captainurist): I don't think magic projectiles should be in this list.
+            // AC and shield work against any of the non-spell projectiles.
             if (spriteType == SPRITE_ARROW_PROJECTILE ||
                        spriteType == SPRITE_BLASTER_PROJECTILE ||
-                       spriteType == SPRITE_PROJECTILE_AIRBOLT ||  // dragonflies firebolt
+                       spriteType == SPRITE_PROJECTILE_AIRBOLT ||
                        spriteType == SPRITE_PROJECTILE_EARTHBOLT ||
                        spriteType == SPRITE_PROJECTILE_FIREBOLT ||
                        spriteType == SPRITE_PROJECTILE_WATERBOLT ||

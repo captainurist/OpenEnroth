@@ -35,6 +35,19 @@ class Paletted_Img_Loader : public ImageLoader {
     LodTextureCache *lod;
 };
 
+class Grayscale_LOD_Loader : public ImageLoader {
+ public:
+    inline Grayscale_LOD_Loader(LodTextureCache *lod, std::string_view filename) {
+        this->resource_name = filename;
+        this->lod = lod;
+    }
+
+    virtual bool Load(RgbaImage *rgbaImage, GrayscaleImage *indexedImage, Palette *palette) override;
+
+ protected:
+    LodTextureCache *lod;
+};
+
 class ColorKey_LOD_Loader : public ImageLoader {
  public:
     inline ColorKey_LOD_Loader(LodTextureCache *lod, std::string_view filename, Color colorkey) {

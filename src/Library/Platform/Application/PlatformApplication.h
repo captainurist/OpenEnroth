@@ -12,6 +12,41 @@
 class FilteringEventHandler;
 class ApplicationProxy;
 
+// Probably should be a container of:
+// - root objects (systems)?
+// - components.
+//
+// root objects are either:
+// - proxyable (Platform)
+// - filter-chainable (FilteringEventHandler)
+//
+// components are:
+// - proxies
+// - filters
+// - can replace root objects altogether in install/uninstallNotify.
+//
+// How to implement this properly? Components will need to have a common base, ugh.
+
+// installGlobal(T, id)
+// removeGlobal(T, id)
+// global<T>(id)
+//
+// installComponent(T, id)
+// removeComponent(T, id)
+// component<T>(id)
+//
+// Global should specialize application_proxy<T>
+// OR application_filter<T>
+//
+// Then just do std::reflect::bases_of to find a tree of bases, and go over registered proxy types to match. HAH!
+// Need C++26.
+//
+// Wait. Components will need to explicitly state WHAT they are overriding. B/c can override one RNG or the other one.
+// Or one FS or the other one.
+//
+// UGH. But, wait. RNG and FS use non-default ids. So for non-default IDS you need to do the magic in installNotify.
+// Otherwise the magic happens auto-magically.
+
 /**
  * This class ties together everything in platform for a particular use case of an application with a single window.
  *

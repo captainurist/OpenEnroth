@@ -22,6 +22,7 @@ class AssetsManager {
 
     GraphicsImage *getImage_ColorKey(std::string_view name, Color colorkey = colorTable.TealMask);
     GraphicsImage *getImage_Paletted(std::string_view name);
+    GraphicsImage *getImage_Grayscale(std::string_view name);
     GraphicsImage *getImage_Solid(std::string_view name);
     GraphicsImage *getImage_Alpha(std::string_view name);
 

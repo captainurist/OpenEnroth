@@ -2411,6 +2411,7 @@ unsigned int uNumBlueFacesInBLVMinimap;
 std::array<uint16_t, 50> pBlueFacesInBLVMinimapIDs;
 
 std::array<GraphicsImage *, 14> party_buff_icons;
+GraphicsImage *party_buff_palettes;
 unsigned int uIconIdx_FlySpell;
 unsigned int uIconIdx_WaterWalk;
 

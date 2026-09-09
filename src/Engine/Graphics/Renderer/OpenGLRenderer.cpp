@@ -776,11 +776,124 @@ void OpenGLRenderer::BlendTextures(int x, int y, GraphicsImage *imgin, GraphicsI
     }
 }
 
+struct buffverts {
+    GLfloat x;
+    GLfloat y;
+    GLfloat z;
+    GLfloat u;
+    GLfloat v;
+    GLint offset;
+    GLint paletteid;
+};
+
+buffverts buffshaderstore[500] = {};
+int buffvertscnt = 0;
+
+
 // TODO(pskelton): renderbase
 //----- (004A65CC) --------------------------------------------------------
 //_4A65CC(unsigned int x, unsigned int y, Texture_MM7 *a4, Texture_MM7 *a5, int a6, int a7, int a8)
 // a6 is time, a7 is 0, a8 is 63
-void OpenGLRenderer::TexturePixelRotateDraw(float u, float v, GraphicsImage *img, int time) {
+void OpenGLRenderer::TexturePixelRotateDraw(float u, float v, GraphicsImage *img, GraphicsImage *pal, int palidx, int time) {
+    if (engine->callObserver)
+        engine->callObserver->notify(CALL_DRAW_2D_TEXTURE, img->GetName());
+
+    int width = img->width();
+    int height = img->height();
+
+    int x = u * outputRender.w;
+    int y = v * outputRender.h;
+    int z = x + width;
+    int w = y + height;
+
+    // check bounds
+    if (x >= outputRender.w || y >= outputRender.h)
+        return;
+
+    // check for overlap
+    Recti clippedRect = Recti(x, y, width, height).intersection(this->clipRect);
+    if (clippedRect.isEmpty())
+        return;
+
+    float gltexid = img->renderId().value();
+
+    float drawx = clippedRect.x;
+    float drawy = clippedRect.y;
+    float drawz = clippedRect.x + clippedRect.w;
+    float draww = clippedRect.y + clippedRect.h;
+
+    float texx = (drawx - x) / float(width);
+    float texy = (drawy - y) / float(height);
+    float texz = (drawz - x) / float(width);
+    float texw = (draww - y) / float(height);
+
+    // 0 1 2 / 0 2 3
+
+    buffshaderstore[twodvertscnt].x = drawx;
+    buffshaderstore[twodvertscnt].y = drawy;
+    buffshaderstore[twodvertscnt].z = 0;
+    buffshaderstore[twodvertscnt].u = texx;
+    buffshaderstore[twodvertscnt].v = texy;
+    buffshaderstore[twodvertscnt].texid = gltexid;
+    buffshaderstore[twodvertscnt].paletteid = 0;
+    buffvertscnt++;
+
+    buffshaderstore[twodvertscnt].x = drawz;
+    buffshaderstore[twodvertscnt].y = drawy;
+    buffshaderstore[twodvertscnt].z = 0;
+    buffshaderstore[twodvertscnt].u = texz;
+    buffshaderstore[twodvertscnt].v = texy;
+    buffshaderstore[twodvertscnt].texid = gltexid;
+    buffshaderstore[twodvertscnt].paletteid = 0;
+    buffvertscnt++;
+
+    buffshaderstore[twodvertscnt].x = drawz;
+    buffshaderstore[twodvertscnt].y = draww;
+    buffshaderstore[twodvertscnt].z = 0;
+    buffshaderstore[twodvertscnt].u = texz;
+    buffshaderstore[twodvertscnt].v = texw;
+    buffshaderstore[twodvertscnt].color = cf;
+    buffshaderstore[twodvertscnt].texid = gltexid;
+    buffshaderstore[twodvertscnt].paletteid = 0;
+    buffvertscnt++;
+
+    ////////////////////////////////
+
+    buffshaderstore[twodvertscnt].x = drawx;
+    buffshaderstore[twodvertscnt].y = drawy;
+    buffshaderstore[twodvertscnt].z = 0;
+    buffshaderstore[twodvertscnt].u = texx;
+    buffshaderstore[twodvertscnt].v = texy;
+    buffshaderstore[twodvertscnt].color = cf;
+    buffshaderstore[twodvertscnt].texid = gltexid;
+    buffshaderstore[twodvertscnt].paletteid = 0;
+    buffvertscnt++;
+
+    buffshaderstore[twodvertscnt].x = drawz;
+    buffshaderstore[twodvertscnt].y = draww;
+    buffshaderstore[twodvertscnt].z = 0;
+    buffshaderstore[twodvertscnt].u = texz;
+    buffshaderstore[twodvertscnt].v = texw;
+    buffshaderstore[twodvertscnt].color = cf;
+    buffshaderstore[twodvertscnt].texid = gltexid;
+    buffshaderstore[twodvertscnt].paletteid = 0;
+    buffvertscnt++;
+
+    buffshaderstore[twodvertscnt].x = drawx;
+    buffshaderstore[twodvertscnt].y = draww;
+    buffshaderstore[twodvertscnt].z = 0;
+    buffshaderstore[twodvertscnt].u = texx;
+    buffshaderstore[twodvertscnt].v = texw;
+    buffshaderstore[twodvertscnt].color = cf;
+    buffshaderstore[twodvertscnt].texid = gltexid;
+    buffshaderstore[twodvertscnt].paletteid = 0;
+    buffvertscnt++;
+
+    if (buffvertscnt > 490) DrawBuffVerts();
+    return;
+
+
+
     // TODO(pskelton): sort this - precalculate/ shader
     static std::array<GraphicsImage *, 14> cachedtemp {};
     static std::array<int, 14> cachetime { -1 };
@@ -4472,7 +4585,7 @@ bool OpenGLRenderer::Initialize() {
     //  Turn on 24bit Z buffer.
     //  You may need to change this to 16 or 32 for your system
     opts.depthBits = 24;
-    opts.stencilBits = 8;
+    //opts.stencilBits = 8;
 
     opts.vsyncMode = config->graphics.VSync.value() ? GL_VSYNC_ADAPTIVE : GL_VSYNC_NONE;
 
@@ -4969,9 +5082,6 @@ void OpenGLRenderer::DrawTwodVerts() {
         // colour
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(twodverts), (void*)offsetof(twodverts, color));
         glEnableVertexAttribArray(2);
-        // texid
-        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(twodverts), (void*)offsetof(twodverts, texid));
-        glEnableVertexAttribArray(3);
         // paletteid
         glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(twodverts), (void*)offsetof(twodverts, paletteid));
         glEnableVertexAttribArray(4);
@@ -4998,7 +5108,6 @@ void OpenGLRenderer::DrawTwodVerts() {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
     glEnableVertexAttribArray(4);
 
     twodshader.use();
