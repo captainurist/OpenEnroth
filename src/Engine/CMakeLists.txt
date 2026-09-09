@@ -65,7 +65,6 @@ target_link_libraries(engine
         engine_time
         engine_resources
         library_compression
-        library_encoding_detector
         library_logger
         library_serialization
         library_color

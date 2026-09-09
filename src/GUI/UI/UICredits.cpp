@@ -15,8 +15,8 @@
 constexpr Recti creditsRect(389, 19, 250, 440);
 
 GUICredits::GUICredits() : GUIWindow(WINDOW_Credits, {0, 0}, render->GetRenderDimensions()) {
-    _fontQuick = GUIFont::LoadFont("quick.fnt");
-    _fontCChar = GUIFont::LoadFont("cchar.fnt");
+    _fontQuick = GUIFont::LoadFont("quick.oef");
+    _fontCChar = GUIFont::LoadFont("cchar.oef");
 
     _mm6TitleTexture = assets->getImage_PCXFromIconsLOD("mm6title.pcx");
 

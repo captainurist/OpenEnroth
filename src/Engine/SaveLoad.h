@@ -49,6 +49,13 @@ struct SaveGameLite {
 /** Runtime storage for map deltas from the currently loaded save. */
 extern std::unordered_map<std::string, Blob> pMapDeltas;
 
+/**
+ * Encoding of the currently loaded save. New games start out in utf8, while saves loaded from disk keep whatever
+ * encoding they were in - a save that came from the original game should still be loadable there after we write it
+ * back, and the original game doesn't understand utf8.
+ */
+extern TextEncoding currentSaveEncoding;
+
 struct SavegameList {
     static void Initialize();
     SavegameList();

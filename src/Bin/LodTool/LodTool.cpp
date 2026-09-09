@@ -10,6 +10,7 @@
 #include "Library/Image/ImageFunctions.h"
 #include "Library/Image/Pcx.h"
 #include "Library/Image/Png.h"
+#include "Library/Font/Oef.h"
 #include "Library/LodFormats/LodFormats.h"
 #include "Library/FileSystem/Directory/DirectoryFileSystem.h"
 #include "Library/Serialization/Serialization.h"
@@ -18,28 +19,37 @@
 #include "Utility/String/Format.h"
 #include "Utility/String/Ascii.h"
 #include "Utility/String/Transformations.h"
+#include "Utility/Memory/Blob.h"
+#include "Utility/Exception.h"
 #include "Utility/UnicodeCrt.h"
 
 #include "ArchiveReader.h"
 
-static RgbaImage renderFont(const LodFont &font) {
+static RgbaImage renderFont(const Font &font) {
     int charHeight = font.height();
     int charWidth = 0;
-    for (int c = 0; c < 255; c++)
-        charWidth = std::max(charWidth, font.metrics(c).width);
+    for (int i = 0; i < font.size(); i++)
+        charWidth = std::max(charWidth, font.metrics(i).width);
 
-    RgbaImage image = RgbaImage::solid(Color(0, 0, 0, 255), charWidth * 16, charHeight * 16);
+    // Lay the glyphs out by glyph index - a font is keyed by unicode code point, so laying them out by character
+    // would need a grid the size of the unicode range.
+    int columns = 16;
+    int rows = (font.size() + columns - 1) / columns;
+    RgbaImage image = RgbaImage::solid(Color(0, 0, 0, 255), charWidth * columns, charHeight * rows);
 
-    for (int c = 0; c < 255; c++) {
-        int x0 = (c % 16) * charWidth;
-        int y0 = (c / 16) * charHeight;
+    for (int i = 0; i < font.size(); i++) {
+        int x0 = (i % columns) * charWidth;
+        int y0 = (i / columns) * charHeight;
 
-        GrayscaleImageView glyph = font.image(c);
+        GrayscaleImageView glyph = font.image(i);
         for (int y = 0; y < glyph.height(); y++) {
             for (int x = 0; x < glyph.width(); x++) {
-                int gray = glyph[y][x];
-                if (gray == 1)
-                    gray = 128; // Make the shadow gray.
+                int gray = 0;
+                switch (glyph[y][x]) {
+                case 1: gray = 255; break; // Text.
+                case 2: gray = 128; break; // Shadow, rendered gray.
+                default: break;            // Background.
+                }
                 image[y0 + y][x0 + x] = Color(gray, gray, gray, 255);
             }
         }
@@ -99,9 +109,15 @@ DecodedEntries decodeLodEntry(Blob entry, std::string name, bool raw, ArchiveRea
     }
 
     if (format == MAGIC_LOD_FONT) {
-        LodFont lodFont = lod::decodeFont(entry);
+        Font lodFont = lod::decodeFont(entry, ENCODING_ISO_8859_1);
         return result(std::move(entry), name)
                      (png::encode(renderFont(lodFont)), name + ".png");
+    }
+
+    if (format == MAGIC_OE_FONT) {
+        Font font = oef::decode(entry);
+        return result(std::move(entry), name)
+                     (png::encode(renderFont(font)), name + ".png");
     }
 
     // We have pcx images inside compressed entries, so to support this we just re-run the function.
@@ -171,6 +187,26 @@ int runExtract(const LodToolOptions &options) {
     return 0;
 }
 
+int runConvert(const LodToolOptions &options) {
+    std::unique_ptr<ArchiveReader> paletteReader = options.palettesLodPath.empty() ? nullptr : ArchiveReader::createArchiveReader(options.palettesLodPath);
+
+    DecodedEntries entries = decodeLodEntry(Blob::fromFile(options.convert.input), options.convert.input, false, paletteReader.get());
+
+    // Conversion can keep the original entry and append the converted form (e.g. fonts yield the .fnt + a .png),
+    // so the converted representation is always the last one.
+    const Blob &data = entries.back().first;
+
+    FILE *output = fopen(options.convert.output.c_str(), "wb");
+    if (!output)
+        throw Exception("Cannot open output file '{}'", options.convert.output);
+    bool ok = data.empty() || fwrite(data.data(), data.size(), 1, output) == 1;
+    fclose(output);
+    if (!ok)
+        throw Exception("Cannot write output file '{}'", options.convert.output);
+
+    return 0;
+}
+
 int main(int argc, char **argv) {
     try {
         UnicodeCrt _(argc, argv);
@@ -184,6 +220,7 @@ int main(int argc, char **argv) {
         case LodToolOptions::SUBCOMMAND_DUMP: return runDump(options);
         case LodToolOptions::SUBCOMMAND_CAT: return runCat(options);
         case LodToolOptions::SUBCOMMAND_EXTRACT: return runExtract(options);
+        case LodToolOptions::SUBCOMMAND_CONVERT: return runConvert(options);
         }
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}\n", e.what());

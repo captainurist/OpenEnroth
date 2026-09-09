@@ -40,6 +40,7 @@
 
 SavegameList *pSavegameList = new SavegameList;
 std::unordered_map<std::string, Blob> pMapDeltas;
+TextEncoding currentSaveEncoding = ENCODING_UTF8;
 
 void loadGame(int uSlot) {
     if (!pSavegameList->pSavegameUsedSlots[uSlot]) {
@@ -70,6 +71,7 @@ void loadGame(int uSlot) {
     pNPCStats->pNPCData = std::move(state.npcData);
     pNPCStats->pGroups = std::move(state.npcGroups);
     pMapDeltas = std::move(state.mapDeltas);
+    currentSaveEncoding = state.extension.encoding;
 
     // Patch up event timer.
     pEventTimer->setPaused(true); // We're loading the game now => event timer is paused.
@@ -148,7 +150,7 @@ std::pair<SaveGameHeader, Blob> createSaveData(bool resetWorld, std::string_view
     state.overlays = *pActiveOverlayList;
     state.npcData = pNPCStats->pNPCData;
     state.npcGroups = pNPCStats->pGroups;
-    state.extension.encoding = engine->resources()->encoding();
+    state.extension.encoding = currentSaveEncoding;
 
     // Populate map deltas.
     if (resetWorld) {
@@ -291,6 +293,7 @@ void SavegameList::Reset() {
 }
 
 void saveNewGame() {
+    currentSaveEncoding = ENCODING_UTF8; // Nothing was loaded, so this save is ours & can be in utf8.
     engine->_currentLoadedMapId = MAP_EMERALD_ISLAND;
     pParty->pos.x = 12552;
     pParty->pos.y = 800;

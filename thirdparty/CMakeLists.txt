@@ -85,22 +85,15 @@ add_subdirectory(lambda2)
 set(ZTD_IDK_EXCLUDE_FROM_ALL ON)
 add_subdirectory(ztd_text EXCLUDE_FROM_ALL)
 
-# uchardet
-set(BUILD_BINARY OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-add_subdirectory(uchardet EXCLUDE_FROM_ALL)
-# Disable -Werror flags for uchardet as it has missing override specifiers.
-if(TARGET libuchardet AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(libuchardet PRIVATE -Wno-suggest-override -Wno-inconsistent-missing-override)
-endif()
-# Disable sanitizers for uchardet. Its CMakeLists.txt unconditionally enables ASan in Debug mode via
-# add_compile_options("-fsanitize=address"), and this causes ASan runtime linkage issues on Linux &
-# MacOS, and LNK2038 annotation mismatches (annotate_string / annotate_vector) on Windows.
-if(TARGET libuchardet)
-    get_target_property(_opts libuchardet COMPILE_OPTIONS)
-    list(REMOVE_ITEM _opts "-fsanitize=address")
-    set_target_properties(libuchardet PROPERTIES COMPILE_OPTIONS "${_opts}")
-    get_target_property(_opts libuchardet LINK_OPTIONS)
-    list(REMOVE_ITEM _opts "-fsanitize=address")
-    set_target_properties(libuchardet PROPERTIES LINK_OPTIONS "${_opts}")
-endif()
+# freetype
+# Used by the font tools to rasterize source typefaces. EXCLUDE_FROM_ALL keeps it out of the game build - only
+# FontGen and FontMatch link it, and both are gated behind OE_BUILD_TOOLS.
+#
+# zlib and png are left enabled - we already depend on both, and FT_DISABLE_ZLIB doesn't drop gzip support, it
+# makes freetype bundle a second copy of zlib instead of using ours. The rest are formats we have no dependency
+# for: bzip2 costs us `.pcf.bz2` fonts, brotli costs us `.woff2` ones. FontMatch reports every font it fails to
+# open, so a font lost to these is loud rather than silently dropped from the search.
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+add_subdirectory(freetype EXCLUDE_FROM_ALL)

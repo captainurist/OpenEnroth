@@ -80,7 +80,6 @@
 
 #include "Io/Mouse.h"
 
-#include "Library/EncodingDetector/EncodingDetector.h"
 #include "Library/Logger/Logger.h"
 #include "Library/BuildInfo/BuildInfo.h"
 #include "Tables/ChestTable.h"

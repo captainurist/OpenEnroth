@@ -33,7 +33,8 @@
 #include "Utility/Streams/BlobOutputStream.h"
 
 #include "Engine/Graphics/Image.h"
-#include "Library/EncodingDetector/EncodingDetector.h"
+#include "EnumSnapshots.h"
+#include "LegacyEncodingDetector.h"
 #include "Library/LodFormats/LodFormats.h"
 #include "Library/Logger/Logger.h"
 
@@ -706,12 +707,11 @@ void reconstruct(const SaveGame_MM7 &src, SaveGame *dst) {
     if (src.extension) {
         from_json(Json::parse(src.extension.str()), dst->extension);
     } else {
-        EncodingDetector detector;
+        std::string names;
         auto push = [&]<size_t N>(const std::array<char, N> &str) {
             std::string tmp;
             reconstruct(str, &tmp, tags::encoding(ENCODING_BYTES));
-            detector.write(tmp);
-            detector.write("\n");
+            names += tmp;
         }; // NOLINT(readability/braces)
         push(src.header.name);
         for (int i = 0; i < 4; i++)
@@ -721,15 +721,8 @@ void reconstruct(const SaveGame_MM7 &src, SaveGame *dst) {
 
         // TODO(captainurist): Can also use actor names from level deltas.
 
-        TextEncoding detectedEncoding = detector.finish();
-
-        if (detectedEncoding == ENCODING_BYTES) {
-            logger->info("Failed to detect savegame encoding.");
-            dst->extension.encoding = ENCODING_WINDOWS_1252;
-        } else {
-            logger->info("Savegame encoding '{}' detected.", toString(detectedEncoding));
-            dst->extension.encoding = detectedEncoding;
-        }
+        dst->extension.encoding = detectLegacySaveEncoding(names);
+        logger->info("Savegame encoding '{}' detected.", toString(dst->extension.encoding));
     }
 
     reconstruct(src.header, &dst->header, tags::encoding(dst->extension.encoding));

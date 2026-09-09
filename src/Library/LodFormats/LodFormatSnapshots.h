@@ -5,9 +5,6 @@
 
 #include "Library/Binary/BinaryFwd.h"
 
-struct LodFontMetrics;
-struct LodFontAtlas;
-
 #pragma pack(push, 1)
 
 struct LodCompressionHeader_MM6 {
@@ -98,16 +95,12 @@ struct LodFontMetrics_MM7 {
 static_assert(sizeof(LodFontMetrics_MM7) == 12);
 MM_DECLARE_MEMCOPY_SERIALIZABLE(LodFontMetrics_MM7)
 
-void reconstruct(const LodFontMetrics_MM7 &src, LodFontMetrics *dst);
-
 struct LodFontAtlas_MM7 {
     std::array<LodFontMetrics_MM7, 256> metrics;
     std::array<uint32_t, 256> offsets;
 };
 static_assert(sizeof(LodFontAtlas_MM7) == 4096);
 MM_DECLARE_MEMCOPY_SERIALIZABLE(LodFontAtlas_MM7)
-
-void reconstruct(const LodFontAtlas_MM7 &src, LodFontAtlas *dst);
 
 /**
  * This is used for 'calig.fnt' in MM7 'icons.lod'. This font is not loaded by the engine. Not sure if it's from
@@ -119,7 +112,5 @@ struct LodFontAtlas_MMX {
 };
 static_assert(sizeof(LodFontAtlas_MMX) == 1280);
 MM_DECLARE_MEMCOPY_SERIALIZABLE(LodFontAtlas_MMX)
-
-void reconstruct(const LodFontAtlas_MMX &src, LodFontAtlas *dst);
 
 #pragma pack(pop)

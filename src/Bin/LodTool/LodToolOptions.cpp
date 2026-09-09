@@ -29,6 +29,11 @@ LodToolOptions LodToolOptions::parse(int argc, char **argv) {
     extract->add_option("ARCHIVE", result.path, "Path to archive file.")->check(CLI::ExistingFile)->required()->option_text(" ");
     extract->add_option("OUTPUT", result.extract.output, "Directory to extract the entries to.")->required()->option_text(" ");
 
+    CLI::App *convert = app->add_subcommand("convert", "Convert a single file, decoding images/fonts to png and sounds to wav.", result.subcommand, SUBCOMMAND_CONVERT)->fallthrough();
+    convert->add_option("--palettes-lod-path", result.palettesLodPath, "Path to bitmaps.lod to use for sprite palettes.")->check(CLI::ExistingFile)->option_text("PATH");
+    convert->add_option("INPUT", result.convert.input, "Path to the file to convert.")->check(CLI::ExistingFile)->required()->option_text(" ");
+    convert->add_option("OUTPUT", result.convert.output, "Path to write the converted file to.")->required()->option_text(" ");
+
     app->parse(argc, argv, result.helpPrinted);
     return result;
 }
