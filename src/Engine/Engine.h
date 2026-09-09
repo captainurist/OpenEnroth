@@ -181,7 +181,7 @@ void updatePartyDeathState();
  *
  * @offset 0x493938.
  */
-void RegeneratePartyHealthMana();
+void RegeneratePartyHealthMana(Time oldTime, Time newTime);
 std::string GetReputationString(int reputation);
 
 /**

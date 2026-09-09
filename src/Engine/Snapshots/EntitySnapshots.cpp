@@ -459,7 +459,7 @@ void snapshot(const Party &src, Party_MM7 *dst) {
     dst->yawRotationSpeed = src._yawRotationSpeed;
     dst->jumpStrength = src.jump_strength;
     snapshot(src.playing_time, &dst->timePlayed);
-    snapshot(src.last_regenerated, &dst->lastRegenerationTime);
+    snapshot(src.playing_time, &dst->lastRegenerationTime);
 
     snapshot(src.PartyTimes.bountyHuntNextGenTime, &dst->partyTimes.bountyHuntingNextGenerationTime);
     dst->partyTimes.bountyHuntingNextGenerationTimeUnused.fill(0);
@@ -575,7 +575,7 @@ void reconstruct(const Party_MM7 &src, Party *dst) {
     dst->_yawRotationSpeed = src.yawRotationSpeed;
     dst->jump_strength = src.jumpStrength;
     reconstruct(src.timePlayed, &dst->playing_time);
-    reconstruct(src.lastRegenerationTime, &dst->last_regenerated);
+    reconstruct(src.timePlayed, &dst->last_regenerated);
 
     reconstruct(src.partyTimes.bountyHuntingNextGenerationTime, &dst->PartyTimes.bountyHuntNextGenTime);
     reconstruct(src.partyTimes.shopsNextGenerationTime, &dst->PartyTimes.shopNextRefreshTime);

@@ -23,6 +23,10 @@ struct LongCivilDuration {
     int seconds = 0;
 };
 
+// TODO(captainurist): better API would be:
+// static Duration::minutes(x), Duration::days(x), Duration::weeks(x), etc.
+// int Duration::fullDays(), int Duration::fullHours(), etc...
+
 class Duration {
  public:
     static constexpr int64_t TICKS_PER_REALTIME_SECOND = 128;

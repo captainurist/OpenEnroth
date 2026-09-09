@@ -1930,6 +1930,7 @@ void Game::gameLoop() {
                 onTimer();
 
                 if (!pEventTimer->isTurnBased()) {
+                    pParty->GetPlayingTime() += pEventTimer->dt();
                     _494035_timed_effects__water_walking_damage__etc();
                 } else {
                     // Need to process party death in turn-based mode.

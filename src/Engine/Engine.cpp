@@ -1179,9 +1179,8 @@ void back_to_game() {
 
 //----- (00494035) --------------------------------------------------------
 void _494035_timed_effects__water_walking_damage__etc() {
-    Time oldTime = pParty->GetPlayingTime();
-    Time newTime = oldTime + pEventTimer->dt();
-    pParty->GetPlayingTime() = newTime;
+    Time oldTime = pParty->last_regenerated;
+    Time newTime = pParty->GetPlayingTime();
 
     CivilTime time = pParty->GetPlayingTime().toCivilTime();
     pParty->uCurrentTimeSecond = time.second;
@@ -1267,10 +1266,10 @@ void _494035_timed_effects__water_walking_damage__etc() {
         }
     }
 
-    RegeneratePartyHealthMana();
+    RegeneratePartyHealthMana(oldTime, newTime);
 
     // TODO(captainurist): #time drop once we move to msecs in duration.
-    Duration recoveryTimeDt = pEventTimer->dt();
+    Duration recoveryTimeDt = newTime - oldTime;
     recoveryTimeDt += pParty->_roundingDt;
     pParty->_roundingDt = 0_ticks;
     if (pParty->uFlags2 & PARTY_FLAGS_2_RUNNING && recoveryTimeDt > 0_ticks) {  // half recovery speed if party is running
@@ -1345,6 +1344,8 @@ void _494035_timed_effects__water_walking_damage__etc() {
             }
         }
     }
+
+    pParty->last_regenerated = newTime;
 }
 
 void maybeWakeSoloSurvivor() {
@@ -1371,10 +1372,7 @@ void updatePartyDeathState() {
         uGameState = GAME_STATE_PARTY_DIED;
 }
 
-void RegeneratePartyHealthMana() {
-    Duration newTime = pParty->GetPlayingTime().toDurationSinceSilence();
-    Duration oldTime = pParty->last_regenerated.toDurationSinceSilence();
-
+void RegeneratePartyHealthMana(Time oldTime, Time newTime) {
     // This used to trigger if:
     // - Current time is at a 5-min mark (time.toMinutes() % 5 == 0),
     // - Or if at least 5 mins have passed.
@@ -1386,10 +1384,10 @@ void RegeneratePartyHealthMana() {
     // - Calculate the number of 5-min ticks that have passed. E.g. there is only one 5-min tick between 1 and 9.
     // - Do a single run of the logic below.
 
-    auto ticksBetween = [](Duration lo, Duration hi, Duration interval) {
+    auto ticksBetween = [](Time lo, Time hi, Duration interval) {
         // Calculate # of interval-spaced ticks in [lo, hi).
-        Duration loUp = lo.roundedUp(interval);
-        Duration hiDn = (hi - 1_ticks).roundedDown(interval);
+        Duration loUp = lo.toDurationSinceSilence().roundedUp(interval);
+        Duration hiDn = (hi - 1_ticks).toDurationSinceSilence().roundedDown(interval);
         return (hiDn - loUp) / interval + 1;
     };
 

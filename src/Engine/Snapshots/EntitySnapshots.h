@@ -442,7 +442,10 @@ struct Party_MM7 {
     /* 00024 */ int32_t jumpStrength;
     /* 00028 */ int32_t field_28;
     /* 0002C */ int64_t timePlayed;
-    /* 00034 */ int64_t lastRegenerationTime;
+    /* 00034 */ int64_t lastRegenerationTime; // Last time when party sp/hp were regenerated. Vanilla ran sp/hp
+                                              // regen code every 5 minutes and used this variable to track when it's
+                                              // time to do it. OE does this logic differently, so in our saves
+                                              // lastRegenerationTime == timePlayed.
     /* 0003C */ PartyTimeStruct_MM7 partyTimes;
     /* 006B4 */ Vec3i position;
     /* 006C0 */ int32_t viewYaw;
