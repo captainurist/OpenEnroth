@@ -53,11 +53,11 @@ class GUIWindow {
 
     GUIButton *CreateButton(Pointi position, Sizei dimensions, int uButtonType, int uData,
                             UIMessageType msg, unsigned int msg_param, InputAction action = INPUT_ACTION_INVALID, std::string_view label = {},
-                            const std::vector<GraphicsImage *> &textures = {});
+                            const std::vector<std::shared_ptr<GraphicsImage>> &textures = {});
 
     GUIButton *CreateButton(std::string id, Pointi position, Sizei dimensions, int uButtonType, int uData,
                             UIMessageType msg, unsigned int msg_param, InputAction action = INPUT_ACTION_INVALID, std::string_view label = {},
-                            const std::vector<GraphicsImage *> &textures = {});
+                            const std::vector<std::shared_ptr<GraphicsImage>> &textures = {});
 
     bool Contains(unsigned int x, unsigned int y);
     void DrawFlashingInputCursor(int uX, int uY, GUIFont *a2);
@@ -374,24 +374,24 @@ extern Color ui_game_dialogue_option_normal_color;
 extern Color ui_house_player_cant_interact_color;
 
 class GraphicsImage;
-extern GraphicsImage *ui_exit_cancel_button_background;
-extern GraphicsImage *game_ui_right_panel_frame;
-extern GraphicsImage *dialogue_ui_x_ok_u;
-extern GraphicsImage *dialogue_ui_x_x_u;
+extern std::shared_ptr<GraphicsImage> ui_exit_cancel_button_background;
+extern std::shared_ptr<GraphicsImage> game_ui_right_panel_frame;
+extern std::shared_ptr<GraphicsImage> dialogue_ui_x_ok_u;
+extern std::shared_ptr<GraphicsImage> dialogue_ui_x_x_u;
 
-extern GraphicsImage *ui_buttdesc2;
-extern GraphicsImage *ui_buttyes2;
+extern std::shared_ptr<GraphicsImage> ui_buttdesc2;
+extern std::shared_ptr<GraphicsImage> ui_buttyes2;
 
-extern GraphicsImage *ui_btn_npc_right;
-extern GraphicsImage *ui_btn_npc_left;
+extern std::shared_ptr<GraphicsImage> ui_btn_npc_right;
+extern std::shared_ptr<GraphicsImage> ui_btn_npc_left;
 
-extern GraphicsImage *ui_ar_dn_dn;
-extern GraphicsImage *ui_ar_dn_up;
-extern GraphicsImage *ui_ar_up_dn;
-extern GraphicsImage *ui_ar_up_up;
+extern std::shared_ptr<GraphicsImage> ui_ar_dn_dn;
+extern std::shared_ptr<GraphicsImage> ui_ar_dn_up;
+extern std::shared_ptr<GraphicsImage> ui_ar_up_dn;
+extern std::shared_ptr<GraphicsImage> ui_ar_up_up;
 
-extern GraphicsImage *ui_leather_mm6;
-extern GraphicsImage *ui_leather_mm7;
+extern std::shared_ptr<GraphicsImage> ui_leather_mm6;
+extern std::shared_ptr<GraphicsImage> ui_leather_mm7;
 
 extern MenuType sCurrentMenuID;
 void SetCurrentMenuID(MenuType);

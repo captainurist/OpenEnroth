@@ -157,15 +157,9 @@ GUIWindow_Dialogue::GUIWindow_Dialogue(DialogWindowType type) : GUIWindow(WINDOW
 }
 
 void GUIWindow_Dialogue::Release() {
-    if (houseNpcs[0].icon) {
-        houseNpcs[0].icon->release();
-    }
     houseNpcs.clear();
 
-    if (game_ui_dialogue_background) {
-        game_ui_dialogue_background->release();
-        game_ui_dialogue_background = nullptr;
-    }
+    game_ui_dialogue_background.reset();
 
     current_screen_type = prev_screen_type;
     currentSpeakingActor = nullptr;
@@ -184,10 +178,10 @@ void GUIWindow_Dialogue::Update() {
     NpcType npcType = getNPCType(speakingNpcId);
     window.uFrameWidth -= 10;
     window.uFrameZ -= 10;
-    render->DrawTextureNew(477 / 640.0f, 0, game_ui_dialogue_background);
-    render->DrawTextureNew(468 / 640.0f, 0, game_ui_right_panel_frame);
-    render->DrawTextureNew((pNPCPortraits_x[0][0] - 4) / 640.0f, (pNPCPortraits_y[0][0] - 4) / 480.0f, game_ui_evtnpc);
-    render->DrawTextureNew(pNPCPortraits_x[0][0] / 640.0f, pNPCPortraits_y[0][0] / 480.0f, houseNpcs[0].icon);
+    render->DrawTextureNew(477 / 640.0f, 0, game_ui_dialogue_background.get());
+    render->DrawTextureNew(468 / 640.0f, 0, game_ui_right_panel_frame.get());
+    render->DrawTextureNew((pNPCPortraits_x[0][0] - 4) / 640.0f, (pNPCPortraits_y[0][0] - 4) / 480.0f, game_ui_evtnpc.get());
+    render->DrawTextureNew(pNPCPortraits_x[0][0] / 640.0f, pNPCPortraits_y[0][0] / 480.0f, houseNpcs[0].icon.get());
 
     window.DrawTitleText(assets->pFontArrus.get(), SIDE_TEXT_BOX_POS_X, SIDE_TEXT_BOX_POS_Y, ui_game_dialogue_npc_name_color, NameAndTitle(pNPC), 3);
 
@@ -263,9 +257,9 @@ void GUIWindow_Dialogue::Update() {
         }
 
         if (ui_leather_mm7)
-            render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7, pTextHeight);
+            render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7.get(), pTextHeight);
 
-        render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap);
+        render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap.get());
         pDialogueWindow->DrawText(font, {13, 354 - pTextHeight}, colorTable.White, font->WrapText(dialogue_string, window.uFrameWidth, 13));
     }
 
@@ -337,7 +331,7 @@ void GUIWindow_Dialogue::Update() {
             window.DrawTitleText(assets->pFontArrus.get(), 0, pButton->uY, pTextColor, pButton->sLabel, 3);
         }
     }
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 }
 
 void BuildHireableNpcDialogue() {

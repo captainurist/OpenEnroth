@@ -11,14 +11,38 @@
 
 #include "Utility/Types.h"
 
+// Renderer API:
+// - Take Texture*. Store renderId - but only until end of frame.
+// - ReleaseTexture releases after end of frame.
+// => airtight API. User can't see that we're not drawing on every call.
+// => UpdateTexture needs to go.
+//
+// Texture API:
+// - Just use constructors. No reason for std::unique_ptr factory methods. Memory management is external.
+//
+// AssetManager API:
+// - Returns std::shared_ptr.
+// - Smart release.
+//   - Milliseconds since last access.
+//   - Evict after 30s.
+//   - No need for smarter logic (tracking eviction-reloads) - will just prolong the time item textures are in mem.
+//
+// Can drop UpdateTexture first in a separate commit.
+//
+// Then use ctors & dtors in Texture.
+//
+// Then use shared_ptrs. Gonna have a shitload of conflicts.
+
 class ImageLoader;
 
 class GraphicsImage {
  public:
-    static GraphicsImage *Create(RgbaImage image);
-    static GraphicsImage *Create(ssize_t width, ssize_t height);
-    static GraphicsImage *Create(Sizei size);
-    static GraphicsImage *Create(std::unique_ptr<ImageLoader> loader);
+   GraphicsImage();
+    ~GraphicsImage();
+
+    static std::unique_ptr<GraphicsImage> Create(RgbaImage image);
+    static std::unique_ptr<GraphicsImage> Create(Sizei size);
+    static std::unique_ptr<GraphicsImage> Create(std::unique_ptr<ImageLoader> loader);
 
     ssize_t width();
     ssize_t height();
@@ -28,15 +52,10 @@ class GraphicsImage {
 
     const std::string &name();
 
-    void release(); // TODO(captainurist): drop
-
     [[nodiscard]] TextureRenderId renderId();
     void releaseRenderId();
 
  private:
-    GraphicsImage();
-    ~GraphicsImage(); // Call Release() instead.
-
     bool initialize();
 
  private:

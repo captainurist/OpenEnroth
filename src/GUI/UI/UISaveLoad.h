@@ -10,12 +10,10 @@ class GUIWindow_Save : public GUIWindow {
     virtual void Update() override;
 
  protected:
-    // Image * main_menu_background;
-
-    GraphicsImage *saveload_ui_save_up;
-    GraphicsImage *saveload_ui_loadsave;
-    GraphicsImage *saveload_ui_saveu;
-    GraphicsImage *saveload_ui_x_u;
+    std::shared_ptr<GraphicsImage> saveload_ui_save_up;
+    std::shared_ptr<GraphicsImage> saveload_ui_loadsave;
+    std::shared_ptr<GraphicsImage> saveload_ui_saveu;
+    std::shared_ptr<GraphicsImage> saveload_ui_x_u;
 };
 
 class GUIWindow_Load : public GUIWindow {
@@ -35,10 +33,10 @@ class GUIWindow_Load : public GUIWindow {
 
  protected:
     bool isLoadSlotClicked{};
-    GraphicsImage *main_menu_background{};
+    std::shared_ptr<GraphicsImage> main_menu_background;
 
-    GraphicsImage *saveload_ui_load_up{};
-    GraphicsImage *saveload_ui_loadsave{};
-    GraphicsImage *saveload_ui_loadu{};
-    GraphicsImage *saveload_ui_x_u{};
+    std::shared_ptr<GraphicsImage> saveload_ui_load_up;
+    std::shared_ptr<GraphicsImage> saveload_ui_loadsave;
+    std::shared_ptr<GraphicsImage> saveload_ui_loadu;
+    std::shared_ptr<GraphicsImage> saveload_ui_x_u;
 };

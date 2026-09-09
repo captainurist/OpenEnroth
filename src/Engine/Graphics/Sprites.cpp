@@ -22,8 +22,7 @@ SpriteFrameTable *pSpriteFrameTable;
 void Sprite::Release() {
     delete this->sprite_header;
     this->sprite_header = nullptr;
-    this->texture->release();
-    this->texture = nullptr;
+    this->texture.reset();
     this->pName = "null";
 }
 

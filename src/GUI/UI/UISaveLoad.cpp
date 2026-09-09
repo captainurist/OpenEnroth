@@ -41,10 +41,10 @@ std::array<int, 2> saveload_dlg_ys = {{60, 0}};
 std::array<int, 2> saveload_dlg_zs = {{460, 640}};
 std::array<int, 2> saveload_dlg_ws = {{344, 480}};
 
-GraphicsImage *saveload_ui_ls_saved = nullptr;
-GraphicsImage *saveload_ui_x_d = nullptr;
+std::shared_ptr<GraphicsImage> saveload_ui_ls_saved;
+std::shared_ptr<GraphicsImage> saveload_ui_x_d;
 
-static GraphicsImage *scrollstop = nullptr;
+std::shared_ptr<GraphicsImage> scrollstop;
 
 GUIWindow_Save::GUIWindow_Save() : GUIWindow(WINDOW_Save, {0, 0}, render->GetRenderDimensions()) {
     saveload_ui_loadsave = assets->getImage_ColorKey("loadsave");
@@ -78,10 +78,8 @@ GUIWindow_Save::GUIWindow_Save() : GUIWindow(WINDOW_Save, {0, 0}, render->GetRen
             }
 
             pSavegameList->pSavegameThumbnails[i] = GraphicsImage::Create(std::make_unique<PCX_LOD_Raw_Loader>(&pLODFile, "image.pcx"));
-            if (pSavegameList->pSavegameThumbnails[i]->width() == 0) {
-                pSavegameList->pSavegameThumbnails[i]->release();
-                pSavegameList->pSavegameThumbnails[i] = nullptr;
-            }
+            if (pSavegameList->pSavegameThumbnails[i]->width() == 0)
+                pSavegameList->pSavegameThumbnails[i].reset();
 
             pSavegameList->pSavegameUsedSlots[i] = (pSavegameList->pSavegameThumbnails[i] != nullptr);
         }
@@ -113,10 +111,10 @@ GUIWindow_Save::GUIWindow_Save() : GUIWindow(WINDOW_Save, {0, 0}, render->GetRen
 
 void GUIWindow_Save::Update() {
     if (GetCurrentMenuID() != MENU_SAVELOAD && GetCurrentMenuID() != MENU_LoadingProcInMainMenu) {
-        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, saveload_ui_loadsave);
-        render->DrawTextureNew(241 / 640.0f, 302 / 480.0f, saveload_ui_saveu);
-        render->DrawTextureNew(18 / 640.0f, 139 / 480.0f, saveload_ui_save_up);
-        render->DrawTextureNew(351 / 640.0f, 302 / 480.0f, saveload_ui_x_u);
+        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, saveload_ui_loadsave.get());
+        render->DrawTextureNew(241 / 640.0f, 302 / 480.0f, saveload_ui_saveu.get());
+        render->DrawTextureNew(18 / 640.0f, 139 / 480.0f, saveload_ui_save_up.get());
+        render->DrawTextureNew(351 / 640.0f, 302 / 480.0f, saveload_ui_x_u.get());
     }
     UI_DrawSaveLoad(true);
 }
@@ -132,12 +130,12 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
     main_menu_background = nullptr;
     if (!ingame) {
         main_menu_background = assets->getImage_PCXFromIconsLOD("lsave640.pcx");
-        render->DrawTextureNew(0, 0, main_menu_background);
+        render->DrawTextureNew(0, 0, main_menu_background.get());
     } else {
-        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, saveload_ui_loadsave);
-        render->DrawTextureNew(241 / 640.0f, 302 / 480.0f, saveload_ui_loadu);
-        render->DrawTextureNew(18 / 640.0f, 139 / 480.0f, saveload_ui_load_up);
-        render->DrawTextureNew(351 / 640.0f, 302 / 480.0f, saveload_ui_x_u);
+        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, saveload_ui_loadsave.get());
+        render->DrawTextureNew(241 / 640.0f, 302 / 480.0f, saveload_ui_loadu.get());
+        render->DrawTextureNew(18 / 640.0f, 139 / 480.0f, saveload_ui_load_up.get());
+        render->DrawTextureNew(351 / 640.0f, 302 / 480.0f, saveload_ui_x_u.get());
     }
 
     // GUIWindow::GUIWindow
@@ -186,10 +184,8 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
 
         pSavegameList->pSavegameThumbnails[i] = GraphicsImage::Create(std::make_unique<PCX_LOD_Raw_Loader>(&pLODFile, "image.pcx"));
 
-        if (pSavegameList->pSavegameThumbnails[i]->width() == 0) {
-            pSavegameList->pSavegameThumbnails[i]->release();
-            pSavegameList->pSavegameThumbnails[i] = nullptr;
-        }
+        if (pSavegameList->pSavegameThumbnails[i]->width() == 0)
+            pSavegameList->pSavegameThumbnails[i].reset();
 
         pSavegameList->pSavegameUsedSlots[i] = true;
         //if (pSavegameList->pSavegameThumbnails[i] != nullptr) {
@@ -225,13 +221,13 @@ GUIWindow_Load::GUIWindow_Load(bool ingame) : GUIWindow(WINDOW_Load, {0, 0}, {0,
 
 void GUIWindow_Load::Update() {
     if (main_menu_background != nullptr) {
-        render->DrawTextureNew(0, 0, main_menu_background);
+        render->DrawTextureNew(0, 0, main_menu_background.get());
     }
     if (GetCurrentMenuID() != MENU_SAVELOAD && GetCurrentMenuID() != MENU_LoadingProcInMainMenu) {
-        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, saveload_ui_loadsave);
-        render->DrawTextureNew(241 / 640.0f, 302 / 480.0f, saveload_ui_loadu);
-        render->DrawTextureNew(18 / 640.0f, 139 / 480.0f, saveload_ui_load_up);
-        render->DrawTextureNew(351 / 640.0f, 302 / 480.0f, saveload_ui_x_u);
+        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, saveload_ui_loadsave.get());
+        render->DrawTextureNew(241 / 640.0f, 302 / 480.0f, saveload_ui_loadu.get());
+        render->DrawTextureNew(18 / 640.0f, 139 / 480.0f, saveload_ui_load_up.get());
+        render->DrawTextureNew(351 / 640.0f, 302 / 480.0f, saveload_ui_x_u.get());
     }
     UI_DrawSaveLoad(false);
 }
@@ -247,7 +243,7 @@ static void UI_DrawSaveLoad(bool save) {
         save_load_window.uFrameW = assets->pFontSmallnum->GetHeight() + save_load_window.uFrameY - 1;
         if (pSavegameList->pSavegameThumbnails[pSavegameList->selectedSlot]) {
             render->DrawTextureNew((pGUIWindow_CurrentMenu->uFrameX + 276) / 640.0f, (pGUIWindow_CurrentMenu->uFrameY + 171) / 480.0f,
-                                   pSavegameList->pSavegameThumbnails[pSavegameList->selectedSlot]);
+                                   pSavegameList->pSavegameThumbnails[pSavegameList->selectedSlot].get());
         }
         // Draw map name
         save_load_window.DrawTitleText(assets->pFontSmallnum.get(), 0, 0, colorTable.White,
@@ -306,7 +302,7 @@ static void UI_DrawSaveLoad(bool save) {
         if (pSavegameList->saveListPosition > maxSaveFiles - 7) {
             stopPos = 89;
         }
-        render->DrawTextureNew((216 + framex) / 640.f, (217 + framey + stopPos) / 480.f, scrollstop);
+        render->DrawTextureNew((216 + framex) / 640.f, (217 + framey + stopPos) / 480.f, scrollstop.get());
 
         int slot_Y = 199;
         for (int i = pSavegameList->saveListPosition; i < maxSaveFiles; ++i) {

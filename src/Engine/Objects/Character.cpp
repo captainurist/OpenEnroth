@@ -6746,11 +6746,8 @@ void Character::Zero() {
     uNumDivineInterventionCastsThisDay = 0;
     uNumArmageddonCasts = 0;
     uNumFireSpikeCasts = 0; // TODO(pskelton): firespike meant to remain permanantly??
-    for (int z = 0; z < 5; z++) {
-        if (vBeacons[z])
-            vBeacons[z]->image->release();
+    for (int z = 0; z < 5; z++)
         vBeacons[z].reset();
-    }
     // Character bits
     _characterEventBits.reset();
     _achievedAwardsBits.reset();
@@ -6792,7 +6789,6 @@ void Character::cleanupBeacons() {
     for (int i = 0; i < 5; i++) {
         if (!vBeacons[i] || vBeacons[i]->uBeaconTime >= pParty->GetPlayingTime())
             continue;
-        vBeacons[i]->image->release();
         vBeacons[i].reset();
     }
 }
@@ -6811,11 +6807,7 @@ bool Character::setBeacon(int index, Duration duration) {
     beacon._partyViewPitch = pParty->_viewPitch;
     beacon.mapId = engine->_currentLoadedMapId;
 
-    if (vBeacons[index]) {
-        // overwrite so clear image
-        vBeacons[index]->image->release();
-    }
-    vBeacons[index] = beacon;
+    vBeacons[index].emplace(std::move(beacon));
 
     return true;
 }

@@ -152,9 +152,9 @@ struct SpellFxRenderer {
     Duration uFadeTime;
     Duration uFadeLength;
     Color uFadeColor;
-    GraphicsImage *effpar01;  // unsigned int effpar01; // trail fire
-    GraphicsImage *effpar02;  // unsigned int effpar02;
-    GraphicsImage *effpar03;  // unsigned int effpar03; // trail particle
+    std::shared_ptr<GraphicsImage> effpar01;  // unsigned int effpar01; // trail fire
+    std::shared_ptr<GraphicsImage> effpar02;  // unsigned int effpar02;
+    std::shared_ptr<GraphicsImage> effpar03;  // unsigned int effpar03; // trail particle
     unsigned int _unused_uSpriteID_sp57c;
     int field_5F4;
 

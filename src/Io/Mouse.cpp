@@ -113,13 +113,13 @@ void Io::Mouse::DrawCursor() {
             pos.x -= (this->cursor_img->width()) / 2;
             pos.y -= (this->cursor_img->height()) / 2;
 
-            render->DrawTextureNew(pos.x / 640., pos.y / 480., this->cursor_img);
+            render->DrawTextureNew(pos.x / 640., pos.y / 480., this->cursor_img.get());
         } else if (_mouseLook) {
             platform->setCursorShown(false);
             auto pointer = assets->getImage_ColorKey("MICON2", colorTable.Black /*colorTable.TealMask*/);
             int x = pViewport->viewportCenterX - pointer->width() / 2;
             int y = pViewport->viewportCenterY - pointer->height() / 2;
-            render->DrawTextureNew(x / 640., y / 480., pointer);
+            render->DrawTextureNew(x / 640., y / 480., pointer.get());
         } else {
             platform->setCursorShown(true);
         }
@@ -178,7 +178,7 @@ void Io::Mouse::DrawPickedItem() {
     if (pParty->pPickedItem.itemId == ITEM_NULL)
         return;
 
-    GraphicsImage *pTexture = assets->getImage_Alpha(pParty->pPickedItem.GetIconName());
+    std::shared_ptr<GraphicsImage> pTexture = assets->getImage_Alpha(pParty->pPickedItem.GetIconName());
     if (!pTexture) return;
 
     Pointi mousePos = this->position();
@@ -186,11 +186,11 @@ void Io::Mouse::DrawPickedItem() {
     float posY = (mousePos.y + pickedItemOffset.y) / 480.0f;
 
     if (pParty->pPickedItem.IsBroken()) {
-        render->DrawTransparentRedShade(posX, posY, pTexture);
+        render->DrawTransparentRedShade(posX, posY, pTexture.get());
     } else if (!pParty->pPickedItem.IsIdentified()) {
-        render->DrawTransparentGreenShade(posX, posY, pTexture);
+        render->DrawTransparentGreenShade(posX, posY, pTexture.get());
     } else {
-        render->DrawTextureNew(posX, posY, pTexture);
+        render->DrawTextureNew(posX, posY, pTexture.get());
     }
 }
 

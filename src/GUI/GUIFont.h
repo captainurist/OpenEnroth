@@ -105,7 +105,7 @@ class GUIFont {
 
  private:
     LodFont _font;
-    GraphicsImage *_mainTexture = nullptr;
-    GraphicsImage *_shadowTexture = nullptr;
+    std::unique_ptr<GraphicsImage> _mainTexture;
+    std::unique_ptr<GraphicsImage> _shadowTexture;
 };
 

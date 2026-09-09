@@ -170,7 +170,7 @@ void GUIWindow_Spellbook::Update() {
                 pX_coord = texture_tab_coord0[page][0];
                 pY_coord = texture_tab_coord0[page][1];
             }
-            render->DrawTextureNew(pX_coord / 640.0f, pY_coord / 480.0f, pPageTexture);
+            render->DrawTextureNew(pX_coord / 640.0f, pY_coord / 480.0f, pPageTexture.get());
 
             Pointi mousePos = mouse->position();
 
@@ -179,7 +179,7 @@ void GUIWindow_Spellbook::Update() {
                 if (player.bHaveSpell[spell] || engine->config->debug.AllMagic.value()) {
                     // this should check if player knows spell
                     if (SBPageSSpellsTextureList[index + 1]) {
-                        GraphicsImage *pTexture = (spellbookSelectedSpell == spell) ? SBPageCSpellsTextureList[index + 1] : SBPageSSpellsTextureList[index + 1];
+                        std::shared_ptr<GraphicsImage> pTexture = (spellbookSelectedSpell == spell) ? SBPageCSpellsTextureList[index + 1] : SBPageSSpellsTextureList[index + 1];
                         if (pTexture) {
                             SpellBookIconPos &iconPos = pIconPos[player.lastOpenedSpellbookPage][pSpellbookSpellIndices[player.lastOpenedSpellbookPage][index + 1]];
 
@@ -189,10 +189,10 @@ void GUIWindow_Spellbook::Update() {
                             Recti iconRect = Recti(pX_coord, pY_coord, pTexture->width(), pTexture->height());
                             if (iconRect.contains(mousePos)) { // mouseover highlight
                                 if (SBPageCSpellsTextureList[index + 1]) {
-                                    render->DrawTextureNew(pX_coord / 640.0f, pY_coord / 480.0f, SBPageCSpellsTextureList[index + 1]);
+                                    render->DrawTextureNew(pX_coord / 640.0f, pY_coord / 480.0f, SBPageCSpellsTextureList[index + 1].get());
                                 }
                             } else {
-                                render->DrawTextureNew(pX_coord / 640.0f, pY_coord / 480.0f, pTexture);
+                                render->DrawTextureNew(pX_coord / 640.0f, pY_coord / 480.0f, pTexture.get());
                             }
                         }
                     }
@@ -235,10 +235,10 @@ void GUIWindow_Spellbook::drawCurrentSchoolBackground() {
     if (pParty->hasActiveCharacter()) {
         page = pParty->activeCharacter().lastOpenedSpellbookPage;
     }
-    render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, ui_spellbook_school_backgrounds[page]);
+    render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, ui_spellbook_school_backgrounds[page].get());
 
-    render->DrawTextureNew(476 / 640.0f, 450 / 480.0f, ui_spellbook_btn_quckspell);
-    render->DrawTextureNew(561 / 640.0f, 450 / 480.0f, ui_spellbook_btn_close);
+    render->DrawTextureNew(476 / 640.0f, 450 / 480.0f, ui_spellbook_btn_quckspell.get());
+    render->DrawTextureNew(561 / 640.0f, 450 / 480.0f, ui_spellbook_btn_close.get());
 }
 
 void GUIWindow_Spellbook::initializeTextures() {
@@ -257,38 +257,15 @@ void GUIWindow_Spellbook::initializeTextures() {
 }
 
 void GUIWindow_Spellbook::onCloseSpellBook() {
-    if (ui_spellbook_btn_close) {
-        ui_spellbook_btn_close->release();
-        ui_spellbook_btn_close = nullptr;
-    }
-    if (ui_spellbook_btn_close_click) {
-        ui_spellbook_btn_close_click->release();
-        ui_spellbook_btn_close_click = nullptr;
-    }
-
-    if (ui_spellbook_btn_quckspell) {
-        ui_spellbook_btn_quckspell->release();
-        ui_spellbook_btn_quckspell = nullptr;
-    }
-    if (ui_spellbook_btn_quckspell_click) {
-        ui_spellbook_btn_quckspell_click->release();
-        ui_spellbook_btn_quckspell_click = nullptr;
-    }
+    ui_spellbook_btn_close.reset();
+    ui_spellbook_btn_close_click.reset();
+    ui_spellbook_btn_quckspell.reset();
+    ui_spellbook_btn_quckspell_click.reset();
 
     for (MagicSchool page : allMagicSchools()) {
-        if (ui_spellbook_school_backgrounds[page]) {
-            ui_spellbook_school_backgrounds[page]->release();
-            ui_spellbook_school_backgrounds[page] = nullptr;
-        }
-
-        if (ui_spellbook_school_tabs[page][0]) {
-            ui_spellbook_school_tabs[page][0]->release();
-            ui_spellbook_school_tabs[page][0] = nullptr;
-        }
-        if (ui_spellbook_school_tabs[page][1]) {
-            ui_spellbook_school_tabs[page][1]->release();
-            ui_spellbook_school_tabs[page][1] = nullptr;
-        }
+        ui_spellbook_school_backgrounds[page].reset();
+        ui_spellbook_school_tabs[page][0].reset();
+        ui_spellbook_school_tabs[page][1].reset();
     }
 
     pAudioPlayer->playUISound(SOUND_closebook);
@@ -296,14 +273,8 @@ void GUIWindow_Spellbook::onCloseSpellBook() {
 
 void GUIWindow_Spellbook::onCloseSpellBookPage() {
     for (unsigned int i = 1; i <= 11; i++) {
-        if (SBPageCSpellsTextureList[i]) {
-            SBPageCSpellsTextureList[i]->release();
-            SBPageCSpellsTextureList[i] = nullptr;
-        }
-        if (SBPageSSpellsTextureList[i]) {
-            SBPageSSpellsTextureList[i]->release();
-            SBPageSSpellsTextureList[i] = nullptr;
-        }
+        SBPageCSpellsTextureList[i].reset();
+        SBPageSSpellsTextureList[i].reset();
     }
     pGUIWindow_CurrentMenu->DeleteButtons();
 }

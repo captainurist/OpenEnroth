@@ -14,13 +14,12 @@
 
 #include "GUI/GUIButton.h"
 
-GraphicsImage *ui_book_calendar_background = nullptr;
-
-GraphicsImage *ui_book_calendar_moon_new = nullptr;
-GraphicsImage *ui_book_calendar_moon_4 = nullptr;
-GraphicsImage *ui_book_calendar_moon_2 = nullptr;
-GraphicsImage *ui_book_calendar_moon_2_2 = nullptr;
-GraphicsImage *ui_book_calendar_moon_full = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_calendar_background = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_calendar_moon_new = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_calendar_moon_4 = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_calendar_moon_2 = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_calendar_moon_2_2 = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_calendar_moon_full = nullptr;
 
 // 4E1B18
 static std::array<int, 28> pDayMoonPhase = {
@@ -66,11 +65,11 @@ static std::string getDayPart(int hour) {
 }
 
 void GUIWindow_CalendarBook::Update() {
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
     GUIWindow calendar_window;
 
-    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_calendar_background);
+    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_calendar_background.get());
     CivilTime time = pParty->GetPlayingTime().toCivilTime();
 
     calendar_window.uFrameWidth = pViewport->viewportWidth;

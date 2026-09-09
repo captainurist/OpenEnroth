@@ -49,7 +49,7 @@ struct ODMFace {
     }
 
     void SetTexture(std::string_view filename);
-    GraphicsImage *GetTexture();
+    std::shared_ptr<GraphicsImage> GetTexture();
 
     // TODO: does this really have to be two separate functions?
     /**
@@ -66,7 +66,7 @@ struct ODMFace {
     std::array<int16_t, 20> pTextureVIDs = {{}};
 
     // details store for array texture
-    GraphicsImage *texture = nullptr; // Face texture, or nullptr if this face is animated.
+    std::shared_ptr<GraphicsImage> texture; // Face texture, or nullptr if this face is animated.
     int animationId = 0; // Index into pTextureFrameTable for animated faces.
     int texunit = -1;
     int texlayer = -1;

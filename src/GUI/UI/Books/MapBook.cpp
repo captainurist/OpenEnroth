@@ -26,7 +26,7 @@
 
 void DrawBook_Map_sub(int tl_x, int tl_y, int br_x, int br_y);
 
-GraphicsImage *ui_book_map_background = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_map_background;
 
 GUIWindow_MapBook::GUIWindow_MapBook() {
     this->eWindowType = WindowType::WINDOW_MapsBook;
@@ -64,46 +64,46 @@ GUIWindow_MapBook::GUIWindow_MapBook() {
 }
 
 void GUIWindow_MapBook::Update() {
-    render->DrawTextureNew(471 /  640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
-    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_map_background);
+    render->DrawTextureNew(471 /  640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
+    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_map_background.get());
 
     auto [minX, maxX] = viewparams->GetMapViewMinMaxX();
     auto [minY, maxY] = viewparams->GetMapViewMinMaxY();
 
     if ((_bookButtonClicked && _bookButtonAction == BOOK_ZOOM_IN) || viewparams->uMapBookMapZoom / 128 >= 12) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on.get());
     }
 
     if ((_bookButtonClicked && _bookButtonAction == BOOK_ZOOM_OUT) || viewparams->uMapBookMapZoom / 128 <= 3) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on.get());
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_SCROLL_UP || viewparams->sViewCenterY >= maxY) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on.get());
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_SCROLL_DOWN || viewparams->sViewCenterY <= minY) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on.get());
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_SCROLL_RIGHT || viewparams->sViewCenterX >= maxX) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on.get());
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_SCROLL_LEFT || viewparams->sViewCenterX <= minX) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on.get());
     }
 
     if (_bookButtonClicked == 10) {
@@ -131,7 +131,7 @@ void GUIWindow_MapBook::Update() {
     if (_bookButtonClicked)
         _bookButtonClicked--;
 
-    render->DrawTextureNew(75 / 640.0f, 22 / 480.0f, ui_book_map_frame);
+    render->DrawTextureNew(75 / 640.0f, 22 / 480.0f, ui_book_map_frame.get());
     DrawBook_Map_sub(97, 49, 361, 313);
     render->ResetUIClipRect();
 
@@ -180,9 +180,9 @@ void DrawBook_Map_sub(int tl_x, int tl_y, int br_x, int br_y) {
             ((double)(-center.y - maxPartyAxisDistance / (viewparams->uMapBookMapZoom / 384) + 32768) / MapSizeScale) << 16;
         int scaled_posY = stepY_r >> 16;
 
-        static GraphicsImage *minimaptemp = nullptr;
+        static std::unique_ptr<GraphicsImage> minimaptemp;
         if (!minimaptemp) {
-            minimaptemp = GraphicsImage::Create(screenWidth, screenHeight);
+            minimaptemp = GraphicsImage::Create(Sizei(screenWidth, screenHeight));
         }
         Color *minitempix = minimaptemp->rgba().pixels().data();
         const Color *minimap_pixels = viewparams->location_minimap->rgba().pixels().data();
@@ -218,8 +218,8 @@ void DrawBook_Map_sub(int tl_x, int tl_y, int br_x, int br_y) {
             }
         }
 
-        render->Update_Texture(minimaptemp);
-        render->DrawTextureNew(tl_x / 640., tl_y / 480., minimaptemp);
+        render->Update_Texture(minimaptemp.get());
+        render->DrawTextureNew(tl_x / 640., tl_y / 480., minimaptemp.get());
     } else {  // indoors
         if (!pIndoor->pMapOutlines.empty()) {
             render->BeginLines2D();
@@ -287,7 +287,7 @@ void DrawBook_Map_sub(int tl_x, int tl_y, int br_x, int br_y) {
         if (PartyDirection <= 384) ArrowOctant = 0;
         if (PartyDirection < 128 || PartyDirection > 1920) ArrowOctant = 7;
 
-        render->DrawTransparentRedShade(ArrowXPos / 640.0f, ArrowYPos / 480.0f, game_ui_minimap_dirs[ArrowOctant]);
+        render->DrawTransparentRedShade(ArrowXPos / 640.0f, ArrowYPos / 480.0f, game_ui_minimap_dirs[ArrowOctant].get());
     }
 
     if (!pLevelDecorations.empty()) {

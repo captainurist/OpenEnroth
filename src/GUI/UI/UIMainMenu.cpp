@@ -33,19 +33,19 @@ GUIWindow_MainMenu::GUIWindow_MainMenu() :
 }
 
 GUIWindow_MainMenu::~GUIWindow_MainMenu() {
-    ui_mainmenu_new->release();
-    ui_mainmenu_load->release();
-    ui_mainmenu_credits->release();
-    ui_mainmenu_exit->release();
-    main_menu_background->release();
+    ui_mainmenu_new.reset();
+    ui_mainmenu_load.reset();
+    ui_mainmenu_credits.reset();
+    ui_mainmenu_exit.reset();
+    main_menu_background.reset();
 }
 
 void GUIWindow_MainMenu::Update() {
-    render->DrawTextureNew(0, 0, main_menu_background);
+    render->DrawTextureNew(0, 0, main_menu_background.get());
 
     Pointi pt = mouse->position();
 
-    GraphicsImage *pTexture = nullptr;
+    std::shared_ptr<GraphicsImage> pTexture;
     for (GUIButton *pButton : vButtons) {
         if (pButton->Contains(pt.x, pt.y)) {
             auto pControlParam = pButton->msg_param;
@@ -68,7 +68,7 @@ void GUIWindow_MainMenu::Update() {
                     pY = 337;
                     break;
             }
-            render->DrawTextureNew(495 / float(render->GetRenderDimensions().w), pY / float(render->GetRenderDimensions().h), pTexture);
+            render->DrawTextureNew(495 / float(render->GetRenderDimensions().w), pY / float(render->GetRenderDimensions().h), pTexture.get());
         }
     }
 }

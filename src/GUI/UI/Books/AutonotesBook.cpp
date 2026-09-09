@@ -13,7 +13,7 @@
 
 #include "Media/Audio/AudioPlayer.h"
 
-GraphicsImage *ui_book_autonotes_background = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_autonotes_background = nullptr;
 
 AutonoteType autonoteBookDisplayType;
 
@@ -78,124 +78,124 @@ GUIWindow_AutonotesBook::GUIWindow_AutonotesBook() : GUIWindow_Book() {
 }
 
 void GUIWindow_AutonotesBook::Update() {
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
     int pTextHeight;
     bool noteTypeChanged = false;
     GUIWindow autonotes_window;
 
-    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_autonotes_background);
+    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_autonotes_background.get());
     if ((_bookButtonClicked && _bookButtonAction == BOOK_PREV_PAGE) || !_startingNotesIdx) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on.get());
     }
 
     if ((_bookButtonClicked && _bookButtonAction == BOOK_NEXT_PAGE) || (_startingNotesIdx + _currentPageNotes) >= _activeNotesIdx.size()) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on.get());
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_NOTES_POTION) {
         if (autonoteBookDisplayType == AUTONOTE_POTION_RECIPE) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on.get());
         } else {
             pAudioPlayer->playUISound(SOUND_StartMainChoice02);
             autonoteBookDisplayType = AUTONOTE_POTION_RECIPE;
             noteTypeChanged = true;
-            render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on.get());
         }
     } else {
         if (autonoteBookDisplayType == AUTONOTE_POTION_RECIPE) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_on.get());
         } else {
-            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_off);
+            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 113) / 480.0f, ui_book_button3_off.get());
         }
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_NOTES_FOUNTAIN) {
         if (autonoteBookDisplayType == AUTONOTE_STAT_HINT) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on.get());
         } else {
             pAudioPlayer->playUISound(SOUND_StartMainChoice02);
             autonoteBookDisplayType = AUTONOTE_STAT_HINT;
             noteTypeChanged = true;
-            render->DrawTextureNew( (pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on);
+            render->DrawTextureNew( (pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on.get());
         }
     } else {
         if (autonoteBookDisplayType == AUTONOTE_STAT_HINT) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 399) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_on.get());
         } else {
-            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_off);
+            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 150) / 480.0f, ui_book_button4_off.get());
         }
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_NOTES_OBELISK) {
         if (autonoteBookDisplayType == AUTONOTE_OBELISK) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on.get());
         } else {
             pAudioPlayer->playUISound(SOUND_StartMainChoice02);
             autonoteBookDisplayType = AUTONOTE_OBELISK;
             noteTypeChanged = true;
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on.get());
         }
     } else {
         if (autonoteBookDisplayType == AUTONOTE_OBELISK) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_on.get());
         } else {
-            render->DrawTextureNew( (pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_off);
+            render->DrawTextureNew( (pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 188) / 480.0f, ui_book_button5_off.get());
         }
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_NOTES_SEER) {
         if (autonoteBookDisplayType == AUTONOTE_SEER) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on.get());
         } else {
             pAudioPlayer->playUISound(SOUND_StartMainChoice02);
             autonoteBookDisplayType = AUTONOTE_SEER;
             noteTypeChanged = true;
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on.get());
         }
     } else {
         if (autonoteBookDisplayType == AUTONOTE_SEER) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_on.get());
         } else {
-            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_off);
+            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 226) / 480.0f, ui_book_button6_off.get());
         }
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_NOTES_MISC) {
         if (autonoteBookDisplayType == AUTONOTE_MISC) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 264) / 480.0f, ui_book_button7_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 264) / 480.0f, ui_book_button7_on.get());
         } else {
             pAudioPlayer->playUISound(SOUND_StartMainChoice02);
             autonoteBookDisplayType = AUTONOTE_MISC;
             noteTypeChanged = true;
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 264) / 480.0f, ui_book_button7_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 264) / 480.0f, ui_book_button7_on.get());
         }
     } else {
         if (autonoteBookDisplayType == AUTONOTE_MISC) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 264) / 480.0f, ui_book_button7_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 264) / 480.0f, ui_book_button7_on.get());
         } else {
-            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 263) / 480.0f, ui_book_button7_off);
+            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 263) / 480.0f, ui_book_button7_off.get());
         }
     }
 
     if (_bookButtonClicked && _bookButtonAction == BOOK_NOTES_INSTRUCTORS) {
         if (autonoteBookDisplayType == AUTONOTE_TEACHER) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_on.get());
         } else {
             pAudioPlayer->playUISound(SOUND_StartMainChoice02);
             autonoteBookDisplayType = AUTONOTE_TEACHER;
             noteTypeChanged = true;
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_on.get());
         }
     } else {
         if (autonoteBookDisplayType == AUTONOTE_TEACHER) {
-            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_on);
+            render->DrawTextureNew((pViewport->viewportTL_X + 397) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_on.get());
         } else {
-            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_off);
+            render->DrawTextureNew((pViewport->viewportTL_X + 408) / 640.0f, (pViewport->viewportTL_Y + 302) / 480.0f, ui_book_button8_off.get());
         }
     }
 
@@ -251,7 +251,7 @@ void GUIWindow_AutonotesBook::Update() {
             break;
         }
 
-        render->DrawTextureNew(100 / 640.0f, ((autonotes_window.uFrameY + pTextHeight) + 12) / 480.0f, ui_book_quest_div_bar);
+        render->DrawTextureNew(100 / 640.0f, ((autonotes_window.uFrameY + pTextHeight) + 12) / 480.0f, ui_book_quest_div_bar.get());
         autonotes_window.uFrameY = (autonotes_window.uFrameY + pTextHeight) + 24;
     }
 }

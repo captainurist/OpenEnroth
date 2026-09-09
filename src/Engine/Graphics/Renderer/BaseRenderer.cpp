@@ -363,7 +363,7 @@ void BaseRenderer::PrepareDecorationsRenderList_ODM() {
                 local_0.b = 0.0f;
                 local_0.particle_size = 1.0f;
                 local_0.timeToLive = Duration::randomRealtimeSeconds(vrng, 1, 2); // was either 1 or 2 secs, we made it into [1, 2).
-                local_0.texture = spell_fx_renderer->effpar01;
+                local_0.texture = spell_fx_renderer->effpar01.get();
                 particle_engine->AddParticle(&local_0);
             }
         }
@@ -494,7 +494,7 @@ void BaseRenderer::TransformBillboard(const SoftwareBillboard *pSoftBillboard, c
 
     billboard->uNumVertices = 4;
 
-    billboard->texture = pSprite->texture;
+    billboard->texture = pSprite->texture.get();
     billboard->z_order = pSoftBillboard->screen_space_z;
     billboard->field_90 = pSoftBillboard->field_44;
     billboard->screen_space_z = pSoftBillboard->screen_space_z;
@@ -676,7 +676,7 @@ void BaseRenderer::DrawMonsterPortrait(const Recti &rc, SpriteFrame *Portrait, i
     rct.h = Portrait->sprites[0]->uHeight;
 
     render->SetUIClipRect(rc);
-    render->DrawImage(Portrait->sprites[0]->texture, rct, Portrait->paletteId);
+    render->DrawImage(Portrait->sprites[0]->texture.get(), rct, Portrait->paletteId);
     render->ResetUIClipRect();
 }
 
@@ -730,7 +730,7 @@ void BaseRenderer::ClearHitMap() {
     _equipmentHitMap.clear();
 }
 
-void BaseRenderer::DrawToHitMap(float u, float v, GraphicsImage *img, int zVal) {
+void BaseRenderer::DrawToHitMap(float u, float v, std::shared_ptr<GraphicsImage> img, int zVal) {
     if (!img) return;
 
     // Convert normalized coordinates to screen pixel coordinates

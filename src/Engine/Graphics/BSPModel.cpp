@@ -8,7 +8,7 @@
 
 // ODMFace
 
-GraphicsImage *ODMFace::GetTexture() {
+std::shared_ptr<GraphicsImage> ODMFace::GetTexture() {
     if (this->IsAnimated()) {
         // TODO(captainurist): probably should be pMiscTimer, not pEventTimer.
         return pTextureFrameTable->animationFrame(this->animationId, pEventTimer->time());

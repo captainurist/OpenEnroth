@@ -10,27 +10,26 @@
 #include "Engine/AssetsManager.h"
 
 GraphicsImage::GraphicsImage() = default;
-GraphicsImage::~GraphicsImage() = default;
 
-GraphicsImage *GraphicsImage::Create(RgbaImage image) {
-    GraphicsImage *result = new GraphicsImage();
+GraphicsImage::~GraphicsImage() {
+    releaseRenderId();
+}
+
+std::unique_ptr<GraphicsImage> GraphicsImage::Create(RgbaImage image) {
+    std::unique_ptr<GraphicsImage> result = std::make_unique<GraphicsImage>();
     result->_initialized = true;
     result->_rgba = std::move(image);
     result->_renderId = render->CreateTexture(result->_rgba);
     return result;
 }
 
-GraphicsImage *GraphicsImage::Create(ssize_t width, ssize_t height) {
-    assert(width > 0 && height > 0);
-    return Create(RgbaImage::solid(width, height, Color()));
+std::unique_ptr<GraphicsImage> GraphicsImage::Create(Sizei size) {
+    assert(size.w > 0 && size.h > 0);
+    return Create(RgbaImage::solid(size.w, size.h, Color()));
 }
 
-GraphicsImage *GraphicsImage::Create(Sizei size) {
-    return Create(size.w, size.h);
-}
-
-GraphicsImage *GraphicsImage::Create(std::unique_ptr<ImageLoader> loader) {
-    GraphicsImage *result = new GraphicsImage();
+std::unique_ptr<GraphicsImage> GraphicsImage::Create(std::unique_ptr<ImageLoader> loader) {
+    std::unique_ptr<GraphicsImage> result = std::make_unique<GraphicsImage>();
     result->_name = loader->GetResourceName();
     result->_loader = std::move(loader);
     return result;
@@ -57,18 +56,6 @@ const std::string &GraphicsImage::name() {
     return _name;
 }
 
-void GraphicsImage::release() {
-    if (_loader) {
-        if (!assets->releaseSprite(_loader->GetResourceName()))
-            if (!assets->releaseImage(_loader->GetResourceName()))
-                assets->releaseBitmap(_loader->GetResourceName());
-    }
-
-    releaseRenderId();
-
-    delete this;
-}
-
 [[nodiscard]] TextureRenderId GraphicsImage::renderId() {
     if (!_renderId) {
         initialize();
@@ -82,7 +69,8 @@ void GraphicsImage::releaseRenderId() {
     if (!_renderId)
         return;
 
-    render->DeleteTexture(_renderId);
+    if (render)
+        render->DeleteTexture(_renderId);
     _renderId = TextureRenderId();
 }
 

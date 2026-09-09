@@ -22,24 +22,21 @@ GUICredits::GUICredits() : GUIWindow(WINDOW_Credits, {0, 0}, render->GetRenderDi
     std::string text{ engine->resources()->eventsData("credits.txt").string_view() };
 
     int height = _fontQuick->GetStringHeightWithSecondFont(_fontCChar.get(), text, creditsRect.w, 0) + 2 * creditsRect.h;
-    _creditsTexture = GraphicsImage::Create(creditsRect.w, height);
+    _creditsTexture = GraphicsImage::Create(Sizei(creditsRect.w, height));
 
-    _fontQuick->DrawCreditsEntry(_fontCChar.get(), 0, creditsRect.h, creditsRect.w, height, colorTable.CornFlowerBlue, colorTable.Primrose, colorTable.Black, text, _creditsTexture);
+    _fontQuick->DrawCreditsEntry(_fontCChar.get(), 0, creditsRect.h, creditsRect.w, height, colorTable.CornFlowerBlue, colorTable.Primrose, colorTable.Black, text, _creditsTexture.get());
 
-    render->Update_Texture(_creditsTexture);
+    render->Update_Texture(_creditsTexture.get());
 
     CreateButton({0, 0}, {0, 0}, 1, 0, UIMSG_Escape, 0, INPUT_ACTION_ESCAPE);
 }
 
-GUICredits::~GUICredits() {
-    _mm6TitleTexture->release();
-    _creditsTexture->release();
-}
+GUICredits::~GUICredits() = default;
 
 void GUICredits::Update() {
-    render->DrawTextureNew(0, 0, _mm6TitleTexture);
+    render->DrawTextureNew(0, 0, _mm6TitleTexture.get());
     render->SetUIClipRect(creditsRect);
-    render->DrawTextureOffset(creditsRect.x, creditsRect.y, 0, _moveY, _creditsTexture);
+    render->DrawTextureOffset(creditsRect.x, creditsRect.y, 0, _moveY, _creditsTexture.get());
     render->ResetUIClipRect();
 
     _moveY += 0.25; // TODO(captainurist): #time gotta be dt-based.

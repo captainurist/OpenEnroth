@@ -131,12 +131,8 @@ void LoadGame(int uSlot) {
 
     dword_6BE364_game_settings_1 |= GAME_SETTINGS_LOADING_SAVEGAME_SKIP_RESPAWN | GAME_SETTINGS_SKIP_WORLD_UPDATE;
 
-    for (int i = 0; i < pSavegameList->numSavegameFiles; ++i) {
-        if (pSavegameList->pSavegameThumbnails[i] != nullptr) {
-            pSavegameList->pSavegameThumbnails[i]->release();
-            pSavegameList->pSavegameThumbnails[i] = nullptr;
-        }
-    }
+    for (int i = 0; i < pSavegameList->numSavegameFiles; ++i)
+        pSavegameList->pSavegameThumbnails[i].reset();
 
     // pAudioPlayer->SetMusicVolume(engine->config->music_level);
     // pAudioPlayer->SetMasterVolume(engine->config->sound_level);
@@ -199,11 +195,10 @@ std::pair<SaveGameHeader, Blob> CreateSaveData(bool resetWorld, std::string_view
                 continue;
             }
             LloydBeacon &beacon = *player->vBeacons[j];
-            GraphicsImage *image = beacon.image;
-            if (beacon.uBeaconTime.isValid() && image != nullptr) {
-                assert(image->rgba());
+            if (beacon.uBeaconTime.isValid() && beacon.image) {
+                assert(beacon.image->rgba());
                 std::string str = fmt::format("lloyd{}{}.pcx", i + 1, j + 1);
-                lodWriter.write(str, pcx::encode(image->rgba()));
+                lodWriter.write(str, pcx::encode(beacon.image->rgba()));
             }
         }
     }
@@ -265,12 +260,8 @@ void DoSavegame(int uSlot) {
     pGUIWindow_CurrentMenu->Release();
     current_screen_type = SCREEN_GAME;
 
-    for (int i = 0; i < MAX_SAVE_SLOTS; i++) {
-        if (pSavegameList->pSavegameThumbnails[i] != nullptr) {
-            pSavegameList->pSavegameThumbnails[i]->release();
-            pSavegameList->pSavegameThumbnails[i] = nullptr;
-        }
-    }
+    for (int i = 0; i < MAX_SAVE_SLOTS; i++)
+        pSavegameList->pSavegameThumbnails[i].reset();
 
     pEventTimer->setPaused(false);
     engine->_statusBar->setEvent(LSTR_GAME_SAVED);
@@ -299,7 +290,8 @@ SavegameList::SavegameList() { Reset(); }
 
 void SavegameList::Reset() {
     pSavegameUsedSlots.fill(false);
-    pSavegameThumbnails.fill(nullptr);
+    for (int i = 0; i < MAX_SAVE_SLOTS; i++)
+        pSavegameThumbnails[i].reset();
 
     for (int j = 0; j < MAX_SAVE_SLOTS; j++) {
         this->pFileList[j].clear();

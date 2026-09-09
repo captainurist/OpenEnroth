@@ -16,7 +16,7 @@
 
 #include "Media/Audio/AudioPlayer.h"
 
-GraphicsImage *ui_book_journal_background = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_journal_background;
 
 GUIWindow_JournalBook::GUIWindow_JournalBook() {
     eWindowType = WINDOW_JournalBook;
@@ -63,21 +63,21 @@ GUIWindow_JournalBook::GUIWindow_JournalBook() {
 }
 
 void GUIWindow_JournalBook::Update() {
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
     GUIWindow journal_window;
 
-    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_journal_background);
+    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_journal_background.get());
     if ((_bookButtonClicked && _bookButtonAction == BOOK_PREV_PAGE) || !_currentIdx) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on.get());
     }
 
     if ((_bookButtonClicked && _bookButtonAction == BOOK_NEXT_PAGE) || (_currentIdx + 1) >= _journalIdx.size()) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on.get());
     }
 
     if (_journalIdx.size() && !_journalEntryPage[_currentIdx]) {  // for title

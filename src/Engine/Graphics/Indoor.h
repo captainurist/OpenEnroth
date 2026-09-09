@@ -73,7 +73,7 @@ struct BLVFace {  // 60h
     void FromODM(ODMFace *face);
 
     void SetTexture(std::string_view filename);
-    GraphicsImage *GetTexture() const;
+    std::shared_ptr<GraphicsImage> GetTexture() const;
 
     inline bool Invisible() const {
         return uAttributes & FACE_IsInvisible;
@@ -132,7 +132,7 @@ struct BLVFace {  // 60h
     int16_t *pVertexUIDs = nullptr;
     int16_t *pVertexVIDs = nullptr;
     uint16_t uFaceExtraID = 0;
-    GraphicsImage *texture = nullptr; // Face texture, or nullptr if this face is animated.
+    std::shared_ptr<GraphicsImage> texture; // Face texture, or nullptr if this face is animated.
     int animationId = 0; // Index into pTextureFrameTable for animated faces.
     int texunit = -1;
     int texlayer = -1;

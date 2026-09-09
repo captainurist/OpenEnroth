@@ -27,7 +27,7 @@ struct SavegameList {
     std::array<std::string, MAX_SAVE_SLOTS> pFileList;
     std::array<bool, MAX_SAVE_SLOTS> pSavegameUsedSlots;
     std::array<SaveGameHeader, MAX_SAVE_SLOTS> pSavegameHeader;
-    std::array<GraphicsImage *, MAX_SAVE_SLOTS> pSavegameThumbnails;
+    std::array<std::unique_ptr<GraphicsImage>, MAX_SAVE_SLOTS> pSavegameThumbnails;
 
     int numSavegameFiles = 0;
     int selectedSlot = 0;

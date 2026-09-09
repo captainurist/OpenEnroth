@@ -8,6 +8,7 @@
 #include "Inventory.h"
 #include "Engine/Data/AwardEnums.h"
 #include "Engine/Data/HouseEnums.h"
+#include "Engine/Graphics/Image.h"
 #include "Engine/Objects/NPCEnums.h"
 #include "Engine/Objects/ActorEnums.h"
 #include "Engine/Objects/CombinedSkillValue.h"
@@ -32,7 +33,6 @@
 #include "CharacterConditions.h"
 
 class Actor;
-class GraphicsImage;
 
 enum class StealResult {
     STEAL_BUSTED = 0, // Failed to steal & was caught.
@@ -42,21 +42,13 @@ enum class StealResult {
 using enum StealResult;
 
 struct LloydBeacon {
-    ~LloydBeacon() {
-        // if (image != nullptr) {
-        //    image->Release();
-        // }
-        // image release moved to install beacon to avoid de-refernce
-        image = nullptr;
-    }
-
     Time uBeaconTime = Time();
     Vec3f _partyPos;
     int16_t _partyViewYaw = 0;
     int16_t _partyViewPitch = 0;
     uint16_t unknown = 0;
     MapId mapId = MAP_INVALID;
-    GraphicsImage *image = nullptr;
+    std::unique_ptr<GraphicsImage> image;
 };
 
 // HP/SP regeneration from items and spell

@@ -31,23 +31,23 @@
 using Io::TextInputType;
 
 
-GraphicsImage *ui_partycreation_top = nullptr;
-GraphicsImage *ui_partycreation_sky_scroller = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_top = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_sky_scroller = nullptr;
 
-GraphicsImage *ui_partycreation_left = nullptr;
-GraphicsImage *ui_partycreation_right = nullptr;
-GraphicsImage *ui_partycreation_minus = nullptr;
-GraphicsImage *ui_partycreation_plus = nullptr;
-GraphicsImage *ui_partycreation_buttmake2 = nullptr;
-GraphicsImage *ui_partycreation_buttmake = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_left = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_right = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_minus = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_plus = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_buttmake2 = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_buttmake = nullptr;
 
-GraphicsImage *ui_partycreation_character_frame = nullptr;
+std::shared_ptr<GraphicsImage> ui_partycreation_character_frame = nullptr;
 
-std::array<GraphicsImage *, 9> ui_partycreation_class_icons;
-std::array<GraphicsImage *, 22> ui_partycreation_portraits;
+std::array<std::shared_ptr<GraphicsImage>, 9> ui_partycreation_class_icons;
+std::array<std::shared_ptr<GraphicsImage>, 22> ui_partycreation_portraits;
 
-std::array<GraphicsImage *, 19> ui_partycreation_arrow_r;
-std::array<GraphicsImage *, 19> ui_partycreation_arrow_l;
+std::array<std::shared_ptr<GraphicsImage>, 19> ui_partycreation_arrow_r;
+std::array<std::shared_ptr<GraphicsImage>, 19> ui_partycreation_arrow_l;
 
 static Duration errorMessageExpireTime; // expiration time (misc timer) of error message
 
@@ -288,11 +288,11 @@ void GUIWindow_PartyCreation::Update() {
 
     // move sky
     render->BeginScene2D();
-    render->DrawTextureNew(0, 0, main_menu_background);
+    render->DrawTextureNew(0, 0, main_menu_background.get());
     int sky_slider_anim_timer = std::fmod(pMiscTimer->time().realtimeMillisecondsFloat() * oldDims.w / 20, oldDims.w);
-    render->DrawTextureNew(sky_slider_anim_timer / oldDims.w, 2 / oldDims.h, ui_partycreation_sky_scroller);
-    render->DrawTextureNew((sky_slider_anim_timer - (int)oldDims.w) / oldDims.w, 2 / oldDims.h, ui_partycreation_sky_scroller);
-    render->DrawTextureNew(0, 0, ui_partycreation_top);
+    render->DrawTextureNew(sky_slider_anim_timer / oldDims.w, 2 / oldDims.h, ui_partycreation_sky_scroller.get());
+    render->DrawTextureNew((sky_slider_anim_timer - (int)oldDims.w) / oldDims.w, 2 / oldDims.h, ui_partycreation_sky_scroller.get());
+    render->DrawTextureNew(0, 0, ui_partycreation_top.get());
 
     uPlayerCreationUI_SelectedCharacter = (pGUIWindow_CurrentMenu->pCurrentPosActiveItem - pGUIWindow_CurrentMenu->pStartingPosActiveItem) / 7;
     switch (uPlayerCreationUI_SelectedCharacter) {
@@ -319,18 +319,18 @@ void GUIWindow_PartyCreation::Update() {
     pGUIWindow_CurrentMenu->DrawText(ui_partycreation_font.get(), {pTextCenter + 1, 0}, colorTable.White,
         localization->str(LSTR_C_R_E_A_T_E_P_A_R_T_Y));
 
-    render->DrawTextureNew(17 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[0].uCurrentFace]);
-    render->DrawTextureNew(176 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[1].uCurrentFace]);
-    render->DrawTextureNew(335 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[2].uCurrentFace]);
-    render->DrawTextureNew(494 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[3].uCurrentFace]);
+    render->DrawTextureNew(17 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[0].uCurrentFace].get());
+    render->DrawTextureNew(176 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[1].uCurrentFace].get());
+    render->DrawTextureNew(335 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[2].uCurrentFace].get());
+    render->DrawTextureNew(494 / oldDims.w, 35 / oldDims.h, ui_partycreation_portraits[pParty->pCharacters[3].uCurrentFace].get());
 
     // arrows
-    render->DrawTextureNew(pX / oldDims.w, 29 / oldDims.h, ui_partycreation_character_frame);
+    render->DrawTextureNew(pX / oldDims.w, 29 / oldDims.h, ui_partycreation_character_frame.get());
     uPosActiveItem = pGUIWindow_CurrentMenu->GetControl(pGUIWindow_CurrentMenu->pCurrentPosActiveItem);
     // cycle arrows backwards
     int arrowAnimTextureNum = ui_partycreation_arrow_l.size() - 1 - (pMiscTimer->time().realtimeMilliseconds() % ARROW_SPIN_PERIOD_MS) / (ARROW_SPIN_PERIOD_MS / ui_partycreation_arrow_l.size());
-    render->DrawTextureNew((uPosActiveItem->uZ - 4) / oldDims.w, uPosActiveItem->uY / oldDims.h, ui_partycreation_arrow_l[arrowAnimTextureNum]);
-    render->DrawTextureNew((uPosActiveItem->uX - 12) / oldDims.w, uPosActiveItem->uY / oldDims.h, ui_partycreation_arrow_r[arrowAnimTextureNum]);
+    render->DrawTextureNew((uPosActiveItem->uZ - 4) / oldDims.w, uPosActiveItem->uY / oldDims.h, ui_partycreation_arrow_l[arrowAnimTextureNum].get());
+    render->DrawTextureNew((uPosActiveItem->uX - 12) / oldDims.w, uPosActiveItem->uY / oldDims.h, ui_partycreation_arrow_r[arrowAnimTextureNum].get());
 
     pText = localization->str(LSTR_SKILLS);
     for (int i = pText.size() - 1; i >= 0; i--)
@@ -344,7 +344,7 @@ void GUIWindow_PartyCreation::Update() {
     for (int i = 0; i < 4; ++i) {
         pGUIWindow_CurrentMenu->DrawText(assets->pFontCreate.get(), {pIntervalX + 73, 100}, colorTable.White,
             localization->className(pParty->pCharacters[i].classType));
-        render->DrawTextureNew((pIntervalX + 77) / oldDims.w, 50 / oldDims.h, ui_partycreation_class_icons[std::to_underlying(pParty->pCharacters[i].classType) / 4]);
+        render->DrawTextureNew((pIntervalX + 77) / oldDims.w, 50 / oldDims.h, ui_partycreation_class_icons[std::to_underlying(pParty->pCharacters[i].classType) / 4].get());
 
         if (pGUIWindow_CurrentMenu->keyboard_input_status != WINDOW_INPUT_NONE && uPlayerCreationUI_NameEditCharacter == i) {
             switch (pGUIWindow_CurrentMenu->keyboard_input_status) {
@@ -704,8 +704,7 @@ GUIWindow_PartyCreation::GUIWindow_PartyCreation() :
 }
 
 GUIWindow_PartyCreation::~GUIWindow_PartyCreation() {
-    main_menu_background->release();
-    main_menu_background = nullptr;
+    main_menu_background.reset();
 }
 
 //----- (00497526) --------------------------------------------------------

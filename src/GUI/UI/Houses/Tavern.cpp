@@ -71,8 +71,8 @@ void GUIWindow_Tavern::arcomageRulesDialogue() {
     } else {
         return; // TODO(captainurist): what's going on here?
     }
-    render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7, pTextHeight);
-    render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap);
+    render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7.get(), pTextHeight);
+    render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap.get());
     DrawText(font, {12, 354 - pTextHeight}, colorTable.White, font->WrapText(str, dialog_window.uFrameWidth, 12));
 }
 
@@ -86,8 +86,8 @@ void GUIWindow_Tavern::arcomageVictoryCondDialogue() {
     dialog_window.uFrameWidth = pViewport->viewportWidth;
     dialog_window.uFrameZ = 452;
     int pTextHeight = assets->pFontArrus->CalcTextHeight(label, dialog_window.uFrameWidth, 12) + 7;
-    render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7, pTextHeight);
-    render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap);
+    render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7.get(), pTextHeight);
+    render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap.get());
     DrawText(assets->pFontArrus.get(), {12, 354 - pTextHeight}, colorTable.White, assets->pFontArrus->WrapText(label, dialog_window.uFrameWidth, 12));
 }
 

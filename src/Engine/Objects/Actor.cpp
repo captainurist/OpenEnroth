@@ -97,7 +97,7 @@ void Actor::DrawHealthBar(Actor *actor, GUIWindow *window) {
         bar_length = 200;
 
     // bar colour
-    GraphicsImage *bar_image = game_ui_monster_hp_green;
+    std::shared_ptr<GraphicsImage> bar_image = game_ui_monster_hp_green;
     if (actor->currentHP <= (0.34 * actor->monsterInfo.hp))
         bar_image = game_ui_monster_hp_red;
     else if (actor->currentHP <= (0.67 * actor->monsterInfo.hp))
@@ -113,20 +113,20 @@ void Actor::DrawHealthBar(Actor *actor, GUIWindow *window) {
 
     render->SetUIClipRect(Recti(uX, window->uFrameY + 32, bar_length, 20));
     render->DrawTextureNew(uX / 640.0f, (window->uFrameY + 32) / 480.0f,
-                                game_ui_monster_hp_background);
+                                game_ui_monster_hp_background.get());
 
     render->SetUIClipRect(Recti(uX, window->uFrameY + 32, bar_filled_length, 20));
     render->DrawTextureNew(uX / 640.0f, (window->uFrameY + 34) / 480.0f,
-                                bar_image);
+                                bar_image.get());
 
     // draw hp bar ends
     render->ResetUIClipRect();
     render->DrawTextureNew((uX - 5) / 640.0f,
                                 (window->uFrameY + 32) / 480.0f,
-                                game_ui_monster_hp_border_left);
+                                game_ui_monster_hp_border_left.get());
     render->DrawTextureNew((uX + bar_length) / 640.0f,
                                 (window->uFrameY + 32) / 480.0f,
-                                game_ui_monster_hp_border_right);
+                                game_ui_monster_hp_border_right.get());
 }
 
 void Actor::toggleFlag(signed int uActorID, ActorAttribute uFlag, bool bValue) {

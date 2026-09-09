@@ -67,7 +67,7 @@ using enum HouseNpcType;
 struct HouseNpcDesc {
     HouseNpcType type;
     std::string label = "";
-    GraphicsImage *icon = nullptr;
+    std::shared_ptr<GraphicsImage> icon = nullptr;
     GUIButton *button = nullptr;
     MapId targetMapID = MAP_INVALID;
     NPCData *npc = nullptr;
@@ -141,7 +141,7 @@ struct HouseAnimDescr {
     uint16_t padding_e;
 };
 
-extern GraphicsImage *_591428_endcap;
+extern std::shared_ptr<GraphicsImage> _591428_endcap;
 
 extern std::array<const HouseAnimDescr, 196> pAnimatedRooms;
 

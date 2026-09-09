@@ -25,7 +25,7 @@ class HitMap {
      * @param image                     Pointer to the graphics image.
      * @param value                     Value to associate with this image.
      */
-    void add(Pointi position, GraphicsImage *image, T value) {
+    void add(Pointi position, std::shared_ptr<GraphicsImage> image, T value) {
         assert(image);
 
         _entries.emplace_back(position, image, std::move(value));
@@ -76,10 +76,10 @@ class HitMap {
  private:
     struct Entry {
         Pointi position;
-        GraphicsImage *image;
+        std::shared_ptr<GraphicsImage> image;
         T value;
 
-        Entry(Pointi pos, GraphicsImage *img, T val) : position(pos), image(img), value(val) {}
+        Entry(Pointi pos, std::shared_ptr<GraphicsImage> img, T val) : position(pos), image(std::move(img)), value(val) {}
     };
 
     std::vector<Entry> _entries;

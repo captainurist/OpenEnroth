@@ -73,24 +73,24 @@ MenuType sCurrentMenuID;
 ScreenType current_screen_type = SCREEN_VIDEO;
 ScreenType prev_screen_type;
 
-GraphicsImage *ui_exit_cancel_button_background = nullptr;
-GraphicsImage *game_ui_right_panel_frame = nullptr;
-GraphicsImage *dialogue_ui_x_ok_u = nullptr;
-GraphicsImage *dialogue_ui_x_x_u = nullptr;
+std::shared_ptr<GraphicsImage> ui_exit_cancel_button_background;
+std::shared_ptr<GraphicsImage> game_ui_right_panel_frame;
+std::shared_ptr<GraphicsImage> dialogue_ui_x_ok_u;
+std::shared_ptr<GraphicsImage> dialogue_ui_x_x_u;
 
-GraphicsImage *ui_buttdesc2 = nullptr;
-GraphicsImage *ui_buttyes2 = nullptr;
+std::shared_ptr<GraphicsImage> ui_buttdesc2;
+std::shared_ptr<GraphicsImage> ui_buttyes2;
 
-GraphicsImage *ui_btn_npc_right = nullptr;
-GraphicsImage *ui_btn_npc_left = nullptr;
+std::shared_ptr<GraphicsImage> ui_btn_npc_right;
+std::shared_ptr<GraphicsImage> ui_btn_npc_left;
 
-GraphicsImage *ui_ar_dn_dn = nullptr;
-GraphicsImage *ui_ar_dn_up = nullptr;
-GraphicsImage *ui_ar_up_dn = nullptr;
-GraphicsImage *ui_ar_up_up = nullptr;
+std::shared_ptr<GraphicsImage> ui_ar_dn_dn;
+std::shared_ptr<GraphicsImage> ui_ar_dn_up;
+std::shared_ptr<GraphicsImage> ui_ar_up_dn;
+std::shared_ptr<GraphicsImage> ui_ar_up_up;
 
-GraphicsImage *ui_leather_mm6 = nullptr;
-GraphicsImage *ui_leather_mm7 = nullptr;
+std::shared_ptr<GraphicsImage> ui_leather_mm6;
+std::shared_ptr<GraphicsImage> ui_leather_mm7;
 
 std::array<int, 28> possibleAddressingAwardBits = {{1,  2,  3,  4,  5,  7,  32, 33, 36, 37,
                                                     38, 40, 41, 42, 43, 45, 46, 47, 48, 49,
@@ -365,7 +365,7 @@ GUIButton *GUIWindow::CreateButton(Pointi position, Sizei dimensions,
                                    int uButtonType, int uData, UIMessageType msg,
                                    unsigned int msg_param, InputAction action,
                                    std::string_view label,
-                                   const std::vector<GraphicsImage *> &textures) {
+                                   const std::vector<std::shared_ptr<GraphicsImage>> &textures) {
     GUIButton *pButton = new GUIButton();
 
     pButton->pParent = this;
@@ -396,7 +396,7 @@ GUIButton *GUIWindow::CreateButton(Pointi position, Sizei dimensions,
 
 GUIButton *GUIWindow::CreateButton(std::string id, Pointi position, Sizei dimensions, int uButtonType, int uData,
                         UIMessageType msg, unsigned int msg_param, InputAction action, std::string_view label,
-                        const std::vector<GraphicsImage *> &textures) {
+                        const std::vector<std::shared_ptr<GraphicsImage>> &textures) {
     GUIButton *result = CreateButton(position, dimensions, uButtonType, uData, msg, msg_param, action, label, textures);
     result->id = std::move(id);
     return result;
@@ -456,7 +456,7 @@ void OnButtonClick::Update() {
     if (_playSound) {
         pAudioPlayer->playUISound(SOUND_StartMainChoice02);
     }
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0].get());
     if (!sHint.empty()) {
         _button->DrawLabel(sHint, assets->pFontCreate.get(), colorTable.White);
     }
@@ -472,7 +472,7 @@ void OnButtonClick2::Update() {
     Sizei renDims = render->GetRenderDimensions();
     if (_button->uX >= 0 && _button->uX <= renDims.w) {
         if (_button->uY >= 0 && _button->uY <= renDims.h) {
-            render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0]);
+            render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0].get());
         }
     }
     if (!sHint.empty()) {
@@ -486,7 +486,7 @@ void OnButtonClick2::Update() {
 void OnButtonClick3::Update() {
     pAudioPlayer->playUISound(SOUND_StartMainChoice02);
 
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[1]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[1].get());
     if (!sHint.empty()) {
         _button->DrawLabel(sHint, assets->pFontCreate.get(), colorTable.White);
     }
@@ -499,7 +499,7 @@ void OnButtonClick4::Update() {
     if (!sHint.empty()) {
         pAudioPlayer->playUISound(SOUND_StartMainChoice02);
     }
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[1]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[1].get());
 
     Release();
 
@@ -510,7 +510,7 @@ void OnSaveLoad::Update() {
     if (!sHint.empty()) {
         pAudioPlayer->playUISound(SOUND_StartMainChoice02);
     }
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0].get());
     if (!sHint.empty()) {
         _button->DrawLabel(sHint, assets->pFontCreate.get(), colorTable.White);
     }
@@ -529,7 +529,7 @@ void OnCancel::Update() {
     if (sHint.empty()) {
         pAudioPlayer->playUISound(SOUND_StartMainChoice02);
     }
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0].get());
     if (!sHint.empty()) {
         _button->DrawLabel(sHint, assets->pFontCreate.get(), colorTable.White);
     }
@@ -544,7 +544,7 @@ void OnCancel2::Update() {
     if (!sHint.empty()) {
         pAudioPlayer->playUISound(SOUND_StartMainChoice02);
     }
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[1]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[1].get());
     if (!sHint.empty()) {
         _button->DrawLabel(sHint, assets->pFontCreate.get(), colorTable.White);
     }
@@ -560,7 +560,7 @@ void OnCancel3::Update() {
         pAudioPlayer->playUISound(SOUND_StartMainChoice02);
     }
 
-    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0]);
+    render->DrawTextureNew(uFrameX / 640.0f, uFrameY / 480.0f, _button->vTextures[0].get());
     if (!sHint.empty()) {
         _button->DrawLabel(sHint, assets->pFontCreate.get(), colorTable.White);
     }

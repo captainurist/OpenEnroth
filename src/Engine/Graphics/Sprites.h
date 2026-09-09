@@ -15,7 +15,7 @@ class Sprite {
     void Release();
 
     std::string pName;
-    GraphicsImage *texture = nullptr;
+    std::shared_ptr<GraphicsImage> texture;
     int uAreaX = 0; // TODO(captainurist): always zero,
     int uAreaY = 0; // TODO(captainurist): was intended to support sprite maps?
     int uWidth = 0; // Same as texture->width().

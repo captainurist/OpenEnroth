@@ -90,7 +90,7 @@ class GUIWindow_AlchemyShop : public GUIWindow_MagicAlchemyShop {
 
 void UIShop_Buy_Identify_Repair();
 
-extern GraphicsImage *shop_ui_background;
+extern std::shared_ptr<GraphicsImage> shop_ui_background;
 
-extern std::array<GraphicsImage *, 12> shop_ui_items_in_store;
+extern std::array<std::shared_ptr<GraphicsImage>, 12> shop_ui_items_in_store;
 extern std::array<int, 6> weaponYPos;

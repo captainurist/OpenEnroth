@@ -22,7 +22,7 @@ const std::string &StatusBar::get() {
 }
 
 void StatusBar::draw() {
-    render->DrawTextureNew(0, 352 / 480.0f, game_ui_statusbar);
+    render->DrawTextureNew(0, 352 / 480.0f, game_ui_statusbar.get());
 
     const std::string &status = get();
     if (status.length() > 0) {
@@ -31,7 +31,7 @@ void StatusBar::draw() {
 }
 
 void StatusBar::drawForced(std::string_view str, Color color) {
-    render->DrawTextureNew(0, 352 / 480.0f, game_ui_statusbar);
+    render->DrawTextureNew(0, 352 / 480.0f, game_ui_statusbar.get());
     pPrimaryWindow->DrawText(assets->pFontLucida.get(), { assets->pFontLucida->AlignText_Center(450, str) + 11, 357}, color, str);
 }
 

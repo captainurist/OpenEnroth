@@ -185,8 +185,8 @@ struct ArcomageGame {
     GUIFont *pfntArrus = nullptr;  // ptr_4C;
     int field_50 = 0;
     int field_54 = 0;  // blend mode ??
-    GraphicsImage *pGameBackground = nullptr;
-    GraphicsImage *pSprites = nullptr;
+    std::shared_ptr<GraphicsImage> pGameBackground;
+    std::shared_ptr<GraphicsImage> pSprites;
     int uGameWinner = 0;
     int Victory_type = 0;
     std::string pPlayer1Name;

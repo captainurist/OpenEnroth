@@ -19,10 +19,10 @@ class GUIWindow_MainMenu : public GUIWindow {
     GUIButton *pBtnLoad;
     GUIButton *pBtnNew;
 
-    GraphicsImage *main_menu_background;
+    std::shared_ptr<GraphicsImage> main_menu_background;
 
-    GraphicsImage *ui_mainmenu_new;
-    GraphicsImage *ui_mainmenu_load;
-    GraphicsImage *ui_mainmenu_credits;
-    GraphicsImage *ui_mainmenu_exit;
+    std::shared_ptr<GraphicsImage> ui_mainmenu_new;
+    std::shared_ptr<GraphicsImage> ui_mainmenu_load;
+    std::shared_ptr<GraphicsImage> ui_mainmenu_credits;
+    std::shared_ptr<GraphicsImage> ui_mainmenu_exit;
 };

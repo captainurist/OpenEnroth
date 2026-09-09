@@ -23,7 +23,7 @@ FsmAction LoadStep2State::update() {
     // We resolve this state in 2 frames. The first pass is drawing the main bkg texture and the copyrights
     // The second pass perform the loading part.
     if (_isFirstPass) {
-        render->DrawTextureNew(0, 0, _fullscreenTexture);
+        render->DrawTextureNew(0, 0, _fullscreenTexture.get());
         _drawMM7CopyrightWindow();
         _isFirstPass = false;
     } else {
@@ -37,8 +37,7 @@ FsmAction LoadStep2State::update() {
 }
 
 void LoadStep2State::exit() {
-    _fullscreenTexture->release();
-    _fullscreenTexture = nullptr;
+    _fullscreenTexture.reset();
     _isFirstPass = false;
 }
 

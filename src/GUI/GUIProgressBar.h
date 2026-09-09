@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 class GraphicsImage;
 
@@ -31,9 +32,9 @@ class GUIProgressBar {
     uint8_t uProgressCurrent = 0;
     Type uType = TYPE_None;
 
-    GraphicsImage *progressbar_dungeon = nullptr;  // struct Texture_MM7 pBardata;
-    GraphicsImage *progressbar_loading = nullptr;  // struct Texture_MM7 pLoadingProgress;
-    GraphicsImage *loading_bg = nullptr;
+    std::shared_ptr<GraphicsImage> progressbar_dungeon = nullptr;  // struct Texture_MM7 pBardata;
+    std::shared_ptr<GraphicsImage> progressbar_loading = nullptr;  // struct Texture_MM7 pLoadingProgress;
+    std::shared_ptr<GraphicsImage> loading_bg = nullptr;
     int turnHourIconId = 0;
 };
 

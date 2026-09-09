@@ -518,7 +518,7 @@ void OpenGLRenderer::ScreenFade(Color color, float t) {
     float drawz = static_cast<float>(pViewport->viewportBR_X);
     float draww = static_cast<float>(pViewport->viewportBR_Y);
 
-    static GraphicsImage *effpar03 = assets->getBitmap("effpar03");
+    static std::shared_ptr<GraphicsImage> effpar03 = assets->getBitmap("effpar03");
     float gltexid = static_cast<float>(effpar03->renderId().value());
 
     // 0 1 2 / 0 2 3
@@ -715,7 +715,7 @@ void OpenGLRenderer::BlendTextures(int x, int y, GraphicsImage *imgin, GraphicsI
 
         int w = imgin->width();
         int h = imgin->height();
-        GraphicsImage *temp = GraphicsImage::Create(w, h);
+        std::unique_ptr<GraphicsImage> temp = GraphicsImage::Create(Sizei(w, h));
         RgbaImage &dstImage = temp->rgba();
 
         Color c = maskImage.pixels()[2700];  // guess at brightest pixel
@@ -765,12 +765,10 @@ void OpenGLRenderer::BlendTextures(int x, int y, GraphicsImage *imgin, GraphicsI
         }
 
         // draw image
-        render->Update_Texture(temp);
-        render->DrawTextureNew(x / float(outputRender.w), y / float(outputRender.h), temp);
+        render->Update_Texture(temp.get());
+        render->DrawTextureNew(x / float(outputRender.w), y / float(outputRender.h), temp.get());
 
         render->DrawTwodVerts();
-
-        temp->release();
     }
 }
 
@@ -856,7 +854,7 @@ void OpenGLRenderer::DrawIndoorSky(int /*uNumVertices*/, int uFaceID) {
 
     // no clipped polygon so draw and return??
     if (_507D30_idx >= uNumVertices) {
-        DrawIndoorSkyPolygon(uNumVertices, pFace->GetTexture(), dimming_level);
+        DrawIndoorSkyPolygon(uNumVertices, pFace->GetTexture().get(), dimming_level);
         return;
     }
 }
@@ -973,7 +971,7 @@ int numdecalverts{ 0 };
 
 
 void OpenGLRenderer::BeginDecals() {
-    GraphicsImage *texture = assets->getBitmap("hwsplat04");
+    std::shared_ptr<GraphicsImage> texture = assets->getBitmap("hwsplat04");
     glBindTexture(GL_TEXTURE_2D, texture->renderId().value());
 
     glDisable(GL_CULL_FACE);
@@ -1053,7 +1051,7 @@ void OpenGLRenderer::EndDecals() {
     glUniform1i(decalshader.uniformLocation("texture0"), GLint(0));
     glActiveTexture(GL_TEXTURE0);
 
-    GraphicsImage *texture = assets->getBitmap("hwsplat04");
+    std::shared_ptr<GraphicsImage> texture = assets->getBitmap("hwsplat04");
     glBindTexture(GL_TEXTURE_2D, texture->renderId().value());
 
     glBindVertexArray(decalVAO);
@@ -2009,7 +2007,7 @@ void OpenGLRenderer::DrawOutdoorSky() {
 
         _set_ortho_projection(1);
         _set_ortho_modelview();
-        DrawOutdoorSkyPolygon(uNumVertices, pOutdoor->sky_texture, dimming_level);
+        DrawOutdoorSkyPolygon(uNumVertices, pOutdoor->sky_texture.get(), dimming_level);
     }
 }
 
@@ -2019,7 +2017,7 @@ void OpenGLRenderer::DrawOutdoorSky() {
 void OpenGLRenderer::DrawOutdoorSkyPolygon(int numVertices, GraphicsImage *texture, int dimmingLevel) {
     auto texid = texture->renderId().value();
 
-    static GraphicsImage *effpar03 = assets->getBitmap("effpar03");
+    static std::shared_ptr<GraphicsImage> effpar03 = assets->getBitmap("effpar03");
     float texidsolid = static_cast<float>(effpar03->renderId().value());
 
     //glBindTexture(GL_TEXTURE_2D, texture->GetOpenGlTexture());
@@ -2349,7 +2347,7 @@ void OpenGLRenderer::DoRenderBillboards_D3D() {
             auto texture = pBillboardRenderListD3D[i].texture;
             gltexid = texture->renderId().value();
         } else {
-            static GraphicsImage *effpar03 = assets->getBitmap("effpar03");
+            static std::shared_ptr<GraphicsImage> effpar03 = assets->getBitmap("effpar03");
             gltexid = static_cast<float>(effpar03->renderId().value());
         }
 
@@ -3173,7 +3171,7 @@ void OpenGLRenderer::DrawOutdoorBuildings() {
 
                         // TODO(yoctozepto, pskelton): we should probably try to handle these faces as they are otherwise marked as visible (see also BSPRenderer)
                         if (!face.GetTexture()) continue;
-                        GraphicsImage *tex = face.GetTexture();
+                        std::shared_ptr<GraphicsImage> tex = face.GetTexture();
 
                         std::string texname = tex->name();
 
@@ -3394,7 +3392,7 @@ void OpenGLRenderer::DrawOutdoorBuildings() {
                                 }
 
                                 if (texlayer == -1) { // texture has been reset - see if its in the map
-                                    GraphicsImage *tex = face.GetTexture();
+                                    std::shared_ptr<GraphicsImage> tex = face.GetTexture();
                                     std::string texname = tex->name();
                                     auto mapiter = bsptexmap.find(texname);
                                     if (mapiter != bsptexmap.end()) {
@@ -3794,7 +3792,7 @@ void OpenGLRenderer::DrawIndoorFaces() {
                     continue;
 
                 // TODO(pskelton): Same as outdoors. When ODM and BLV face is combined - seperate out function
-                GraphicsImage *tex = face->GetTexture();
+                std::shared_ptr<GraphicsImage> tex = face->GetTexture();
                 std::string texname = tex->name();
 
                 Duration animLength;
@@ -4014,7 +4012,7 @@ void OpenGLRenderer::DrawIndoorFaces() {
                 }
 
                 if (texlayer == -1) { // texture has been reset - see if its in the map
-                    GraphicsImage *tex = face->GetTexture();
+                    std::shared_ptr<GraphicsImage> tex = face->GetTexture();
                     std::string texname = tex->name();
                     auto mapiter = bsptexmap.find(texname);
                     if (mapiter != bsptexmap.end()) {
@@ -4542,7 +4540,7 @@ void OpenGLRenderer::FillRectFast(int x, int y, int width, int height, Color col
     if (clippedRect.isEmpty())
         return;
 
-    static GraphicsImage *effpar03 = assets->getBitmap("effpar03");
+    static std::shared_ptr<GraphicsImage> effpar03 = assets->getBitmap("effpar03");
     float gltexid = static_cast<float>(effpar03->renderId().value());
 
     float drawx = clippedRect.x;

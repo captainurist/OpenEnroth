@@ -42,8 +42,8 @@ std::unique_ptr<GUIFont> GUIFont::LoadFont(std::string_view pFontFile) {
 void GUIFont::CreateFontTex() {
     ReleaseFontTex();
     // create blank textures
-    _mainTexture = GraphicsImage::Create(512, 512);
-    _shadowTexture = GraphicsImage::Create(512, 512);
+    _mainTexture = GraphicsImage::Create(Sizei(512, 512));
+    _shadowTexture = GraphicsImage::Create(Sizei(512, 512));
     Color *pPixelsfont = _mainTexture->rgba().pixels().data();
     Color *pPixelsshadow = _shadowTexture->rgba().pixels().data();
 
@@ -72,17 +72,13 @@ void GUIFont::CreateFontTex() {
         }
     }
 
-    render->Update_Texture(_mainTexture);
-    render->Update_Texture(_shadowTexture);
+    render->Update_Texture(_mainTexture.get());
+    render->Update_Texture(_shadowTexture.get());
 }
 
 void GUIFont::ReleaseFontTex() {
-    if (_mainTexture) {
-        _mainTexture->release();
-    }
-    if (_shadowTexture) {
-        _shadowTexture->release();
-    }
+    _mainTexture.reset();
+    _shadowTexture.reset();
 }
 
 int GUIFont::GetHeight() const {
@@ -192,7 +188,7 @@ Color GUIFont::DrawTextLine(std::string_view text, Color startColor, Color defau
     if (text.empty())
         return startColor;
 
-    render->BeginTextNew(_mainTexture, _shadowTexture);
+    render->BeginTextNew(_mainTexture.get(), _shadowTexture.get());
 
     Color color = startColor;
     int x = position.x;
@@ -384,7 +380,7 @@ void GUIFont::DrawText(const Recti &rect, Pointi position, Color defaultColor, s
         return;
     }
 
-    render->BeginTextNew(_mainTexture, _shadowTexture);
+    render->BeginTextNew(_mainTexture.get(), _shadowTexture.get());
 
     if (!position.x) {
         position.x = 12;

@@ -48,15 +48,15 @@
 
 #include "Library/Logger/Logger.h"
 
-GraphicsImage *parchment = nullptr;
-GraphicsImage *messagebox_corner_x = nullptr;       // 5076AC
-GraphicsImage *messagebox_corner_y = nullptr;       // 5076B4
-GraphicsImage *messagebox_corner_z = nullptr;       // 5076A8
-GraphicsImage *messagebox_corner_w = nullptr;       // 5076B0
-GraphicsImage *messagebox_border_top = nullptr;     // 507698
-GraphicsImage *messagebox_border_bottom = nullptr;  // 5076A4
-GraphicsImage *messagebox_border_left = nullptr;    // 50769C
-GraphicsImage *messagebox_border_right = nullptr;   // 5076A0
+std::shared_ptr<GraphicsImage> parchment = nullptr;
+std::shared_ptr<GraphicsImage> messagebox_corner_x = nullptr;       // 5076AC
+std::shared_ptr<GraphicsImage> messagebox_corner_y = nullptr;       // 5076B4
+std::shared_ptr<GraphicsImage> messagebox_corner_z = nullptr;       // 5076A8
+std::shared_ptr<GraphicsImage> messagebox_corner_w = nullptr;       // 5076B0
+std::shared_ptr<GraphicsImage> messagebox_border_top = nullptr;     // 507698
+std::shared_ptr<GraphicsImage> messagebox_border_bottom = nullptr;  // 5076A4
+std::shared_ptr<GraphicsImage> messagebox_border_left = nullptr;    // 50769C
+std::shared_ptr<GraphicsImage> messagebox_border_right = nullptr;   // 5076A0
 
 bool holdingMouseRightButton = false;
 bool rightClickItemActionPerformed = false;
@@ -279,22 +279,22 @@ void DrawPopupWindow(unsigned int uX, unsigned int uY, unsigned int uWidth,
         for (unsigned i = uNumTiles + 1; i; --i) {
             coord_x += parchment_width;
             render->DrawTextureNew(coord_x / renwidth, coord_y / renheight,
-                                   parchment);
+                                   parchment.get());
         }
         coord_y += parchment_height;
     }
 
-    render->DrawTextureNew(uX / renwidth, uY / renheight, messagebox_corner_x);
+    render->DrawTextureNew(uX / renwidth, uY / renheight, messagebox_corner_x.get());
     render->DrawTextureNew(
         uX / renwidth, (uY + uHeight - messagebox_corner_y->height()) / renheight,
-        messagebox_corner_y);
+        messagebox_corner_y.get());
     render->DrawTextureNew(
         (uX + uWidth - messagebox_corner_z->width()) / renwidth, uY / renheight,
-        messagebox_corner_z);
+        messagebox_corner_z.get());
     render->DrawTextureNew(
         (uX + uWidth - messagebox_corner_z->width()) / renwidth,
         (uY + uHeight - messagebox_corner_y->height()) / renheight,
-        messagebox_corner_w);
+        messagebox_corner_w.get());
 
     if (uWidth > messagebox_corner_x->width() + messagebox_corner_z->width()) {
         render->SetUIClipRect(Recti(uX + messagebox_corner_x->width(), uY,
@@ -306,11 +306,11 @@ void DrawPopupWindow(unsigned int uX, unsigned int uY, unsigned int uWidth,
              x < uX + uWidth - messagebox_corner_x->width();
              x += messagebox_border_top->width()) {
             render->DrawTextureNew(x / renwidth, uY / renheight,
-                                        messagebox_border_top);
+                                        messagebox_border_top.get());
             render->DrawTextureNew(
                 x / renwidth,
                 (uY + uHeight - messagebox_border_bottom->height()) / renheight,
-                messagebox_border_bottom);
+                messagebox_border_bottom.get());
         }
     }
 
@@ -324,11 +324,11 @@ void DrawPopupWindow(unsigned int uX, unsigned int uY, unsigned int uWidth,
              y < uY + uHeight - messagebox_corner_y->height();
              y += messagebox_border_right->height()) {
             render->DrawTextureNew(uX / renwidth, y / renheight,
-                                        messagebox_border_left);
+                                        messagebox_border_left.get());
             render->DrawTextureNew(
                 (uX + uWidth - messagebox_border_right->width() - 1) /
                 renwidth,
-                y / renheight, messagebox_border_right);
+                y / renheight, messagebox_border_right.get());
         }
     }
     render->ResetUIClipRect();
@@ -426,7 +426,7 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
 
         render->DrawTransparentRedShade(
             (iteminfo_window.uFrameX + (float)itemXspacing) / 640.0f,
-            (itemYspacing + (float)iteminfo_window.uFrameY + 30) / 480.0f, inspect_item_image);
+            (itemYspacing + (float)iteminfo_window.uFrameY + 30) / 480.0f, inspect_item_image.get());
 
         iteminfo_window.DrawTitleText(assets->pFontArrus.get(), 0, 0xCu, colorTable.PaleCanary, inspect_item->GetDisplayName(), 3);
         iteminfo_window.DrawTitleText(assets->pFontArrus.get(), 0x64u,
@@ -434,10 +434,7 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
                                       colorTable.TorchRed, localization->str(LSTR_BROKEN_ITEM), 3);
         render->ResetUIClipRect();
 
-        if (inspect_item_image) {
-            inspect_item_image->release();
-            inspect_item_image = nullptr;
-        }
+        inspect_item_image.reset();
 
         return;
     }
@@ -455,7 +452,7 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
             iteminfo_window.uFrameY + iteminfo_window.uFrameHeight - 1;
         render->DrawTextureNew(
             (iteminfo_window.uFrameX + (float)itemXspacing) / 640.0f,
-            (itemYspacing + (float)iteminfo_window.uFrameY + 30) / 480.0f, inspect_item_image);
+            (itemYspacing + (float)iteminfo_window.uFrameY + 30) / 480.0f, inspect_item_image.get());
         iteminfo_window.DrawTitleText(
             assets->pFontArrus.get(), 0, 0xCu, colorTable.PaleCanary,
             pItemTable->items[inspect_item->itemId].unidentifiedName, 3);
@@ -465,11 +462,6 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
                 assets->pFontArrus->CalcTextHeight(localization->str(LSTR_NOT_IDENTIFIED),
                                            iteminfo_window.uFrameWidth, 0) / 2, colorTable.TorchRed, localization->str(LSTR_NOT_IDENTIFIED), 3);
         render->ResetUIClipRect();
-
-        if (inspect_item_image) {
-            inspect_item_image->release();
-            inspect_item_image = nullptr;
-        }
         return;
     }
 
@@ -594,7 +586,7 @@ void GameUI_DrawItemInfo(Item *inspect_item) {
         iteminfo_window.uFrameY + iteminfo_window.uFrameHeight - 1;
     render->DrawTextureNew((iteminfo_window.uFrameX + (float)itemXspacing) / 640.0f,
                            (iteminfo_window.uFrameY + (float)(iteminfo_window.uFrameHeight - inspect_item_image->height()) / 2.) / 480.0f,
-                                inspect_item_image);
+                                inspect_item_image.get());
 
     v34 = (int)(v85 + 35);
 
@@ -1703,7 +1695,7 @@ void ShowPopupShopItem() {
 
 //----- (0041D3B7) --------------------------------------------------------
 void GameUI_CharacterQuickRecord_Draw(GUIWindow *window, int characterIndex) {
-    GraphicsImage *v13;              // eax@6
+    std::shared_ptr<GraphicsImage> v13;              // eax@6
     std::string spellName;   // eax@16
     int v36;                 // esi@22
     int uFramesetIDa;        // [sp+20h] [bp-8h]@18
@@ -1734,7 +1726,7 @@ void GameUI_CharacterQuickRecord_Draw(GUIWindow *window, int characterIndex) {
         v13 = game_ui_player_faces[characterIndex][faceTextureIndex - 1];
     }
 
-    render->DrawTextureNew((window->uFrameX + 24) / 640.0f, (window->uFrameY + 24) / 480.0f, v13);
+    render->DrawTextureNew((window->uFrameX + 24) / 640.0f, (window->uFrameY + 24) / 480.0f, v13.get());
 
     // TODO(captainurist): do a 2nd rewrite here
     auto str =
@@ -1816,7 +1808,7 @@ void GameUI_DrawNPCPopup(int _this) {  // PopupWindowForBenefitAndJoinText
                 render->DrawTextureNew(
                     (popup_window.uFrameX + 22) / 640.0f,
                     (popup_window.uFrameY + 36) / 480.0f,
-                    assets->getImage_ColorKey(tex_name));
+                    assets->getImage_ColorKey(tex_name).get());
 
                 popup_window.DrawTitleText(assets->pFontArrus.get(), 0, 12, colorTable.PaleCanary, NameAndTitle(pNPC), 3);
                 popup_window.uFrameWidth -= 24;

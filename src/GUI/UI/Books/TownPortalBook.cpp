@@ -85,10 +85,10 @@ static std::array<Recti, TOWN_PORTAL_DESTINATION_COUNT_WITH_CHEATS> townPortalBu
     { 19, 243, 39, 36}, // Gloaming throne room
 }};
 
-static std::array<GraphicsImage *, TOWN_PORTAL_DESTINATION_COUNT_WITH_CHEATS> ui_book_townportal_icons;
+static std::array<std::shared_ptr<GraphicsImage>, TOWN_PORTAL_DESTINATION_COUNT_WITH_CHEATS> ui_book_townportal_icons;
 
-GraphicsImage *ui_book_townportal_background = nullptr;
-GraphicsImage *ui_townportal_cheat_destination_icon = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_townportal_background = nullptr;
+std::shared_ptr<GraphicsImage> ui_townportal_cheat_destination_icon = nullptr;
 
 GUIWindow_TownPortalBook::GUIWindow_TownPortalBook(Pid casterPid, SpellCastFlags castFlags)
         : _casterPid(casterPid), _castFlags(castFlags) {
@@ -119,15 +119,15 @@ GUIWindow_TownPortalBook::GUIWindow_TownPortalBook(Pid casterPid, SpellCastFlags
 }
 
 void GUIWindow_TownPortalBook::Update() {
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
     GUIWindow townPortalWindow;
     Pointi cursorPos = mouse->position();
     bool townPortalCheats = engine->config->debug.TownPortal.value();
     int count = townPortalCheats ? TOWN_PORTAL_DESTINATION_COUNT_WITH_CHEATS : TOWN_PORTAL_DESTINATION_COUNT;
 
-    render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, ui_book_townportal_background);
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, ui_book_townportal_background.get());
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
     townPortalWindow.uFrameWidth = pViewport->viewportWidth;
     townPortalWindow.uFrameHeight = pViewport->viewportHeight;
@@ -142,7 +142,7 @@ void GUIWindow_TownPortalBook::Update() {
         for (int i = TOWN_PORTAL_DESTINATION_COUNT; i < TOWN_PORTAL_DESTINATION_COUNT_WITH_CHEATS; ++i) {
             render->DrawTextureNew(townPortalButtonsPos[i].x / 640.0f,
                                    townPortalButtonsPos[i].y / 480.0f,
-                                   ui_townportal_cheat_destination_icon);
+                                   ui_townportal_cheat_destination_icon.get());
         }
     }
 
@@ -152,7 +152,7 @@ void GUIWindow_TownPortalBook::Update() {
             if (townPortalButtonsPos[i].contains(cursorPos)) {
                 render->DrawTextureNew(townPortalButtonsPos[i].x / 640.0f,
                                        townPortalButtonsPos[i].y / 480.0f,
-                                       ui_book_townportal_icons[i]);
+                                       ui_book_townportal_icons[i].get());
             }
         }
     }
@@ -219,7 +219,7 @@ void GUIWindow_TownPortalBook::clickTown(int townId) {
 
 void GUIWindow_TownPortalBook::hintTown(int townId) {
     if (!engine->config->debug.TownPortal.value() && !pParty->_questBits[townPortalList[townId].qBit]) {
-        render->DrawTextureNew(0, 352 / 480.0f, game_ui_statusbar); // TODO(captainurist): engine->_statusBar->smthSmth()???
+        render->DrawTextureNew(0, 352 / 480.0f, game_ui_statusbar.get()); // TODO(captainurist): engine->_statusBar->smthSmth()???
         return;
     }
 

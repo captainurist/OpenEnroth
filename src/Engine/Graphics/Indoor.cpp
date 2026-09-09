@@ -222,7 +222,7 @@ void BLVFace::FromODM(ODMFace *face) {
 }
 
 //----- (004AE5BA) --------------------------------------------------------
-GraphicsImage *BLVFace::GetTexture() const {
+std::shared_ptr<GraphicsImage> BLVFace::GetTexture() const {
     if (this->IsAnimated())
         // TODO(captainurist): using pEventTimer here is weird. This means that e.g. cleric in the haunted mansion is
         //                     not animated in turn-based mode. Use misc timer? Also see ODMFace::GetTexture.
@@ -1234,7 +1234,7 @@ void IndoorLocation::PrepareDecorationsRenderList_BLV(unsigned int uDecorationID
         particle.b = 0.0;
         particle.particle_size = 1.0;
         particle.timeToLive = Duration::randomRealtimeSeconds(vrng, 1, 2); // was either 1 or 2 secs, we made it into [1, 2).
-        particle.texture = spell_fx_renderer->effpar01;
+        particle.texture = spell_fx_renderer->effpar01.get();
         particle_engine->AddParticle(&particle);
         return;
     }

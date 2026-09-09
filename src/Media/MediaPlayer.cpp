@@ -316,9 +316,7 @@ class Movie : public IMovie {
     }
 
     virtual ~Movie() {
-        if (_texture != nullptr) {
-            _texture->release();
-        }
+        _texture.reset();
 
         while (!_binkBuffer.empty()) _binkBuffer.pop();
         Close();
@@ -469,7 +467,7 @@ class Movie : public IMovie {
 
 
         // create texture
-        GraphicsImage *tex = GraphicsImage::Create(pMovie_Track->GetWidth(), pMovie_Track->GetHeight());
+        std::unique_ptr<GraphicsImage> tex = GraphicsImage::Create(Sizei(pMovie_Track->GetWidth(), pMovie_Track->GetHeight()));
 
         // holds decoded audio
         std::queue<Blob> buffq;
@@ -488,7 +486,6 @@ class Movie : public IMovie {
         //int err = av_seek_frame(format_ctx, -1, 0, AVSEEK_FLAG_BACKWARD | AVSEEK_FLAG_ANY);
         if (err < 0) {
             logger->warning("Seek to start failed! - Exit Movie");
-            tex->release();
             return;
         }
         start_time = std::chrono::system_clock::now();
@@ -538,8 +535,8 @@ class Movie : public IMovie {
                 tex->rgba() = RgbaImage::copy(tex->width(), tex->height(), static_cast<const Color *>(video.last_frame.data()));
 
                 // update texture
-                render->Update_Texture(tex);
-                render->DrawImage(tex, calculateVideoRectangle(*pMovie_Track));
+                render->Update_Texture(tex.get());
+                render->DrawImage(tex.get(), calculateVideoRectangle(*pMovie_Track));
                 render->Present();
             }
 
@@ -555,7 +552,6 @@ class Movie : public IMovie {
 
         // clean up
         while (!buffq.empty()) buffq.pop();
-        tex->release();
 
         return;
     }
@@ -583,7 +579,7 @@ class Movie : public IMovie {
     virtual bool IsPlaying() const override { return playing; }
 
     virtual bool prepare() override {
-        _texture = GraphicsImage::Create(GetWidth(), GetHeight());
+        _texture = GraphicsImage::Create(Sizei(GetWidth(), GetHeight()));
         if (GetFormat() == "bink") {
             // loop through once and add all audio packets to queue
             while (av_read_frame(format_ctx, &_binkPacket) >= 0) {
@@ -685,8 +681,8 @@ class Movie : public IMovie {
         _texture->rgba() = RgbaImage::copy(_texture->width(), _texture->height(), static_cast<const Color *>(buffer.data()));
 
         // update texture
-        render->Update_Texture(_texture);
-        render->DrawImage(_texture, calculateVideoRectangle(*this));
+        render->Update_Texture(_texture.get());
+        render->DrawImage(_texture.get(), calculateVideoRectangle(*this));
     }
 
  protected:
@@ -707,7 +703,7 @@ class Movie : public IMovie {
 
     FFmpegBlobInputStream _stream;
 
-    GraphicsImage *_texture{};
+    std::unique_ptr<GraphicsImage> _texture;
 
     // Bink video properties
     AVPacket _binkPacket;
@@ -754,9 +750,9 @@ void MPlayer::HouseMovieLoop() {
 
     render->BeginScene2D();
 
-    static GraphicsImage *tex;
+    static std::unique_ptr<GraphicsImage> tex;
     if (!tex) {
-        tex = GraphicsImage::Create(pMovie_Track->GetWidth(), pMovie_Track->GetHeight());
+        tex = GraphicsImage::Create(Sizei(pMovie_Track->GetWidth(), pMovie_Track->GetHeight()));
     }
 
     Blob buffer = pMovie_Track->GetFrame();
@@ -772,8 +768,8 @@ void MPlayer::HouseMovieLoop() {
         tex->rgba() = RgbaImage::copy(tex->width(), tex->height(), static_cast<const Color *>(buffer.data()));
 
         // update texture
-        render->Update_Texture(tex);
-        render->DrawImage(tex, rect);
+        render->Update_Texture(tex.get());
+        render->DrawImage(tex.get(), rect);
 
     } else {
         pMovie_Track = nullptr;
@@ -836,7 +832,7 @@ void MPlayer::PlayFullscreenMovie(std::string_view pFilename) {
         logger->trace("bink file");
         pMovie->PlayBink();
     } else {
-        GraphicsImage *tex = GraphicsImage::Create(pMovie_Track->GetWidth(), pMovie_Track->GetHeight());
+        std::unique_ptr<GraphicsImage> tex = GraphicsImage::Create(Sizei(pMovie_Track->GetWidth(), pMovie_Track->GetHeight()));
         while (true) {
             MessageLoopWithWait();
 
@@ -854,12 +850,11 @@ void MPlayer::PlayFullscreenMovie(std::string_view pFilename) {
             tex->rgba() = RgbaImage::copy(tex->width(), tex->height(), static_cast<const Color *>(buffer.data()));
 
             // update texture
-            render->Update_Texture(tex);
-            render->DrawImage(tex, calculateVideoRectangle(*pMovie_Track));
+            render->Update_Texture(tex.get());
+            render->DrawImage(tex.get(), calculateVideoRectangle(*pMovie_Track));
 
             render->Present();
         }
-        tex->release();
     }
 
     current_screen_type = SCREEN_GAME;

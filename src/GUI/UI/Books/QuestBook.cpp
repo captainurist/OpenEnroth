@@ -15,7 +15,7 @@
 
 #include "Media/Audio/AudioPlayer.h"
 
-GraphicsImage *ui_book_quests_background = nullptr;
+std::shared_ptr<GraphicsImage> ui_book_quests_background = nullptr;
 
 GUIWindow_QuestBook::GUIWindow_QuestBook() {
     this->eWindowType = WindowType::WINDOW_QuestBook;
@@ -44,23 +44,23 @@ GUIWindow_QuestBook::GUIWindow_QuestBook() {
 }
 
 void GUIWindow_QuestBook::Update() {
-    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+    render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
     int pTextHeight;
     GUIWindow questbook_window;
 
-    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_quests_background);
+    render->DrawTextureNew(pViewport->viewportTL_X / 640.0f, pViewport->viewportTL_Y / 480.0f, ui_book_quests_background.get());
 
     if ((_bookButtonClicked && _bookButtonAction == BOOK_PREV_PAGE) || !_startingQuestIdx) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 2) / 480.0f, ui_book_button1_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 1) / 480.0f, ui_book_button1_on.get());
     }
 
     if ((_bookButtonClicked && _bookButtonAction == BOOK_NEXT_PAGE) || (_startingQuestIdx + _currentPageQuests) >= _activeQuestsIdx.size()) {
-        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off);
+        render->DrawTextureNew((pViewport->viewportTL_X + 407) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_off.get());
     } else {
-        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on);
+        render->DrawTextureNew((pViewport->viewportTL_X + 398) / 640.0f, (pViewport->viewportTL_Y + 38) / 480.0f, ui_book_button2_on.get());
     }
 
     // for title
@@ -107,7 +107,7 @@ void GUIWindow_QuestBook::Update() {
             break;
         }
 
-        render->DrawTextureNew(100 / 640.0f, ((questbook_window.uFrameY + pTextHeight) + 12) / 480.0f, ui_book_quest_div_bar);
+        render->DrawTextureNew(100 / 640.0f, ((questbook_window.uFrameY + pTextHeight) + 12) / 480.0f, ui_book_quest_div_bar.get());
         questbook_window.uFrameY = (questbook_window.uFrameY + pTextHeight) + 24;
     }
 }

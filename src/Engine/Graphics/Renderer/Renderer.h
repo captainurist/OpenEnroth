@@ -55,7 +55,7 @@ class Renderer {
     virtual void DrawLines(const RenderVertexD3D3 *vertices, int num_vertices) = 0;
 
     virtual void ClearHitMap() = 0;
-    virtual void DrawToHitMap(float u, float v, GraphicsImage *pTexture, int value) = 0;
+    virtual void DrawToHitMap(float u, float v, std::shared_ptr<GraphicsImage> pTexture, int value) = 0;
     /**
      * Query the equipment hit map for hit testing.
      *
@@ -175,7 +175,7 @@ class Renderer {
 
     Color uFogColor;
     int hd_water_current_frame;
-    GraphicsImage *hd_water_tile_anim[7];
+    std::shared_ptr<GraphicsImage> hd_water_tile_anim[7];
     RenderBillboardD3D pBillboardRenderListD3D[1000];
     unsigned int uNumBillboardsToDraw; // TODO(captainurist): this is not properly cleared if BeginScene3D is not called,
                                        //                     resulting in dangling textures in pBillboardRenderListD3D.

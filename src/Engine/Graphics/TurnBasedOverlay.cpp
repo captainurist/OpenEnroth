@@ -73,10 +73,10 @@ void TurnBasedOverlay::draw() {
     if (_state == TURN_BASED_OVERLAY_NONE)
         return;
 
-    render->DrawTextureNew(394 / 640.0f, 288 / 480.0f, currentIcon());
+    render->DrawTextureNew(394 / 640.0f, 288 / 480.0f, currentIcon().get());
 }
 
-GraphicsImage *TurnBasedOverlay::currentIcon() const {
+std::shared_ptr<GraphicsImage> TurnBasedOverlay::currentIcon() const {
     switch (_state) {
     default:
         assert(false); // TURN_BASED_OVERLAY_NONE is expected to be checked up the stack.

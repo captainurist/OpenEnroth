@@ -14,15 +14,15 @@
 #include "GUI/GUIButton.h"
 #include "GUI/UI/UIRest.h"
 
-GraphicsImage *rest_ui_btn_4 = nullptr;
-GraphicsImage *rest_ui_btn_exit = nullptr;
-GraphicsImage *rest_ui_btn_3 = nullptr;
-GraphicsImage *rest_ui_btn_1 = nullptr;
-GraphicsImage *rest_ui_btn_2 = nullptr;
-GraphicsImage *rest_ui_restmain = nullptr;
+std::shared_ptr<GraphicsImage> rest_ui_btn_4;
+std::shared_ptr<GraphicsImage> rest_ui_btn_exit;
+std::shared_ptr<GraphicsImage> rest_ui_btn_3;
+std::shared_ptr<GraphicsImage> rest_ui_btn_1;
+std::shared_ptr<GraphicsImage> rest_ui_btn_2;
+std::shared_ptr<GraphicsImage> rest_ui_restmain;
 
-GraphicsImage *rest_ui_sky_frame_current = nullptr;
-GraphicsImage *rest_ui_hourglass_frame_current = nullptr;
+std::shared_ptr<GraphicsImage> rest_ui_sky_frame_current;
+std::shared_ptr<GraphicsImage> rest_ui_hourglass_frame_current;
 
 int foodRequiredToRest;
 Duration remainingRestTime;
@@ -108,12 +108,9 @@ void GUIWindow_Rest::Update() {
     }
 
     if (liveCharacters) {
-        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, rest_ui_restmain);
-        render->DrawTextureNew(16 / 640.0f, 26 / 480.0f, rest_ui_sky_frame_current);
-        if (rest_ui_hourglass_frame_current) {
-            rest_ui_hourglass_frame_current->release();
-            rest_ui_hourglass_frame_current = nullptr;
-        }
+        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, rest_ui_restmain.get());
+        render->DrawTextureNew(16 / 640.0f, 26 / 480.0f, rest_ui_sky_frame_current.get());
+        rest_ui_hourglass_frame_current.reset();
 
         hourglassLoopTimer += pEventTimer->dt();
         if (hourglassLoopTimer >= Duration::fromRealtimeSeconds(4)) {
@@ -126,7 +123,7 @@ void GUIWindow_Rest::Update() {
         }
 
         rest_ui_hourglass_frame_current = assets->getImage_ColorKey(fmt::format("hglas{:03}", hourglass_icon_idx));
-        render->DrawTextureNew(267 / 640.0f, 159 / 480.0f, rest_ui_hourglass_frame_current);
+        render->DrawTextureNew(267 / 640.0f, 159 / 480.0f, rest_ui_hourglass_frame_current.get());
 
         tmp_button.uX = 24;
         tmp_button.uY = 154;

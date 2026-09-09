@@ -35,11 +35,11 @@ void GameOver_Setup() {
     window_SpeakInHouse = nullptr;
 }
 
-GraphicsImage *CreateWinnerCertificate() {
+std::unique_ptr<GraphicsImage> CreateWinnerCertificate() {
     render->Present();
     render->BeginScene2D();
-    GraphicsImage *background = assets->getImage_PCXFromIconsLOD("winbg.pcx");
-    render->DrawTextureNew(0, 0, background);
+    std::shared_ptr<GraphicsImage> background = assets->getImage_PCXFromIconsLOD("winbg.pcx");
+    render->DrawTextureNew(0, 0, background.get());
 
     GUIWindow *tempwindow_SpeakInHouse = new GUIWindow(WINDOW_Unknown, { 0, 0 }, render->GetRenderDimensions());
     GUIWindow pWindow;
@@ -117,10 +117,8 @@ GraphicsImage *CreateWinnerCertificate() {
 
     RgbaImage pixels = render->MakeFullScreenshot();
     ufs->write("MM7_Win.Pcx", pcx::encode(pixels));
-    GraphicsImage *result = GraphicsImage::Create(std::move(pixels));
+    std::unique_ptr<GraphicsImage> result = GraphicsImage::Create(std::move(pixels));
 
-    background->release();
-    background = nullptr;
     tempwindow_SpeakInHouse->Release();
 
     return result;

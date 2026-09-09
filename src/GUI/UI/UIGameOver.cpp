@@ -27,7 +27,7 @@ GUIWindow_GameOver::GUIWindow_GameOver(UIMessageType releaseEvent) : GUIWindow(W
 void GUIWindow_GameOver::Update() {
     // draw winners certificate background
     assert(_winnerCert);
-    render->DrawTextureNew(0, 0, _winnerCert);
+    render->DrawTextureNew(0, 0, _winnerCert.get());
 
     // draw pop up box
     if (_showPopUp) {
@@ -50,7 +50,7 @@ void GUIWindow_GameOver::Release() {
     GameOverNoSound = false;
     pEventTimer->setPaused(false);
 
-    _winnerCert->release();
+    _winnerCert.reset();
 
     GUIWindow::Release();
 }

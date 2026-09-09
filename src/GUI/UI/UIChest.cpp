@@ -31,7 +31,7 @@ void GUIWindow_Chest::Update() {
         render->ClearHitMap();
         draw_leather();
         CharacterUI_InventoryTab_Draw(&pParty->activeCharacter(), true);
-        render->DrawTextureNew(pBtn_ExitCancel->uX / 640.0f, pBtn_ExitCancel->uY / 480.0f, ui_exit_cancel_button_background);
+        render->DrawTextureNew(pBtn_ExitCancel->uX / 640.0f, pBtn_ExitCancel->uY / 480.0f, ui_exit_cancel_button_background.get());
     } else if (current_screen_type == SCREEN_CHEST) {
         int uChestID = _chestId;
         int chestDescId = vChests[uChestID].chestTypeId;
@@ -40,8 +40,8 @@ void GUIWindow_Chest::Update() {
         int chestWidthCells = chestTable[chestDescId].size.w;
         int chestHeghtCells = chestTable[chestDescId].size.h;
 
-        GraphicsImage *chest_background = assets->getImage_ColorKey(chestTable[chestDescId].textureName);
-        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, chest_background);
+        std::shared_ptr<GraphicsImage> chest_background = assets->getImage_ColorKey(chestTable[chestDescId].textureName);
+        render->DrawTextureNew(8 / 640.0f, 8 / 480.0f, chest_background.get());
 
         render->SetUIClipRect({ chest_offs_x, chest_offs_y, 32 * chestWidthCells, 32 * chestHeghtCells });
         CharacterUI_DrawPickedItemUnderlay({ chest_offs_x, chest_offs_y });
@@ -59,9 +59,9 @@ void GUIWindow_Chest::Update() {
 
             assert(0 < itemPixelPosX && itemPixelPosX < 640);
             assert(0 < itemPixelPosY && itemPixelPosY < 480);
-            render->DrawTextureNew(itemPixelPosX / 640.0f, itemPixelPosY / 480.0f, item_texture);
+            render->DrawTextureNew(itemPixelPosX / 640.0f, itemPixelPosY / 480.0f, item_texture.get());
         }
 
-        render->DrawTextureNew(pBtn_ExitCancel->uX / 640.0f, pBtn_ExitCancel->uY / 480.0f, ui_exit_cancel_button_background);
+        render->DrawTextureNew(pBtn_ExitCancel->uX / 640.0f, pBtn_ExitCancel->uY / 480.0f, ui_exit_cancel_button_background.get());
     }
 }

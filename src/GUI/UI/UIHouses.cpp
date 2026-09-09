@@ -51,7 +51,7 @@
 
 using Io::TextInputType;
 
-GraphicsImage *_591428_endcap = nullptr;
+std::shared_ptr<GraphicsImage> _591428_endcap;
 
 std::vector<HouseNpcDesc> houseNpcs;
 int currentHouseNpc;
@@ -579,10 +579,7 @@ bool houseDialogPressEscape() {
         if (pDialogueWindow) {
             pDialogueWindow->Release();
         }
-        if (shop_ui_background) {
-            shop_ui_background->release();
-            shop_ui_background = nullptr;
-        }
+        shop_ui_background.reset();
         window_SpeakInHouse->updateDialogueOnEscape();
         pDialogueWindow = nullptr;
 
@@ -751,8 +748,8 @@ void GUIWindow_House::drawNpcHouseGreetingMessage(NPCData *npcData) {
                 }
 
                 int textHeight = assets->pFontArrus->CalcTextHeight(greetString, uFrameWidth, 13) + 7;
-                render->DrawTextureCustomHeight(8 / 640.0f, (352 - textHeight) / 480.0f, ui_leather_mm7, textHeight);
-                render->DrawTextureNew(8 / 640.0f, (347 - textHeight) / 480.0f, _591428_endcap);
+                render->DrawTextureCustomHeight(8 / 640.0f, (352 - textHeight) / 480.0f, ui_leather_mm7.get(), textHeight);
+                render->DrawTextureNew(8 / 640.0f, (347 - textHeight) / 480.0f, _591428_endcap.get());
                 DrawText(assets->pFontArrus.get(), { 13, 354 - textHeight }, colorTable.White, assets->pFontArrus->WrapText(greetString, uFrameWidth, 13));
             }
         }
@@ -788,8 +785,8 @@ void GUIWindow_House::drawNpcHouseDialogueResponse() {
             pTextFont = assets->pFontCreate.get();
             pTextHeight = assets->pFontCreate->CalcTextHeight(current_npc_text, frameZ, 13) + 7;
         }
-        render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7, pTextHeight);
-        render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap);
+        render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7.get(), pTextHeight);
+        render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap.get());
         DrawText(pTextFont, { 13, 354 - pTextHeight }, colorTable.White, pTextFont->WrapText(current_npc_text, frameWidth, 13));
     }
 }
@@ -891,8 +888,8 @@ void GUIWindow_House::houseDialogManager() {
     GUIWindow pWindow = *this;
     pWindow.uFrameWidth -= 18;
     pWindow.uFrameZ -= 18;
-    render->DrawTextureNew(477 / 640.0f, 0, game_ui_dialogue_background);
-    render->DrawTextureNew(468 / 640.0f, 0, game_ui_right_panel_frame);
+    render->DrawTextureNew(477 / 640.0f, 0, game_ui_dialogue_background.get());
+    render->DrawTextureNew(468 / 640.0f, 0, game_ui_right_panel_frame.get());
 
     if (currentHouseNpc == -1 || houseNpcs[currentHouseNpc].type != HOUSE_TRANSITION) {
         // Draw house title
@@ -911,7 +908,7 @@ void GUIWindow_House::houseDialogManager() {
     pWindow.uFrameZ += 8;
     if (currentHouseNpc == -1) {
         // Either house have no residents or current screen is for selecting resident to begin dialogue
-        render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+        render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
 
         if (buildingType() == HOUSE_TYPE_JAIL) {
             houseSpecificDialogue();
@@ -924,16 +921,16 @@ void GUIWindow_House::houseDialogManager() {
             pDialogWindow.uFrameZ = 457;
             int pTextHeight = assets->pFontArrus->CalcTextHeight(current_npc_text, pDialogWindow.uFrameWidth, 13);
             int pTextBackgroundHeight = pTextHeight + 7;
-            render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextBackgroundHeight) / 480.0f, ui_leather_mm7, pTextBackgroundHeight);
-            render->DrawTextureNew(8 / 640.0f, (347 - pTextBackgroundHeight) / 480.0f, _591428_endcap);
+            render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextBackgroundHeight) / 480.0f, ui_leather_mm7.get(), pTextBackgroundHeight);
+            render->DrawTextureNew(8 / 640.0f, (347 - pTextBackgroundHeight) / 480.0f, _591428_endcap.get());
             DrawText(assets->pFontArrus.get(), {13, 354 - pTextBackgroundHeight}, colorTable.White, assets->pFontArrus->WrapText(current_npc_text, pDialogWindow.uFrameWidth, 13));
         }
 
         for (int i = 0; i < houseNpcs.size(); ++i) {
             render->DrawTextureNew((pNPCPortraits_x[houseNpcs.size() - 1][i] - 4) / 640.0f,
-                                   (pNPCPortraits_y[houseNpcs.size() - 1][i] - 4) / 480.0f, game_ui_evtnpc);
+                                   (pNPCPortraits_y[houseNpcs.size() - 1][i] - 4) / 480.0f, game_ui_evtnpc.get());
             render->DrawTextureNew(pNPCPortraits_x[houseNpcs.size() - 1][i] / 640.0f,
-                                   pNPCPortraits_y[houseNpcs.size() - 1][i] / 480.0f, houseNpcs[i].icon);
+                                   pNPCPortraits_y[houseNpcs.size() - 1][i] / 480.0f, houseNpcs[i].icon.get());
             if (houseNpcs.size() < 4) {
                 std::string pTitleText = "";
                 int yPos = 0;
@@ -957,11 +954,11 @@ void GUIWindow_House::houseDialogManager() {
         return;
     }
 
-    render->DrawTextureNew((pNPCPortraits_x[0][0] - 4) / 640.0f, (pNPCPortraits_y[0][0] - 4) / 480.0f, game_ui_evtnpc);
-    render->DrawTextureNew(pNPCPortraits_x[0][0] / 640.0f, pNPCPortraits_y[0][0] / 480.0f, houseNpcs[currentHouseNpc].icon);
+    render->DrawTextureNew((pNPCPortraits_x[0][0] - 4) / 640.0f, (pNPCPortraits_y[0][0] - 4) / 480.0f, game_ui_evtnpc.get());
+    render->DrawTextureNew(pNPCPortraits_x[0][0] / 640.0f, pNPCPortraits_y[0][0] / 480.0f, houseNpcs[currentHouseNpc].icon.get());
     if (current_screen_type == SCREEN_SHOP_INVENTORY) {
         CharacterUI_InventoryTab_Draw(&pParty->activeCharacter(), true);
-        render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+        render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
         return;
     }
     if (currentHouseNpc || houseNpcs[0].type != HOUSE_PROPRIETOR) {
@@ -973,10 +970,10 @@ void GUIWindow_House::houseDialogManager() {
         houseSpecificDialogue();
     }
     if (currentHouseNpc != -1 && houseNpcs[currentHouseNpc].type == HOUSE_TRANSITION) {
-        render->DrawTextureNew(556 / 640.0f, 451 / 480.0f, dialogue_ui_x_x_u);
-        render->DrawTextureNew(476 / 640.0f, 451 / 480.0f, dialogue_ui_x_ok_u);
+        render->DrawTextureNew(556 / 640.0f, 451 / 480.0f, dialogue_ui_x_x_u.get());
+        render->DrawTextureNew(476 / 640.0f, 451 / 480.0f, dialogue_ui_x_ok_u.get());
     } else {
-        render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background);
+        render->DrawTextureNew(471 / 640.0f, 445 / 480.0f, ui_exit_cancel_button_background.get());
     }
 }
 
@@ -1118,17 +1115,9 @@ void GUIWindow_House::Update() {
 }
 
 void GUIWindow_House::Release() {
-    for (HouseNpcDesc &desc : houseNpcs) {
-        if (desc.icon) {
-            desc.icon->release();
-        }
-    }
     houseNpcs.clear();
 
-    if (game_ui_dialogue_background) {
-        game_ui_dialogue_background->release();
-        game_ui_dialogue_background = nullptr;
-    }
+    game_ui_dialogue_background.reset();
 
     if (engine->config->settings.FlipOnExit.value()) {
         pParty->_viewYaw = (TrigLUT.uIntegerDoublePi - 1) & (TrigLUT.uIntegerPi + pParty->_viewYaw);

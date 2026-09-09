@@ -31,7 +31,7 @@ Duration TextureFrameTable::animationFrameLength(int frameId) {
     return _frames[frameId].frameLength;
 }
 
-GraphicsImage *TextureFrameTable::animationFrame(int animationId, Duration frameTime) {
+std::shared_ptr<GraphicsImage> TextureFrameTable::animationFrame(int animationId, Duration frameTime) {
     TextureFrameData &data = _frames[animationId];
     assert(data.flags & FRAME_FIRST);
 
@@ -47,7 +47,7 @@ GraphicsImage *TextureFrameTable::animationFrame(int animationId, Duration frame
     return loadTexture(i);
 }
 
-GraphicsImage *TextureFrameTable::loadTexture(int frameId) {
+std::shared_ptr<GraphicsImage> TextureFrameTable::loadTexture(int frameId) {
     assert(_textures.size() == _frames.size());
 
     if (!_textures[frameId])

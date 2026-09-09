@@ -32,7 +32,7 @@ class TurnBasedOverlay {
     void draw();
 
  private:
-    GraphicsImage *currentIcon() const;
+    std::shared_ptr<GraphicsImage> currentIcon() const;
 
  private:
     TurnBasedOverlayState _state = TURN_BASED_OVERLAY_NONE;

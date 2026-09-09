@@ -28,16 +28,16 @@ class TextureFrameTable {
      */
     Duration animationFrameLength(int frameId);
 
-    GraphicsImage *animationFrame(int animationId, Duration frameTime);
+    std::shared_ptr<GraphicsImage> animationFrame(int animationId, Duration frameTime);
 
     friend void deserialize(const Blob &src, TextureFrameTable *dst); // In TableSerialization.cpp.
 
  private:
-    GraphicsImage *loadTexture(int frameId);
+    std::shared_ptr<GraphicsImage> loadTexture(int frameId);
 
  private:
     std::vector<TextureFrameData> _frames;
-    std::vector<GraphicsImage *> _textures;
+    std::vector<std::shared_ptr<GraphicsImage>> _textures;
 };
 
 extern TextureFrameTable *pTextureFrameTable;

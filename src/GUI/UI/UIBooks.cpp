@@ -13,60 +13,24 @@
 #include "Media/Audio/AudioPlayer.h"
 
 void GUIWindow_Book::Release() {
-    if (ui_book_map_frame) {
-        ui_book_map_frame->release();
-    }
-    if (ui_book_quest_div_bar) {
-        ui_book_quest_div_bar->release();
-    }
-    if (ui_book_button8_off) {
-        ui_book_button8_off->release();
-    }
-    if (ui_book_button8_on) {
-        ui_book_button8_on->release();
-    }
-    if (ui_book_button7_off) {
-        ui_book_button7_off->release();
-    }
-    if (ui_book_button7_on) {
-        ui_book_button7_on->release();
-    }
-    if (ui_book_button6_off) {
-        ui_book_button6_off->release();
-    }
-    if (ui_book_button6_on) {
-        ui_book_button6_on->release();
-    }
-    if (ui_book_button5_off) {
-        ui_book_button5_off->release();
-    }
-    if (ui_book_button5_on) {
-        ui_book_button5_on->release();
-    }
-    if (ui_book_button4_off) {
-        ui_book_button4_off->release();
-    }
-    if (ui_book_button4_on) {
-        ui_book_button4_on->release();
-    }
-    if (ui_book_button3_off) {
-        ui_book_button3_off->release();
-    }
-    if (ui_book_button3_on) {
-        ui_book_button3_on->release();
-    }
-    if (ui_book_button2_off) {
-        ui_book_button2_off->release();
-    }
-    if (ui_book_button2_on) {
-        ui_book_button2_on->release();
-    }
-    if (ui_book_button1_off) {
-        ui_book_button1_off->release();
-    }
-    if (ui_book_button1_on) {
-        ui_book_button1_on->release();
-    }
+    ui_book_map_frame.reset();
+    ui_book_quest_div_bar.reset();
+    ui_book_button8_off.reset();
+    ui_book_button8_on.reset();
+    ui_book_button7_off.reset();
+    ui_book_button7_on.reset();
+    ui_book_button6_off.reset();
+    ui_book_button6_on.reset();
+    ui_book_button5_off.reset();
+    ui_book_button5_on.reset();
+    ui_book_button4_off.reset();
+    ui_book_button4_on.reset();
+    ui_book_button3_off.reset();
+    ui_book_button3_on.reset();
+    ui_book_button2_off.reset();
+    ui_book_button2_on.reset();
+    ui_book_button1_off.reset();
+    ui_book_button1_on.reset();
 
     pAudioPlayer->playUISound(SOUND_closebook);
 
@@ -110,5 +74,5 @@ GUIWindow_BooksButtonOverlay::GUIWindow_BooksButtonOverlay(Pointi position, Size
 {}
 
 void GUIWindow_BooksButtonOverlay::Update() {
-    render->DrawTextureNew(uFrameY / 640.0f, uFrameX / 480.0f, _button->vTextures[0]);
+    render->DrawTextureNew(uFrameY / 640.0f, uFrameX / 480.0f, _button->vTextures[0].get());
 }

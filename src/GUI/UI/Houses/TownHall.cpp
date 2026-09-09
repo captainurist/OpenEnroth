@@ -62,8 +62,8 @@ void GUIWindow_TownHall::bountyHuntDialogue() {
         pOutString = assets->pFontCreate.get();
         pTextHeight = assets->pFontCreate->CalcTextHeight(current_npc_text, window.uFrameWidth, 13) + 7;
     }
-    render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7, pTextHeight);
-    render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap);
+    render->DrawTextureCustomHeight(8 / 640.0f, (352 - pTextHeight) / 480.0f, ui_leather_mm7.get(), pTextHeight);
+    render->DrawTextureNew(8 / 640.0f, (347 - pTextHeight) / 480.0f, _591428_endcap.get());
     window.DrawText(pOutString, {13, 354 - pTextHeight}, colorTable.White, current_npc_text);
 }
 

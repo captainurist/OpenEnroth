@@ -42,7 +42,7 @@ class BaseRenderer : public Renderer {
     virtual std::vector<Actor*> getActorsInViewport(int pDepth) override;
 
     virtual void ClearHitMap() override;
-    virtual void DrawToHitMap(float u, float v, GraphicsImage *pTexture, int zVal) override;
+    virtual void DrawToHitMap(float u, float v, std::shared_ptr<GraphicsImage> pTexture, int zVal) override;
 
     virtual int QueryHitMap(Pointi screenPos, int defaultValue) override;
 
