@@ -43,4 +43,5 @@ target_link_libraries(application
         library_platform_null
         library_platform_implementation
         library_environment_implementation
+        library_audio_implementation
         utility)

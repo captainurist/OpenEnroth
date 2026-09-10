@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
+add_subdirectory(Audio)
 add_subdirectory(Binary)
 add_subdirectory(BuildInfo)
 add_subdirectory(Cli)

@@ -4,6 +4,37 @@
 
 #include "AudioDataSource.h"
 
+
+// OK design time.
+//
+//
+// MediaPlatform
+//  virtual std::unique_ptr<MediaStream> open(Blob, OpenOpts) -- because we can.
+//
+// MediaStream
+//  virtual std::unique_ptr<MediaPacket> next() -- demuxing, decoding, transforming into requested format --- all here
+//
+// MediaPacket
+//  type
+//  PcmData OR VideoData --- literally pcm OR pixels
+//
+//
+// On top of it:
+// DecodingThread:
+//  calls next(), puts in queue of limited size.
+//
+// AudioPlaybackThread --- not really needed. Will do everything in Player::update.
+//
+// Player:
+//  calls open()
+//  creates DecodingThread
+//  loops & pushes packets into the right places.
+//
+// AudioPlayer:
+//  calls open()
+//  creates DecodingStream
+//  creates
+
 class IAudioTrack {
  public:
     IAudioTrack() {}

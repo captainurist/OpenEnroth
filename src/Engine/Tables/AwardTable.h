@@ -6,6 +6,7 @@
 
 class Blob;
 
+// TODO(captainurist): #enum
 enum AwardType : uint32_t {
     Award_Invalid = 0,
     Award_Fine = 1,

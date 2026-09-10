@@ -510,8 +510,7 @@ void snapshot(const Party &src, Party_MM7 *dst) {
     snapshot(src._questBits, &dst->questBits, tags::reverseBits);
     snapshot(src.pArcomageWins, &dst->arcomageWins);
 
-    dst->field_7B5_in_arena_quest = src.field_7B5_in_arena_quest;
-    dst->numArenaWins = src.uNumArenaWins;
+    snapshot(src.uNumArenaWins, &dst->numArenaWins, tags::cast<int, uint8_t>);
 
     snapshot(src.pIsArtifactFound, &dst->isArtifactFound);
     snapshot(src._autonoteBits, &dst->autonoteBits, tags::reverseBits);
@@ -607,8 +606,9 @@ void reconstruct(const Party_MM7 &src, Party *dst) {
     reconstruct(src.questBits, &dst->_questBits, tags::reverseBits);
     reconstruct(src.arcomageWins, &dst->pArcomageWins);
 
-    dst->field_7B5_in_arena_quest = src.field_7B5_in_arena_quest;
-    dst->uNumArenaWins = src.numArenaWins;
+    dst->_arenaLevel = ARENA_LEVEL_INVALID;
+    dst->_arenaState = ARENA_STATE_INITIAL;
+    reconstruct(src.numArenaWins, &dst->uNumArenaWins, tags::cast<uint8_t, int>);
 
     reconstruct(src.isArtifactFound, &dst->pIsArtifactFound);
     reconstruct(src.autonoteBits, &dst->_autonoteBits, tags::reverseBits);

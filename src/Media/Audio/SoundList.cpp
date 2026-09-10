@@ -25,8 +25,15 @@ void SoundList::FromFile(const Blob &data_mm6, const Blob &data_mm7, const Blob 
     assert(!sounds.empty());
 
     // TODO(captainurist): there are duplicate ids in the sounds array, look into it.
-    for (const SoundInfo &sound : sounds)
+    for (const SoundInfo &sound : sounds) {
+        if (_mapSounds.contains(sound.uSoundID)) {
+            SoundInfo existing = _mapSounds[sound.uSoundID];
+
+            int a = 10;
+        }
+
         _mapSounds[sound.uSoundID] = sound;
+    }
 }
 
 SoundInfo *SoundList::soundInfo(SoundId soundId) {

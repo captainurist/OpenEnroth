@@ -50,6 +50,7 @@ int runRetrace(OpenEnrothOptions options) {
 
             EventTrace oldTrace = EventTrace::loadFromFile(tracePath, application->window());
             EngineTraceStateAccessor::patchConfig(engine->config.get(), oldTrace.header.config);
+            engine->config->debug.NoVideo.setValue(true);
 
             recorder->startRecording(game, savePath, tracePath, TRACE_RECORDING_LOAD_EXISTING_SAVE);
             engine->config->graphics.FPSLimit.setValue(0);

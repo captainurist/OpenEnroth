@@ -983,7 +983,6 @@ void Engine::_461103_load_level_sub() {
     GenerateItemsInChest();
     UpdateChestPositions();
     pGameLoadingUI_ProgressBar->Progress();
-    pParty->field_7B5_in_arena_quest = 0;
     pNPCStats->uNewlNPCBufPos = 0;
     v19 = pMapStats->GetMapInfo(pCurrentMapName);
 

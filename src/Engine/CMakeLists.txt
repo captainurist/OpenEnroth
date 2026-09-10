@@ -41,6 +41,7 @@ set(ENGINE_HEADERS
         OurMath.h
         Party.h
         PartyEnums.h
+        PartyEnumFunctions.h
         Pid.h
         PriceCalculator.h
         SaveLoad.h

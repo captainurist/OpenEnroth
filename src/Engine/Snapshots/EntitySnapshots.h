@@ -498,8 +498,9 @@ struct Party_MM7 {
     /* 00765 */ std::array<uint8_t, 64> questBits;
     /* 007A5 */ std::array<bool, 13> arcomageWins;
                 std::array<bool, 3> arcomageWinsUnused; // Original array was 16 elements long, but we only have 13 taverns.
-    /* 007B5 */ char field_7B5_in_arena_quest;
-    /* 007B6 */ std::array<char, 4> numArenaWins;
+    /* 007B5 */ int8_t arenaStateUnused; // Dialogue id 85-88 for current arena level, 0 for none, -1 for arena win.
+                                         // Unused in OE because arena state shouldn't even be stored in the save.
+    /* 007B6 */ std::array<uint8_t, 4> numArenaWins;
     /* 007BA */ std::array<bool, 29> isArtifactFound;  // 7ba
     /* 007D7 */ std::array<char, 39> field_7d7;
     /* 007FE */ std::array<uint8_t, 26> autonoteBits;

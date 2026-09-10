@@ -315,8 +315,9 @@ struct Party {
     unsigned char days_played_without_rest;
     IndexedBitset<QBIT_FIRST, QBIT_LAST> _questBits;
     IndexedArray<bool, HOUSE_FIRST_ARCOMAGE_TAVERN, HOUSE_LAST_ARCOMAGE_TAVERN> pArcomageWins;
-    int8_t field_7B5_in_arena_quest; // 0, DIALOGUE_ARENA_SELECT_PAGE..DIALOGUE_ARENA_SELECT_CHAMPION, or -1 for win
-    std::array<char, 4> uNumArenaWins; // 0=page, 1=squire, 2=knight, 3=lord
+    ArenaState _arenaState = ARENA_STATE_INITIAL;
+    ArenaLevel _arenaLevel = ARENA_LEVEL_INVALID;
+    IndexedArray<int, ARENA_LEVEL_FIRST_VALID, ARENA_LEVEL_LAST_VALID> uNumArenaWins;
     IndexedArray<bool, ITEM_FIRST_SPAWNABLE_ARTIFACT, ITEM_LAST_SPAWNABLE_ARTIFACT> pIsArtifactFound;  // 7ba
     IndexedBitset<1, 208> _autonoteBits;
     int uNumArcomageWins;

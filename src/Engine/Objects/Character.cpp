@@ -4492,13 +4492,13 @@ bool Character::CompareVariable(VariableType VarNum, int pValue) {
         case VAR_PrisonTerms:
             return pParty->uNumPrisonTerms >= pValue;
         case VAR_ArenaWinsPage:
-            return (uint8_t)pParty->uNumArenaWins[0] >= pValue;
+            return pParty->uNumArenaWins[ARENA_LEVEL_PAGE] >= pValue;
         case VAR_ArenaWinsSquire:
-            return (uint8_t)pParty->uNumArenaWins[1] >= pValue;
+            return pParty->uNumArenaWins[ARENA_LEVEL_SQUIRE] >= pValue;
         case VAR_ArenaWinsKnight:
-            return (uint8_t)pParty->uNumArenaWins[2] >= pValue;
+            return pParty->uNumArenaWins[ARENA_LEVEL_KNIGHT] >= pValue;
         case VAR_ArenaWinsLord:
-            return pParty->uNumArenaWins[3] >= pValue;
+            return pParty->uNumArenaWins[ARENA_LEVEL_LORD] >= pValue;
         case VAR_Invisible:
             return pParty->pPartyBuffs[PARTY_BUFF_INVISIBILITY].Active();
         case VAR_ItemEquipped:
