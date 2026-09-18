@@ -1271,3 +1271,35 @@ GAME_TEST(Issues, Issue2490) {
     game.tick(2);
     EXPECT_EQ(current_screen_type, SCREEN_BOOKS); // Book opened, no assertion.
 }
+
+GAME_TEST(Issues, EnchantFlagRepro) {
+    // Quickloading with the enchantment targeting inventory open.
+    test.prepareForNextTest(10, RANDOM_ENGINE_SEQUENTIAL);
+    engine->config->debug.AllMagic.setValue(true);
+    game.startNewGame();
+    game.tick(2);
+
+    pParty->pCharacters[0].setSkillValue(SKILL_SWORD, CombinedSkillValue::novice());
+    pParty->pCharacters[0].inventory.equip(ITEM_SLOT_MAIN_HAND, Item(ITEM_BROADSWORD));
+    game.pressAndReleaseKey(PlatformKey::KEY_F5); // Quicksave.
+    game.tick(2);
+
+    game.castSpell(0, SPELL_FIRE_FIRE_AURA);
+    game.tick();
+    ASSERT_TRUE(IsEnchantingInProgress);
+    fprintf(stderr, "REPRO before load: screen=%d flag=%d window=%p\n", static_cast<int>(current_screen_type), IsEnchantingInProgress, static_cast<void *>(pGUIWindow_CastTargetedSpell.get()));
+
+    game.pressAndReleaseKey(PlatformKey::KEY_F9); // Quickload while the targeting inventory is open.
+    game.skipLoadingScreen();
+    game.tick(2);
+    fprintf(stderr, "REPRO after load: screen=%d flag=%d window=%p\n", static_cast<int>(current_screen_type), IsEnchantingInProgress, static_cast<void *>(pGUIWindow_CastTargetedSpell.get()));
+    EXPECT_EQ(current_screen_type, SCREEN_GAME);
+    EXPECT_FALSE(IsEnchantingInProgress);
+
+    game.pressAndReleaseKey(PlatformKey::KEY_I); // Open the inventory.
+    game.tick(2);
+    fprintf(stderr, "REPRO inventory open: screen=%d flag=%d\n", static_cast<int>(current_screen_type), IsEnchantingInProgress);
+    game.pressAndReleaseButton(BUTTON_LEFT, 521, 95); // Click the sword on the paperdoll.
+    game.tick(2);
+    fprintf(stderr, "REPRO survived the click: flag=%d\n", IsEnchantingInProgress);
+}
