@@ -1,0 +1,42 @@
+name: HsvColorf fmodf probe
+
+# Throwaway probe. Disassembles the x86_64 fmodf the process actually calls, and races fmodf against other threads,
+# on macos-15 (Rosetta) and macos-15-intel (native).
+
+on:
+  push:
+    branches:
+      - probe/hsv-lldb
+  workflow_dispatch:
+
+jobs:
+  fmodf:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5.0.0
+
+      - name: Build
+        run: |
+          clang -O2 -g -arch x86_64 -mmacosx-version-min=10.15 -pthread .github/hsv-probe/x87race.c -o x87race
+          file x87race
+          nm -u x87race | grep -i fmod
+
+      - name: Disassemble fmodf in the running process
+        run: |
+          sudo DevToolsSecurity -enable || true
+          printf '%s\n' 'breakpoint set -n main' 'run' 'image lookup -n fmodf' 'disassemble -n fmodf' 'image lookup -n fmod' 'disassemble -n fmod' 'kill' > cmds.txt
+          sudo lldb --arch x86_64 -b -s cmds.txt -- ./x87race 1 0 1 2>&1 | head -300 || true
+
+      - name: Race fmodf
+        run: |
+          for cfg in "1 0 120 x87" "1 3 120 x87" "1 3 120 fmod" "1 3 120 sse" "4 0 120 x87"; do
+            ./x87race $cfg || true
+          done
