@@ -62,6 +62,10 @@ set(ENGINE_GRAPHICS_HEADERS
         OutdoorTerrain.h
         OutdoorTerrain.cpp)
 
+if(OE_HSV_PROBE_VERIFY)
+    set_source_files_properties(PaletteManager.cpp PROPERTIES COMPILE_DEFINITIONS OE_HSV_PROBE_VERIFY)
+endif()
+
 add_library(engine_graphics STATIC ${ENGINE_GRAPHICS_SOURCES} ${ENGINE_GRAPHICS_HEADERS})
 target_check_style(engine_graphics)
 

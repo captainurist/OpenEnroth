@@ -3,13 +3,15 @@ cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 set(LIBRARY_COLOR_SOURCES
         Color.cpp
         Colorf.cpp
-        HsvColorf.cpp)
+        HsvColorf.cpp
+        HsvProbe.cpp)
 
 set(LIBRARY_COLOR_HEADERS
         Color.h
         Colorf.h
         ColorTable.h
-        HsvColorf.h)
+        HsvColorf.h
+        HsvProbe.h)
 
 add_library(library_color STATIC ${LIBRARY_COLOR_SOURCES} ${LIBRARY_COLOR_HEADERS})
 target_link_libraries(library_color PUBLIC utility library_serialization)

@@ -6,12 +6,15 @@
 
 #include "Color.h"
 #include "Colorf.h"
+#include "HsvProbe.h"
+
+#define HSV_PROBE(cond, what, base, count) do { if (__builtin_expect(!(cond), 0)) hsvProbeReport(what, base, count); } while (0)
 
 Colorf HsvColorf::toColorf() const {
-    assert(h >= 0.0f && h <= 360.0f);
-    assert(s >= 0.0f && s <= 1.0f);
-    assert(v >= 0.0f && v <= 1.0f);
-    assert(a >= 0.0f && a <= 1.0f);
+    HSV_PROBE(h >= 0.0f && h <= 360.0f, "toColorf.h", &h, 4);
+    HSV_PROBE(s >= 0.0f && s <= 1.0f, "toColorf.s", &h, 4);
+    HSV_PROBE(v >= 0.0f && v <= 1.0f, "toColorf.v", &h, 4);
+    HSV_PROBE(a >= 0.0f && a <= 1.0f, "toColorf.a", &h, 4);
 
     if (s == 0.0)
         return Colorf(v, v, v, a);

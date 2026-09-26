@@ -1,8 +1,8 @@
 name: HsvColorf probe
 
 # Throwaway probe for the HsvColorf range assert that aborts darwin_x86_64 RelWithDebInfo game tests at startup.
-# Builds the game test binary exactly like build_all's darwin_x86_64 RelWithDebInfo job, then launches it many
-# times on macos-15 (Apple Silicon, so the x86_64 binary runs under Rosetta 2) and on macos-15-intel (native).
+# Probe 2: the asserts report the bad value and process state, OE_PALETTE_REPEAT multiplies the palette work per
+# process, and the verify build records the input colour and recomputes it on a hit.
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
@@ -33,47 +33,49 @@ jobs:
           max-size: 400M
           save: false
 
-      - name: Configure
+      - name: Build report variant
         run: |
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOE_DISTRIBUTION_BUILD=ON -DOE_USE_SANITIZERS= -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+          ninja -C build OpenEnroth_GameTest > build-report.log 2>&1 || { tail -50 build-report.log; exit 1; }
 
-      - name: Build game test binary
-        working-directory: build
-        run: ninja -v OpenEnroth_GameTest 2>&1 | grep -E "HsvColorf.cpp|Colorf.cpp|FAILED|error:" || true
-
-      - name: Build hue_micro
+      - name: Build verify variant
         run: |
-          c++ -O2 -g -arch x86_64 -mmacosx-version-min=10.15 -std=gnu++23 -fno-omit-frame-pointer -fno-math-errno \
-            -fno-trapping-math -ffp-contract=off -DFMT_USE_NONTYPE_TEMPLATE_ARGS -DOE_DISTRIBUTION_BUILD \
-            -Isrc -Ithirdparty/fmt/include -Ithirdparty/small_vector/source/include -Ithirdparty/lambda2/include \
-            -Ithirdparty/magic_enum/include \
-            .github/hsv-probe/hue_micro.cpp src/Library/Color/Colorf.cpp src/Library/Color/HsvColorf.cpp -o hue_micro
+          cmake -B build-verify -G "Ninja" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOE_DISTRIBUTION_BUILD=ON -DOE_USE_SANITIZERS= -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DOE_HSV_PROBE_VERIFY=ON
+          ninja -C build-verify OpenEnroth_GameTest > build-verify.log 2>&1 || { tail -50 build-verify.log; exit 1; }
 
-      - name: Inspect binaries
+      - name: Collect binaries and disassembly
         run: |
           mkdir -p dist
-          cp build/test/Bin/GameTest/OpenEnroth_GameTest hue_micro .github/hsv-probe/probe.sh dist/
-          file dist/OpenEnroth_GameTest dist/hue_micro
-          otool -L dist/OpenEnroth_GameTest
+          cp build/test/Bin/GameTest/OpenEnroth_GameTest dist/OpenEnroth_GameTest_report
+          cp build-verify/test/Bin/GameTest/OpenEnroth_GameTest dist/OpenEnroth_GameTest_verify
+          cp .github/hsv-probe/probe2.sh dist/
+          file dist/OpenEnroth_GameTest_*
+          for v in report verify; do
+            xcrun objdump -d --no-show-raw-insn --x86-asm-syntax=intel dist/OpenEnroth_GameTest_$v > all.asm
+            awk '/^[0-9a-f]+ <__ZNK9HsvColorf|^[0-9a-f]+ <__ZNK6Colorf11toHsvColorf|^[0-9a-f]+ <__ZN14PaletteManager19createLoadedPalette/{p=1} p{print} /^$/{p=0}' all.asm > dist/disasm-$v.txt
+            wc -l dist/disasm-$v.txt
+          done
+          grep -c "" dist/disasm-report.txt
+          grep -iE "ymm|vmax|vmin|fprem|fld|fstp|x87|call" dist/disasm-report.txt | head -40 || true
 
       - uses: actions/upload-artifact@v4
         with:
           name: probe-binaries
           path: dist/
-          retention-days: 3
+          retention-days: 7
 
   probe:
     needs: build
-    timeout-minutes: 170
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { runner: macos-15, shard: 1 }
-          - { runner: macos-15, shard: 2 }
-          - { runner: macos-15, shard: 3 }
-          - { runner: macos-15, shard: 4 }
-          - { runner: macos-15-intel, shard: 1 }
+          - { runner: macos-15, variant: report, repeat: 1, shard: 1 }
+          - { runner: macos-15, variant: report, repeat: 100, shard: 2 }
+          - { runner: macos-15, variant: report, repeat: 100, shard: 3 }
+          - { runner: macos-15, variant: verify, repeat: 100, shard: 4 }
+          - { runner: macos-15-intel, variant: report, repeat: 100, shard: 5 }
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -93,23 +95,26 @@ jobs:
 
       - name: Describe the machine
         run: |
-          chmod +x dist/OpenEnroth_GameTest dist/hue_micro
+          chmod +x dist/OpenEnroth_GameTest_*
           uname -m
           sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
           sw_vers
-          file dist/OpenEnroth_GameTest
-          ls OpenEnroth_GameData/mm7 | head
+          ls OpenEnroth_GameData/mm7 | head -3
+          OE_PALETTE_REPORT=1 OE_PALETTE_REPEAT=${{ matrix.repeat }} dist/OpenEnroth_GameTest_${{ matrix.variant }} --headless --test-path "$PWD" --gtest_filter=NoSuch.Test 2>&1 | grep -E "HSVPROBE|PASSED"
+        env:
+          OPENENROTH_MM7_PATH: ${{github.workspace}}/OpenEnroth_GameData/mm7
 
       - name: Probe
         run: |
           workers=$(( $(sysctl -n hw.ncpu) + 1 ))
-          bash dist/probe.sh "$PWD/dist/OpenEnroth_GameTest" "$PWD/dist/hue_micro" "$workers" 120 10 12
+          bash dist/probe2.sh "$PWD/dist/OpenEnroth_GameTest_${{ matrix.variant }}" "$workers" 130
         env:
           OPENENROTH_MM7_PATH: ${{github.workspace}}/OpenEnroth_GameData/mm7
+          OE_PALETTE_REPEAT: ${{ matrix.repeat }}
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: probe-out-${{ matrix.runner }}-${{ matrix.shard }}
+          name: probe-out-${{ matrix.runner }}-${{ matrix.variant }}-${{ matrix.repeat }}-${{ matrix.shard }}
           path: probe-out/
           retention-days: 14
