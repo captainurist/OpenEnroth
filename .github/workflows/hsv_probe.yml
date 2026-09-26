@@ -1,0 +1,115 @@
+name: HsvColorf probe
+
+# Throwaway probe for the HsvColorf range assert that aborts darwin_x86_64 RelWithDebInfo game tests at startup.
+# Builds the game test binary exactly like build_all's darwin_x86_64 RelWithDebInfo job, then launches it many
+# times on macos-15 (Apple Silicon, so the x86_64 binary runs under Rosetta 2) and on macos-15-intel (native).
+
+on:
+  push:
+    branches:
+      - probe/hsv-rosetta
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 16.3
+
+      - uses: actions/checkout@v5.0.0
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth 1 --jobs 8
+
+      - uses: hendrikmuhs/ccache-action@v1.2.18
+        with:
+          key: darwin-RelWithDebInfo-x86_64
+          max-size: 400M
+          save: false
+
+      - name: Configure
+        run: |
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOE_DISTRIBUTION_BUILD=ON -DOE_USE_SANITIZERS= -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+
+      - name: Build game test binary
+        working-directory: build
+        run: ninja -v OpenEnroth_GameTest 2>&1 | grep -E "HsvColorf.cpp|Colorf.cpp|FAILED|error:" || true
+
+      - name: Build hue_micro
+        run: |
+          c++ -O2 -g -arch x86_64 -mmacosx-version-min=10.15 -std=gnu++23 -fno-omit-frame-pointer -fno-math-errno \
+            -fno-trapping-math -ffp-contract=off -DFMT_USE_NONTYPE_TEMPLATE_ARGS -DOE_DISTRIBUTION_BUILD \
+            -Isrc -Ithirdparty/fmt/include -Ithirdparty/small_vector/source/include -Ithirdparty/lambda2/include \
+            -Ithirdparty/magic_enum/include \
+            .github/hsv-probe/hue_micro.cpp src/Library/Color/Colorf.cpp src/Library/Color/HsvColorf.cpp -o hue_micro
+
+      - name: Inspect binaries
+        run: |
+          mkdir -p dist
+          cp build/test/Bin/GameTest/OpenEnroth_GameTest hue_micro .github/hsv-probe/probe.sh dist/
+          file dist/OpenEnroth_GameTest dist/hue_micro
+          otool -L dist/OpenEnroth_GameTest
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-binaries
+          path: dist/
+          retention-days: 3
+
+  probe:
+    needs: build
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, shard: 1 }
+          - { runner: macos-15, shard: 2 }
+          - { runner: macos-15, shard: 3 }
+          - { runner: macos-15, shard: 4 }
+          - { runner: macos-15-intel, shard: 1 }
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: probe-binaries
+          path: dist
+
+      - name: Restore data cache
+        uses: actions/cache/restore@v4.2.4
+        with:
+          path: |
+            OpenEnroth_GameData
+          key: data-cache
+
+      - name: Describe the machine
+        run: |
+          chmod +x dist/OpenEnroth_GameTest dist/hue_micro
+          uname -m
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+          sw_vers
+          file dist/OpenEnroth_GameTest
+          ls OpenEnroth_GameData/mm7 | head
+
+      - name: Probe
+        run: |
+          workers=$(( $(sysctl -n hw.ncpu) + 1 ))
+          bash dist/probe.sh "$PWD/dist/OpenEnroth_GameTest" "$PWD/dist/hue_micro" "$workers" 120 10 12
+        env:
+          OPENENROTH_MM7_PATH: ${{github.workspace}}/OpenEnroth_GameData/mm7
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe-out-${{ matrix.runner }}-${{ matrix.shard }}
+          path: probe-out/
+          retention-days: 14
