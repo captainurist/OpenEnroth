@@ -1,0 +1,80 @@
+name: Rosetta flags probe
+
+# Throwaway probe for the HsvColorf startup assert. Checks whether x86 flags read back wrong under Rosetta on GitHub's
+# Apple Silicon runners, which flags and in which thread mixes, and dumps the ARM code Rosetta generates there.
+
+on:
+  push:
+    branches:
+      - probe/rosetta-flags
+  workflow_dispatch:
+
+jobs:
+  probe:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, shard: 1 }
+          - { runner: macos-15, shard: 2 }
+          - { runner: macos-15, shard: 3 }
+          - { runner: macos-14, shard: 1 }
+          - { runner: macos-26, shard: 1 }
+          - { runner: macos-15-intel, shard: 1 }
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5.0.0
+
+      - name: Describe the machine
+        run: |
+          uname -a
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize kern.hv_vmm_present
+          sw_vers
+          pkgutil --pkgs | grep -i rosetta || true
+          for p in $(pkgutil --pkgs | grep -i rosetta); do pkgutil --pkg-info "$p"; done
+          sysctl hw.optional | grep -i -E "arm|flagm|afp" || true
+          arch -x86_64 /usr/bin/true && echo "rosetta ok"
+
+      - name: Build
+        run: |
+          mkdir -p flags-out
+          clang -O2 -arch x86_64 -mmacosx-version-min=10.15 -pthread .github/rosetta-flags/flagtest2.c -o flagtest2
+          clang -O2 -arch x86_64 -mmacosx-version-min=10.15 -dynamiclib .github/rosetta-flags/aotdump.c -o aotdump.dylib
+
+      - name: Dump the translated flag test
+        run: |
+          cd flags-out
+          ../flagtest2 dump || true
+          ls -la
+
+      - name: Download the HsvColorf probe binary
+        if: matrix.runner != 'macos-15-intel'
+        uses: actions/download-artifact@v4
+        with:
+          name: probe-binaries
+          path: probe-binaries
+          run-id: 36248799711
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dump the translated game binary
+        if: matrix.runner != 'macos-15-intel'
+        run: |
+          chmod +x probe-binaries/OpenEnroth_GameTest_report
+          cd flags-out
+          AOTDUMP_NAME=OpenEnroth_GameTest_report.aot DYLD_INSERT_LIBRARIES=$PWD/../aotdump.dylib \
+            ../probe-binaries/OpenEnroth_GameTest_report --headless --gtest_filter=NoSuch.Test 2>&1 | grep AOTDUMP || true
+          ls -la
+
+      - name: Probe
+        run: bash .github/rosetta-flags/run.sh 90
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flags-out-${{ matrix.runner }}-${{ matrix.shard }}
+          path: flags-out/
+          retention-days: 14
