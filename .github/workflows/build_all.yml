@@ -62,10 +62,12 @@ jobs:
         include:
           - configuration: ASan
             target: linux_x86_64
+    # Rosetta in the Apple Silicon macos-* VMs corrupts the x86 parity and adjust flags, so x86_64 runs on Intel.
     runs-on: >-
       ${{
-        startsWith(matrix.target, 'windows_') && 'windows-2022' ||
-        startsWith(matrix.target, 'darwin_')  && 'macos-15'     ||
+        startsWith(matrix.target, 'windows_') && 'windows-2022'   ||
+        matrix.target == 'darwin_x86_64'      && 'macos-15-intel' ||
+        startsWith(matrix.target, 'darwin_')  && 'macos-15'       ||
         'ubuntu-26.04'
       }}
     defaults:
