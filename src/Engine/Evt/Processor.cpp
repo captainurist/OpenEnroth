@@ -208,6 +208,8 @@ static void registerEventTriggers() {
     registerTimerTriggers(EVENT_OnTimer, &onTimerTriggers);
 }
 
+static void checkTimers();
+
 void onMapLoad() {
     // Register all triggers when map done loading
     registerEventTriggers();
@@ -217,6 +219,8 @@ void onMapLoad() {
     for (EventTrigger &triggers : onMapLoadTriggers) {
         eventProcessor(triggers.eventId, Pid(), false, triggers.eventStep + 1);
     }
+
+    checkTimers(); // Timers that came due while the party was away fire before it can act.
 }
 
 void onMapLeave() {
@@ -257,6 +261,10 @@ void onTimer() {
 
     timerGuard = pParty->GetPlayingTime();
 
+    checkTimers();
+}
+
+static void checkTimers() {
     for (MapTimer &timer : onTimerTriggers) {
         checkTimer(timer);
     }

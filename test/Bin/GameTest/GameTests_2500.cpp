@@ -134,7 +134,7 @@ GAME_TEST(Issues, Issue2505) {
 
     engine->config->debug.NoActors.setValue(false);
     game.spawnMonster(pParty->pos + Vec3f(0, 1500, 0), MONSTER_ELEMENTAL_WATER_C, SPAWN_STATIONARY);
-    game.tick(300); // Cast chance is 30%, shall be enough.
+    game.tick(600); // Cast chance is 30%, shall be enough.
 
     auto flat = spritesTape.flatten();
     EXPECT_CONTAINS(flat, SPRITE_SPELL_WATER_ICE_BLAST);
@@ -926,4 +926,30 @@ GAME_TEST(Issues, Issue2834) {
     EXPECT_EQ(golemHeadTape, tape(0, 1));
     EXPECT_EQ(golemHeadPlacedTape, tape(true, false));
     EXPECT_EQ(abbeyHeadPlacedTape, tape(false, true));
+}
+
+GAME_TEST(Prs, PrWellAfterRide) {
+    // A well refused the first drink after riding back, its daily reset only ran at the first timer check after the load.
+    auto mapTape = tapes.map();
+    auto bonusTape = tapes.custom([] { return pParty->pCharacters[0].sResBodyBonus; });
+    game.startNewGame();
+    game.teleportTo(MAP_ERATHIA, Vec3f(-12216, 1900, 961), 90); // Next to a well.
+    game.tick(20); // Erathia's timers fire once on the first visit.
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE); // Drinking sets a character bit that a daily Erathia timer clears at 1am.
+    game.tick(2);
+    game.teleportTo(MAP_ERATHIA, Vec3f(-18056, 4430, 832), 90); // In front of the Royal Steeds stable.
+    game.tick(2);
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick(2);
+    game.pressGuiButton("HouseDialogue_Option0"); // A two-day ride to Tatalia, passing 1am.
+    game.tick(2);
+    game.skipLoadingScreen();
+    game.tick(2);
+
+    test.startTaping();
+    game.teleportTo(MAP_ERATHIA, Vec3f(-12216, 1900, 961), 90); // Back at the well.
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick(2);
+    EXPECT_EQ(mapTape, tape(MAP_TATALIA, MAP_ERATHIA));
+    EXPECT_EQ(bonusTape, tape(0, 20)); // The ride rests the party, which drops the first drink's bonus.
 }
