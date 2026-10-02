@@ -935,8 +935,11 @@ GAME_TEST(Prs, PrWellAfterRide) {
     game.startNewGame();
     game.teleportTo(MAP_ERATHIA, Vec3f(-12216, 1900, 961), 90); // Next to a well.
     game.tick(20); // Erathia's timers fire once on the first visit.
-    game.pressAndReleaseKey(PlatformKey::KEY_SPACE); // Drinking sets a character bit that a daily Erathia timer clears at 1am.
+    test.startTaping();
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE); // Drink. A daily Erathia timer clears the drank bit at 1am.
     game.tick(2);
+    test.stopTaping();
     game.teleportTo(MAP_ERATHIA, Vec3f(-18056, 4430, 832), 90); // In front of the Royal Steeds stable.
     game.tick(2);
     game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
@@ -950,6 +953,6 @@ GAME_TEST(Prs, PrWellAfterRide) {
     game.teleportTo(MAP_ERATHIA, Vec3f(-12216, 1900, 961), 90); // Back at the well.
     game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
     game.tick(2);
-    EXPECT_EQ(mapTape, tape(MAP_TATALIA, MAP_ERATHIA));
-    EXPECT_EQ(bonusTape, tape(0, 20)); // The ride rests the party, which drops the first drink's bonus.
+    EXPECT_EQ(mapTape, tape(MAP_ERATHIA, MAP_TATALIA, MAP_ERATHIA));
+    EXPECT_EQ(bonusTape, tape(0, 20, 0, 20)); // The well gives +20 Body Resistance, and the ride's rest drops it.
 }
