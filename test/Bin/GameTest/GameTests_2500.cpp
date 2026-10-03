@@ -1,5 +1,6 @@
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "Testing/Game/GameTest.h"
 
@@ -11,21 +12,30 @@
 #include "Engine/Data/AwardEnums.h"
 #include "Engine/Data/HouseEnums.h"
 #include "Engine/Evt/EvtVariables.h"
+#include "Engine/Graphics/Camera.h"
 #include "Engine/Graphics/Image.h"
 #include "Engine/Graphics/Indoor.h"
 #include "Engine/Graphics/Vis.h"
 #include "Engine/Objects/Actor.h"
+#include "Engine/Objects/Chest.h"
 #include "Engine/Objects/Decoration.h"
+#include "Engine/Objects/MonsterEnumFunctions.h"
 #include "Engine/Objects/SpriteObject.h"
 #include "Engine/Resources/EngineFileSystem.h"
 #include "Engine/Tables/DecorationTable.h"
 #include "Engine/Tables/NPCTable.h"
 
+#include "GUI/GUIButton.h"
 #include "GUI/GUIWindow.h"
+#include "GUI/UI/ItemGrid.h"
+#include "GUI/UI/UIChest.h"
 #include "GUI/UI/UIGame.h"
 #include "GUI/UI/UISaveLoad.h"
 
 #include "Media/Audio/SoundList.h"
+
+#include "Utility/Exception.h"
+#include "Utility/Lambda.h"
 
 #include "GameTestCommon.h"
 
@@ -35,6 +45,121 @@ static AccessibleVector<std::string> soundNames(const TestMultiTape<SoundId> &so
 
 static std::string portraitName(int face) {
     return fmt::format("{}01", pPlayerPortraitsNames[face]);
+}
+
+static void killMonstersAroundParty(EngineController &game, float radius) {
+    // Timers can summon more monsters while the first batch is dying, so this goes on until nothing is left.
+    auto isTarget = [radius](const Actor &actor) {
+        return actor.CanAct() && actor.monsterId != MONSTER_INVALID && !isPeasant(actor.monsterId) && (actor.pos - pParty->pos).length() < radius;
+    };
+    while (std::ranges::any_of(pActors, isTarget)) {
+        for (const Actor &actor : pActors)
+            if (isTarget(actor))
+                Actor::Die(actor.id);
+        while (std::ranges::any_of(pActors, _1 == Dying, &Actor::aiState))
+            game.tick();
+    }
+}
+
+static void takeAllFromChest(EngineController &game, MapId map, Vec3f pos, int yaw) {
+    game.teleportTo(map, pos, yaw);
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick();
+    ASSERT_EQ(current_screen_type, SCREEN_CHEST);
+    while (!vChests[pGUIWindow_CurrentChest->chestId()].inventory.entries().empty()) {
+        game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+        game.tick();
+    }
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick();
+}
+
+static void pickUpFloorItem(EngineController &game, ItemId item) {
+    // An item's billboard is drawn upwards from its position, so this tries points above it until the pick hits it.
+    game.tick();
+    auto sprite = std::ranges::find_if(pSpriteObjects, [item](const SpriteObject &sprite) { return sprite.uObjectDescID != 0 && sprite.containing_item.itemId == item; });
+    ASSERT_NE(sprite, pSpriteObjects.end());
+    Vec3f pos = sprite->vPosition;
+    Pointi base = pCamera3D->Project(pCamera3D->ViewTransform(&pos)).toInt();
+    std::vector<Pointi> points;
+    for (int dy = 0; dy <= 60; dy += 4)
+        for (int dx = -40; dx <= 40; dx += 4)
+            points.push_back(base + Pointi(dx, -dy));
+    auto target = std::ranges::find(points, Pid(OBJECT_Sprite, sprite - pSpriteObjects.begin()), [](Pointi point) {
+        return engine->PickMouse(engine->config->gameplay.MouseInteractionDepth.value(), point.x, point.y, &vis_anything_filter, &vis_face_filter).pid;
+    });
+    ASSERT_NE(target, points.end());
+    game.pressAndReleaseButton(BUTTON_LEFT, *target);
+    game.tick();
+}
+
+static void clickInventoryItem(EngineController &game, ItemId item, PlatformMouseButton button) {
+    // Right-click actions run while the button is held, so the press and the release go into separate frames.
+    InventoryEntry entry = pParty->activeCharacter().inventory.find(item);
+    Pointi pos = mapFromInventoryGrid(entry.geometry().topLeft(), Pointi(14, 17)) + Pointi(16, 16);
+    game.pressButton(button, pos);
+    game.tick();
+    game.releaseButton(button, pos);
+    game.tick();
+}
+
+static void chooseDialogueOption(EngineController &game, std::string_view topic) {
+    for (GUIWindow *window : lWindowList) {
+        for (GUIButton *button : window->vButtons) {
+            if (button->id.contains("Option") && button->label.starts_with(topic)) {
+                game.pressGuiButton(button->id);
+                game.tick();
+                return;
+            }
+        }
+    }
+    throw Exception("Dialogue option '{}' not found", topic);
+}
+
+static void talkToNpc(EngineController &game, int npcId) {
+    auto actor = std::ranges::find(pActors, npcId, &Actor::npcId);
+    ASSERT_NE(actor, pActors.end());
+    game.pointMouseAtActor(actor->id);
+    game.pressAndReleaseButton(BUTTON_LEFT);
+    game.tick();
+}
+
+static void enterHouseThroughDoor(EngineController &game, MapId map, Vec3f pos, int yaw, std::string_view npcName = {}) {
+    game.teleportTo(map, pos, yaw);
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick();
+    ASSERT_EQ(current_screen_type, SCREEN_HOUSE);
+    if (npcName.empty())
+        return;
+    for (GUIWindow *window : lWindowList) {
+        for (GUIButton *button : window->vButtons) {
+            if (button->id.starts_with("House_Npc") && button->label.contains(npcName)) {
+                game.pressGuiButton(button->id);
+                game.tick();
+                return;
+            }
+        }
+    }
+    throw Exception("House resident '{}' not found", npcName);
+}
+
+static void leaveHouse(EngineController &game) {
+    for (int i = 0; i < 3 && current_screen_type != SCREEN_GAME; i++) {
+        game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+        game.tick();
+    }
+    ASSERT_EQ(current_screen_type, SCREEN_GAME);
+}
+
+static void useMapExit(EngineController &game, MapId map, Vec3f pos, int yaw) {
+    game.teleportTo(map, pos, yaw);
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick();
+    game.pressGuiButton("Transition_Yes");
+    game.skipLoadingScreen();
 }
 
 // 2500
@@ -926,4 +1051,148 @@ GAME_TEST(Issues, Issue2834) {
     EXPECT_EQ(golemHeadTape, tape(0, 1));
     EXPECT_EQ(golemHeadPlacedTape, tape(true, false));
     EXPECT_EQ(abbeyHeadPlacedTape, tape(false, true));
+}
+
+GAME_TEST(Issues, Issue2903) {
+    // Castle Harmondale's war banners put an entry that reads "0" into the quest book.
+    auto huntWonTape = tapes.questBit(QBIT_EMERALD_ISLAND_SCAVENGER_HUNT_WON);
+    auto escapedTape = tapes.questBit(QBIT_ESCAPED_EMERALD_ISLE);
+    auto goblinsKilledTape = tapes.questBit(QBIT_CASTLE_HARMONDALE_GOBLINS_KILLED);
+    auto rebuiltTape = tapes.questBit(QBIT_HARMONDALE_REBUILT);
+    auto falseLorenTape = tapes.questBit(QBIT_FALSE_LOREN_GIVEN);
+    auto bannersTape = tapes.questBit(QBIT_HARMONDALE_FACTION_BANNERS_HUNG);
+    auto screenTape = tapes.screen();
+    auto textTape = tapes.allGUIWindowsText();
+    game.startNewGame();
+    test.startTaping();
+
+    // Margaret's tour would stop the party on every plate it steps on.
+    game.pressGuiButton("Game_Hireling1");
+    game.tick();
+    chooseDialogueOption(game, "Tour Off");
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick();
+
+    // Emerald Island crates: potion bottles and berries for the red potion, and the seashell.
+    game.teleportTo(MAP_EMERALD_ISLAND, Vec3f(-696, 16800, 96), 90);
+    game.tick();
+    killMonstersAroundParty(game, 5000);
+    takeAllFromChest(game, MAP_EMERALD_ISLAND, Vec3f(-696, 16800, 96), 90);
+    takeAllFromChest(game, MAP_EMERALD_ISLAND, Vec3f(-568, 16560, 96), 90);
+    game.goToInventory(0);
+    clickInventoryItem(game, ITEM_REAGENT_WIDOWSWEEP_BERRIES, BUTTON_LEFT);
+    clickInventoryItem(game, ITEM_POTION_BOTTLE, BUTTON_RIGHT);
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick();
+
+    // Temple of the Moon: the floor tile and the wealthy hat.
+    game.teleportTo(MAP_TEMPLE_OF_THE_MOON, Vec3f(-4020, 6336, -96), 180, -30);
+    game.tick();
+    killMonstersAroundParty(game, 2000);
+    pickUpFloorItem(game, ITEM_QUEST_FLOOR_TILE_W_MOON_INSIGNIA);
+    takeAllFromChest(game, MAP_TEMPLE_OF_THE_MOON, Vec3f(-6058, 6784, -96), 180);
+
+    // Dragon's Lair: the longbow, and a missing contestant's shield that Lord Markham pays for.
+    game.teleportTo(MAP_DRAGONS_LAIR, Vec3f(0, 2780, 1), 90, -30);
+    game.tick();
+    killMonstersAroundParty(game, 3000);
+    pickUpFloorItem(game, ITEM_LONGBOW);
+    game.teleportTo(MAP_DRAGONS_LAIR, Vec3f(0, 2480, 1), 270, -30);
+    pickUpFloorItem(game, ITEM_QUEST_CONTESTANTS_SHIELD);
+    enterHouseThroughDoor(game, MAP_EMERALD_ISLAND, Vec3f(16154, 8560, 128), 180, "Lord Markham");
+    chooseDialogueOption(game, "Missing Contestants");
+    chooseDialogueOption(game, "Missing Contestants");
+    leaveHouse(game);
+
+    // Ailyssa the Bard sells her lute.
+    game.teleportTo(MAP_EMERALD_ISLAND, Vec3f(11700, 4672, 96), 0);
+    talkToNpc(game, 4);
+    chooseDialogueOption(game, "Lute");
+    chooseDialogueOption(game, "Buy Lute for 500 gold");
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_DIGIT_2); // Puts the lute from the cursor into a backpack.
+    game.tick();
+
+    // The judge takes one item per question, and the seventh question declares the winner.
+    enterHouseThroughDoor(game, MAP_EMERALD_ISLAND, Vec3f(16154, 8560, 128), 180, "Thomas the Judge");
+    for (int i = 0; i < 7; i++)
+        chooseDialogueOption(game, "What do you have?");
+    leaveHouse(game);
+    enterHouseThroughDoor(game, MAP_EMERALD_ISLAND, Vec3f(16154, 8560, 128), 180);
+    chooseDialogueOption(game, "Congratulations");
+    chooseDialogueOption(game, "Your ship");
+    leaveHouse(game);
+    enterHouseThroughDoor(game, MAP_EMERALD_ISLAND, Vec3f(11008, 34, 192), 90);
+    chooseDialogueOption(game, "Cast off!");
+    game.skipLoadingScreen();
+
+    // In Harmondale, the butler meets the new lords at the castle door and asks them to clean the castle out.
+    game.teleportTo(MAP_HARMONDALE, Vec3f(-18118, 12544, 480), 180);
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+    game.tick();
+    game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+    game.tick();
+    useMapExit(game, MAP_HARMONDALE, Vec3f(-18118, 12544, 480), 180);
+    for (const Actor &actor : pActors)
+        if (actor.group == 5 && actor.CanAct())
+            Actor::Die(actor.id);
+    while (std::ranges::any_of(pActors, _1 == Dying, &Actor::aiState))
+        game.tick();
+    useMapExit(game, MAP_CASTLE_HARMONDALE, Vec3f(-5120, -2630, 0), 270);
+    enterHouseThroughDoor(game, MAP_HARMONDALE, Vec3f(-5184, 13370, 0), 270, "Butler");
+    chooseDialogueOption(game, "Goblins");
+    leaveHouse(game);
+
+    // Hothfarr IX gives an elixir that wakes the dwarves turned to stone in the Red Dwarf Mines.
+    useMapExit(game, MAP_BARROW_DOWNS, Vec3f(-2630, 3072, 2080), 180);
+    enterHouseThroughDoor(game, MAP_STONE_CITY, Vec3f(4486, 384, 59), 0);
+    chooseDialogueOption(game, "Rescue Dwarves");
+    leaveHouse(game);
+    useMapExit(game, MAP_BRACADA_DESERT, Vec3f(20976, 14590, 0), 90);
+    for (auto [decoration, statue] : {std::pair(1, Vec3f(416, 11360, 0)), std::pair(2, Vec3f(11136, 6400, -256)),
+                                      std::pair(3, Vec3f(8704, 13824, 0)), std::pair(4, Vec3f(4892, 8968, -128)),
+                                      std::pair(5, Vec3f(-3408, 9816, -128)), std::pair(6, Vec3f(1280, 3072, -128)),
+                                      std::pair(7, Vec3f(-3784, 5280, -128))}) {
+        game.teleportTo(MAP_RED_DWARF_MINES, statue + Vec3f(250, 0, 0), 180);
+        killMonstersAroundParty(game, 2000);
+        game.pointMouseAtDecoration(decoration);
+        game.pressAndReleaseKey(PlatformKey::KEY_SPACE);
+        game.tick();
+        game.pressAndReleaseKey(PlatformKey::KEY_ESCAPE);
+        game.tick();
+    }
+    enterHouseThroughDoor(game, MAP_STONE_CITY, Vec3f(4486, 384, 59), 0);
+    chooseDialogueOption(game, "Rescue Dwarves");
+    leaveHouse(game);
+
+    // Queen Catherine wants her spy back from the elves, and the elf king lends the party a look-alike.
+    useMapExit(game, MAP_ERATHIA, Vec3f(-634, 9984, 2400), 0);
+    enterHouseThroughDoor(game, MAP_CASTLE_GRYPHONHEART, Vec3f(-5579, 0, 504), 180);
+    chooseDialogueOption(game, "Prisoner of War");
+    leaveHouse(game);
+    useMapExit(game, MAP_TULAREAN_FOREST, Vec3f(-18580, -10240, 1536), 180);
+    enterHouseThroughDoor(game, MAP_CASTLE_NAVAN, Vec3f(-3360, 10710, -1541), 90);
+    chooseDialogueOption(game, "Prison Break");
+    leaveHouse(game);
+    useMapExit(game, MAP_ERATHIA, Vec3f(-634, 9984, 2400), 0);
+    enterHouseThroughDoor(game, MAP_CASTLE_GRYPHONHEART, Vec3f(-5579, 0, 504), 180);
+    chooseDialogueOption(game, "Prisoner of War");
+    leaveHouse(game);
+
+    // Back home, the castle hangs the banners of the side the party helped.
+    useMapExit(game, MAP_HARMONDALE, Vec3f(-18118, 12544, 480), 180);
+    game.pressAndReleaseKey(PlatformKey::KEY_Q);
+    game.tick();
+
+    EXPECT_EQ(huntWonTape, tape(false, true));
+    EXPECT_EQ(escapedTape, tape(false, true));
+    EXPECT_EQ(goblinsKilledTape, tape(false, true));
+    EXPECT_EQ(rebuiltTape, tape(false, true));
+    EXPECT_EQ(falseLorenTape, tape(false, true));
+    EXPECT_EQ(bannersTape, tape(false, true));
+    EXPECT_EQ(screenTape.back(), SCREEN_BOOKS);
+    EXPECT_CONTAINS(textTape.flatten(), "Current Quests"); // The quest book did draw.
+    EXPECT_MISSES(textTape.flatten(), "0");
 }
